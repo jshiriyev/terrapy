@@ -6,6 +6,42 @@ import numpy as np
 
 #Local application imports
 
+
+class diffusivity():
+
+    def __init__(self,hydraulic_diffusivity):
+        
+        self.eta = hydraulic_diffusivity
+
+    def cartesian_1D(self,boundary_points,boundary_pressures,time,x=None,N=50):
+
+        xL = boundary_points[0]
+        xU = boundary_points[1]
+
+        PL = boundary_pressures[0]
+        PU = boundary_pressures[1]
+
+        L = xU-xL
+
+        self.time = time.reshape((-1,1,1))
+
+        if x is None:
+            self.x = np.linspace(xL,xU).reshape((1,-1,1))
+        else:
+            self.x = x.reshape((1,-1,1))
+
+        n = np.arange(1,N).reshape((1,1,-1))
+
+        sin_ = np.sin(n*np.pi*self.x/L)
+        exp_ = np.exp(-n**2*np.pi**2/L**2*self.eta*self.time)
+
+        sum_ = np.sum(1/n*exp_*sin_,axis=2)
+
+        self.pressure = PL+(PU-PL)*((self.x/L).reshape((1,-1))+2/np.pi*sum_)
+
+    def radial_1D(self):
+        pass
+
 class poisson():
 
     def __init__(self):
@@ -59,6 +95,25 @@ class poisson():
         self.u = beta/2*self.x**2+c1*self.x+c2
 
 if __name__ == "__main__":
+
+##    k = 50 #mD
+##    k *= 0.986923e-15
+##
+##    phi = 0.15
+##    mu = 1e-3
+##    c = 2e-9
+##    
+##    sp = diffusivity(k/(phi*mu*c))
+##
+##    PL = 2000 #psi
+##    PU = 3500 #psi
+##
+##    PL *= 6894.76
+##    PU *= 6894.76
+##
+##    sp.cartesian_1D((0,50),(PL,PU),np.array([60,600]),x=np.array([12,27,41]),N=4)
+##
+##    print(sp.pressure/6894.76)
 
     beta = 10
 
