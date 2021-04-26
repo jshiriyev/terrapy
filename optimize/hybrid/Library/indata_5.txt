@@ -1,0 +1,13 @@
+200		% number of generations
+5		% number of models
+5		% number of model parameters
+-10		% minimum value for m(1)
+-10		% minimum value for m(2)
+-10		% minimum value for m(3)
+-10		% minimum value for m(4)
+-10		% minimum value for m(5)
+10		% maximum value for m(1)
+10		% maximum value for m(2)
+10		% maximum value for m(3)
+10		% maximum value for m(4)
+10		% maximum value for m(5)

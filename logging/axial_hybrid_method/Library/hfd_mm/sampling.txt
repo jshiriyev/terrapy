@@ -1,0 +1,4 @@
+-1		% first logging point (Tx location)
+1		% last logging point (Tx location)
+41		% number of logging points
+1		% Distance between transmitter and receiver coil (Unit: m)
