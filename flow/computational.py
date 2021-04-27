@@ -17,7 +17,9 @@ from scipy.sparse.linalg import spsolve
 class mesh():
 
     """
-    regular grids are generated in this class
+    regular grids are generated in this class,
+    cartesian grids are generated in 3D
+    radial grids are in progress...
     """
 
     def __init__(self):
