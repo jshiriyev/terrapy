@@ -20,129 +20,127 @@ class mesh():
     regular grids are generated in this class
     """
 
-    def __init__(self,dimension):
-
-        self.dimension = dimension
+    def __init__(self):
+       pass
 
     def cartesian(self,length,
-                       number_of_grids,
-                       boundary1,
-                       boundary2,
-                       boundary3=None,
-                       boundary4=None,
-                       boundary5=None,
-                       boundary6=None):
+                       grid_num,
+                       b_xmin=(0,1,0),
+                       b_xmax=(0,1,0),
+                       b_ymin=(0,1,0),
+                       b_ymax=(0,1,0),
+                       b_zmin=(0,1,0),
+                       b_zmax=(0,1,0)):
 
-        #length is a tuple with three dimensional size information
+        #length and grid_num are tuples with three entries for
+        # size and discretization in x,y,z direction
         # for rectangular parallelepiped:
 
-        self.xsize = length[0]
-        self.ysize = length[1]
-        self.zsize = length[2]
+        self.num_x = grid_num[0]
+        self.num_y = grid_num[1]
+        self.num_z = grid_num[2]
 
-        #number of grids is a tuple with three entries:
-        # - number of grids in x direction
-        # - number of grids in y direction
-        # - number of grids in z direction
+        node_x = np.linspace(0,length[0],self.num_x+1)
+        node_y = np.linspace(0,length[1],self.num_y+1)
+        node_z = np.linspace(0,length[2],self.num_z+1)
 
-        self.Nx = number_of_grids[0]
-        self.Ny = number_of_grids[1]
-        self.Nz = number_of_grids[2]
+        #self.num: total number of grids for rectangular parallelepiped
+        self.num = self.num_x*self.num_y*self.num_z
+        
+        #self.id is a connectivity map and contain index of all grids
+        # their neighbours.
 
-        #boundary have three entries:
+        idx = np.arange(self.num).astype('float')
+
+        xmin = idx-1
+        xmax = idx+1
+        ymin = idx-self.num_x
+        ymax = idx+self.num_x
+        zmin = idx-self.num_x*self.num_y
+        zmax = idx+self.num_x*self.num_y
+
+        xmin.reshape((-1,self.num_x))[:,0] = np.nan
+        xmax.reshape((-1,self.num_x))[:,-1] = np.nan
+        ymin.reshape((self.num_z,-1))[:,:self.num_x] = np.nan
+        ymax.reshape((self.num_z,-1))[:,-self.num_x:] = np.nan
+        zmin.reshape((self.num_z,-1))[0,:] = np.nan
+        zmax.reshape((self.num_z,-1))[-1,:] = np.nan
+
+        self.id = np.zeros((self.num,1+2*3))
+        
+        self.id[:,0] = idx
+        self.id[:,1] = xmin
+        self.id[:,2] = xmax
+        self.id[:,3] = ymin
+        self.id[:,4] = ymax
+        self.id[:,5] = zmin
+        self.id[:,6] = zmax
+
+        #self.boundary is id of boundary grids,
+        # the id of its neighbors and boundary conditions.
+
+        questbound = lambda x: 1 if x>1 else 0
+
+        num_bxmin = self.num_y*self.num_z*questbound(self.num_x)
+        num_bxmax = self.num_y*self.num_z*questbound(self.num_x)
+        
+        num_bymin = self.num_z*self.num_x*questbound(self.num_y)
+        num_bymax = self.num_z*self.num_x*questbound(self.num_y)
+        
+        num_bzmin = self.num_x*self.num_y*questbound(self.num_z)
+        num_bzmax = self.num_x*self.num_y*questbound(self.num_z)
+
+        idb = np.array([0,num_bxmin,num_bxmax,
+                          num_bymin,num_bymax,
+                          num_bzmin,num_bzmax])
+
+        idb = np.cumsum(idb)
+
+        self.boundary = np.zeros((idb[-1],1+2*3+3))
+
+        self.boundary[idb[0]:idb[1],:-3] = self.id[np.isnan(xmin),:]
+        self.boundary[idb[1]:idb[2],:-3] = self.id[np.isnan(xmax),:]
+        self.boundary[idb[2]:idb[3],:-3] = self.id[np.isnan(ymin),:]
+        self.boundary[idb[3]:idb[4],:-3] = self.id[np.isnan(ymax),:]
+        self.boundary[idb[4]:idb[5],:-3] = self.id[np.isnan(zmin),:]
+        self.boundary[idb[5]:idb[6],:-3] = self.id[np.isnan(zmax),:]
+
+        #boundaries (b_xmin,b_xmax,b_ymin,b_ymax,b_zmin,b_zmax)
+        #have three entries:
         # - dirichlet coefficient,
         # - neumann coefficient,
         # - function value of boundary condition
+        #by default no flow boundary conditions are implemented
 
-        #total number of grids we have in the rectangular parallelepiped:
-        self.number = self.Nx*self.Ny*self.Nz
+        self.boundary[idb[0]:idb[1],7:] = np.array(b_xmin)
+        self.boundary[idb[1]:idb[2],7:] = np.array(b_xmax)
+        self.boundary[idb[2]:idb[3],7:] = np.array(b_ymin)
+        self.boundary[idb[3]:idb[4],7:] = np.array(b_ymax)
+        self.boundary[idb[4]:idb[5],7:] = np.array(b_zmin)
+        self.boundary[idb[5]:idb[6],7:] = np.array(b_zmax)
 
-        #self.id should contain id of grid of interest
-        # and the id of neighbour grids.
+        #calculation of grid geometrical properties
+        xsize = node_x[1:]-node_x[:-1]
+        ysize = node_y[1:]-node_y[:-1]
+        zsize = node_z[1:]-node_z[:-1]
 
-        connectivity = np.arange(self.number)
-        connectivity = np.repeat(connectivity,1+2*self.dimension)
-        connectivity = connectivity.reshape(self.number,-1)
+        xcenter = node_x[:-1]+xsize/2
+        ycenter = node_y[:-1]+ysize/2
+        zcenter = node_z[:-1]+zsize/2
         
-        self.id = connectivity.astype(float)
+        self.size = np.zeros((self.num,3))
+        self.size[:,0] = np.tile(xsize,self.num_y*self.num_z)
+        self.size[:,1] = np.tile(ysize.repeat(self.num_x),self.num_z)
+        self.size[:,2] = zsize.repeat(self.num_x*self.num_y)
 
-        coeff = np.append(np.array([1]),np.cumprod(number_of_grids)[:-1])
-
-        for i in range(self.dimension):
-            self.id[:,2*i+1] = self.id[:,2*i+1]-coeff[i]
-            self.id[:,2*i+2] = self.id[:,2*i+2]+coeff[i]
-
-        #index correction for the boundaries
+        self.volume = np.prod(self.size,axis=1)
         
-        self.id[::self.Nx,1] = np.nan
-        self.id[self.Nx-1::self.Nx,2] = np.nan
-
-        self.id[:self.Nx,3] = np.nan
-        self.id[self.Nx*(self.Ny-1):,4] = np.nan
-
-        ##self.id[,5] = np.nan
-        ##self.id[,6] = np.nan
-
-        #self.boundary should contain id of boundary grids,
-        # the id of its neighbors and boundary conditions.
-
-        Nboundary = lambda x: 1 if x>1 else 0
-
-        Bx1 = self.Ny*self.Nz*Nboundary(self.Nx)
-        Bx2 = self.Ny*self.Nz*Nboundary(self.Nx)
-        
-        By1 = self.Nz*self.Nx*Nboundary(self.Ny)
-        By2 = self.Nz*self.Nx*Nboundary(self.Ny)
-        
-        Bz1 = self.Nx*self.Ny*Nboundary(self.Nz)
-        Bz2 = self.Nx*self.Ny*Nboundary(self.Nz)
-
-        idb = np.array([Bx1,Bx2,By1,By2,Bz1,Bz2])
-        idb = np.cumsum(idb)
-
-        self.boundary = np.zeros((Bx1+Bx2+By1+By2+Bz1+Bz2,1+2*self.dimension+3))
-
-        self.boundary[:idb[0],:-3] = self.id[::self.Nx,:]
-        self.boundary[idb[0]:idb[1],:-3] = self.id[self.Nx-1::self.Nx,:]
-
-        self.boundary[idb[1]:idb[2],:-3] = self.id[:self.Nx,:]
-        self.boundary[idb[2]:idb[3],:-3] = self.id[self.Nx*(self.Ny-1):,:]
-
-        ##self.boundary[idb[3]:idb[5],0] =
-        ##self.boundary[idb[3]:idb[5],0] =
-
-        self.boundary[:idb[0],5:] = np.array(boundary1)
-        self.boundary[idb[0]:idb[1],5:] = np.array(boundary2)
-        self.boundary[idb[1]:idb[2],5:] = np.array(boundary3)
-        self.boundary[idb[2]:idb[3],5:] = np.array(boundary4)
-        ##self.boundary[idb[3]:idb[4],5:] = np.array(boundary5)
-        ##self.boundary[idb[4]:,5:] = np.array(boundary6)
-
-        xnodes = np.linspace(0,self.xsize,self.Nx+1)
-        ynodes = np.linspace(0,self.ysize,self.Ny+1)
-        znodes = np.linspace(0,self.zsize,self.Nz+1)
-
-        ##self.size = np.array([dx,dy,dz]).repeat(self.number).reshape((-1,3))
-        ##self.center = self.node[:-1]+self.size/2
-
-        xsize = xnodes[1:]-xnodes[:-1]
-        ysize = ynodes[1:]-ynodes[:-1]
-        zsize = znodes[1:]-znodes[:-1]
-
-        cx = xnodes[:-1]+xsize/2
-        cy = ynodes[:-1]+ysize/2
-        cz = znodes[:-1]+zsize/2
-
-        cx = cx.reshape((-1,1)).repeat(self.Ny*self.Nz,axis=1).T.reshape((-1,1))
-        cy = cy.reshape((-1,1)).repeat(self.Nz*self.Nx).reshape((-1,1))
-        cz = cz.reshape((-1,1)).repeat(self.Nx*self.Ny,axis=1).T.reshape((-1,1))#there can be error
-
-        self.center_x = cx
-        self.center_y = cy
-        self.center_z = cz
+        self.center =  np.zeros((self.num,3))
+        self.center[:,0] = np.tile(xcenter,self.num_y*self.num_z)
+        self.center[:,1] = np.tile(ycenter.repeat(self.num_x),self.num_z)
+        self.center[:,2] = zcenter.repeat(self.num_x*self.num_y)
 
     def radial(self):
-        
         pass
 
 class finite_difference():
