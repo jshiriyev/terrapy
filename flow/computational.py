@@ -34,6 +34,8 @@ class mesh():
                        b_zmin=(0,1,0),
                        b_zmax=(0,1,0)):
 
+        self.length = np.array(length)
+
         # required correction
         b_xmin = np.array(b_xmin)
         b_xmax = np.array(b_xmax)
@@ -80,15 +82,22 @@ class mesh():
         zmin.reshape((self.num_z,-1))[0,:] = np.nan
         zmax.reshape((self.num_z,-1))[-1,:] = np.nan
 
-        self.id = np.zeros((self.num,1+2*3))
+        xmin[np.isnan(xmin)] = idx[np.isnan(xmin)]
+        xmax[np.isnan(xmax)] = idx[np.isnan(xmax)]
+        ymin[np.isnan(ymin)] = idx[np.isnan(ymin)]
+        ymax[np.isnan(ymax)] = idx[np.isnan(ymax)]
+        zmin[np.isnan(zmin)] = idx[np.isnan(zmin)]
+        zmax[np.isnan(zmax)] = idx[np.isnan(zmax)]
+
+        self.id = np.zeros((self.num,1+2*3)).astype('int')
         
-        self.id[:,0] = idx
-        self.id[:,1] = xmin
-        self.id[:,2] = xmax
-        self.id[:,3] = ymin
-        self.id[:,4] = ymax
-        self.id[:,5] = zmin
-        self.id[:,6] = zmax
+        self.id[:,0] = idx.astype('int')
+        self.id[:,1] = xmin.astype('int')
+        self.id[:,2] = xmax.astype('int')
+        self.id[:,3] = ymin.astype('int')
+        self.id[:,4] = ymax.astype('int')
+        self.id[:,5] = zmin.astype('int')
+        self.id[:,6] = zmax.astype('int')
 
         #self.boundary is id of boundary grids,
         # the id of its neighbors and boundary conditions.
@@ -114,16 +123,16 @@ class mesh():
         self.boundary = np.zeros((idb[-1],1+2*3+3))
 
         if questbound(self.num_x):
-            self.boundary[idb[0]:idb[1],:-3] = self.id[np.isnan(xmin),:]
-            self.boundary[idb[1]:idb[2],:-3] = self.id[np.isnan(xmax),:]
+            self.boundary[idb[0]:idb[1],:-3] = self.id[self.id[:,0]==xmin,:]
+            self.boundary[idb[1]:idb[2],:-3] = self.id[self.id[:,0]==xmax,:]
 
         if questbound(self.num_y):
-            self.boundary[idb[2]:idb[3],:-3] = self.id[np.isnan(ymin),:]
-            self.boundary[idb[3]:idb[4],:-3] = self.id[np.isnan(ymax),:]
+            self.boundary[idb[2]:idb[3],:-3] = self.id[self.id[:,0]==ymin,:]
+            self.boundary[idb[3]:idb[4],:-3] = self.id[self.id[:,0]==ymax,:]
 
         if questbound(self.num_z):
-            self.boundary[idb[4]:idb[5],:-3] = self.id[np.isnan(zmin),:]
-            self.boundary[idb[5]:idb[6],:-3] = self.id[np.isnan(zmax),:]
+            self.boundary[idb[4]:idb[5],:-3] = self.id[self.id[:,0]==zmin,:]
+            self.boundary[idb[5]:idb[6],:-3] = self.id[self.id[:,0]==zmax,:]
 
         #boundaries (b_xmin,b_xmax,b_ymin,b_ymax,b_zmin,b_zmax)
         #have three entries:
@@ -178,36 +187,27 @@ class finite_difference():
         
         self.grids = grids            # grids should be an input
 
-    def central2D(self,order=1):
+    def central2D(self,order=2):
 
-        idxm0 = self.grids.id[~np.isnan(self.grids.id[:,1]),0]
-        idxmm = self.grids.id[~np.isnan(self.grids.id[:,1]),1]
+        idxm = self.grids.id[:,1]
+        idxp = self.grids.id[:,2]
         
-        idxp0 = self.grids.id[~np.isnan(self.grids.id[:,2]),0]
-        idxpp = self.grids.id[~np.isnan(self.grids.id[:,2]),2]
+        idym = self.grids.id[:,3]
+        idyp = self.grids.id[:,4]
         
-        idym0 = self.grids.id[~np.isnan(self.grids.id[:,3]),0]
-        idymm = self.grids.id[~np.isnan(self.grids.id[:,3]),3]
-        
-        idyp0 = self.grids.id[~np.isnan(self.grids.id[:,4]),0]
-        idypp = self.grids.id[~np.isnan(self.grids.id[:,4]),4]
-        
-        idzm0 = self.grids.id[~np.isnan(self.grids.id[:,5]),0]
-        idzmm = self.grids.id[~np.isnan(self.grids.id[:,5]),5]
-        
-        idzp0 = self.grids.id[~np.isnan(self.grids.id[:,6]),0]
-        idzpp = self.grids.id[~np.isnan(self.grids.id[:,6]),6]
+        idzm = self.grids.id[:,5]
+        idzp = self.grids.id[:,6]
 
-        cntr_dxm = self.grids.center[idxm0,0]-self.grids.center[idxmm,0]
-        cntr_dxp = self.grids.center[idxpp,0]-self.grids.center[idxp0,0]
-        cntr_dym = self.grids.center[idym0,1]-self.grids.center[idymm,1]
-        cntr_dyp = self.grids.center[idypp,1]-self.grids.center[idyp0,1]
-        cntr_dzm = self.grids.center[idzm0,2]-self.grids.center[idzmm,2]
-        cntr_dzp = self.grids.center[idzpp,2]-self.grids.center[idzp0,2]
-
-        print(cntr_dxm)
+        cntr_dxm = self.grids.center[:,0]-self.grids.center[idxm,0]
+        cntr_dxp = self.grids.center[idxp,0]-self.grids.center[:,0]
         
-    def central1D(self,order=1):
+        cntr_dym = self.grids.center[:,1]-self.grids.center[idym,1]
+        cntr_dyp = self.grids.center[idyp,1]-self.grids.center[:,1]
+        
+        cntr_dzm = self.grids.center[:,2]-self.grids.center[idzm,2]
+        cntr_dzp = self.grids.center[idzp,2]-self.grids.center[:,2]
+        
+    def central1D(self,order=2):
         
         dx_imag = np.insert(self.grids.size[:,0],(0,-1),
                            (self.grids.size[0,0],self.grids.size[-1,0]))
