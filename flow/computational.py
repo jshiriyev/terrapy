@@ -34,6 +34,18 @@ class mesh():
                        b_zmin=(0,1,0),
                        b_zmax=(0,1,0)):
 
+        # required correction
+        b_xmin = np.array(b_xmin)
+        b_xmax = np.array(b_xmax)
+        b_ymin = np.array(b_ymin)
+        b_ymax = np.array(b_ymax)
+        b_zmin = np.array(b_zmin)
+        b_zmax = np.array(b_zmax)
+        
+        b_xmax[1] = -b_xmax[1]
+        b_ymax[1] = -b_ymax[1]
+        b_zmax[1] = -b_zmax[1]
+
         #length and grid_num are tuples with three entries for
         # size and discretization in x,y,z direction
         # for rectangular parallelepiped:
@@ -81,31 +93,37 @@ class mesh():
         #self.boundary is id of boundary grids,
         # the id of its neighbors and boundary conditions.
 
-        questbound = lambda x: 1 if x>1 else 0
-
-        num_bxmin = self.num_y*self.num_z*questbound(self.num_x)
-        num_bxmax = self.num_y*self.num_z*questbound(self.num_x)
+        idb = np.zeros(7)
         
-        num_bymin = self.num_z*self.num_x*questbound(self.num_y)
-        num_bymax = self.num_z*self.num_x*questbound(self.num_y)
+        questbound = lambda x: True if x>1 else False
         
-        num_bzmin = self.num_x*self.num_y*questbound(self.num_z)
-        num_bzmax = self.num_x*self.num_y*questbound(self.num_z)
+        if questbound(self.num_x):
+            idb[1] = self.num_y*self.num_z
+            idb[2] = self.num_y*self.num_z
 
-        idb = np.array([0,num_bxmin,num_bxmax,
-                          num_bymin,num_bymax,
-                          num_bzmin,num_bzmax])
+        if questbound(self.num_y):
+            idb[3] = self.num_z*self.num_x
+            idb[4] = self.num_z*self.num_x
 
-        idb = np.cumsum(idb)
+        if questbound(self.num_z):
+            idb[5] = self.num_x*self.num_y
+            idb[6] = self.num_x*self.num_y
+            
+        idb = np.cumsum(idb).astype('int')
 
         self.boundary = np.zeros((idb[-1],1+2*3+3))
 
-        self.boundary[idb[0]:idb[1],:-3] = self.id[np.isnan(xmin),:]
-        self.boundary[idb[1]:idb[2],:-3] = self.id[np.isnan(xmax),:]
-        self.boundary[idb[2]:idb[3],:-3] = self.id[np.isnan(ymin),:]
-        self.boundary[idb[3]:idb[4],:-3] = self.id[np.isnan(ymax),:]
-        self.boundary[idb[4]:idb[5],:-3] = self.id[np.isnan(zmin),:]
-        self.boundary[idb[5]:idb[6],:-3] = self.id[np.isnan(zmax),:]
+        if questbound(self.num_x):
+            self.boundary[idb[0]:idb[1],:-3] = self.id[np.isnan(xmin),:]
+            self.boundary[idb[1]:idb[2],:-3] = self.id[np.isnan(xmax),:]
+
+        if questbound(self.num_y):
+            self.boundary[idb[2]:idb[3],:-3] = self.id[np.isnan(ymin),:]
+            self.boundary[idb[3]:idb[4],:-3] = self.id[np.isnan(ymax),:]
+
+        if questbound(self.num_z):
+            self.boundary[idb[4]:idb[5],:-3] = self.id[np.isnan(zmin),:]
+            self.boundary[idb[5]:idb[6],:-3] = self.id[np.isnan(zmax),:]
 
         #boundaries (b_xmin,b_xmax,b_ymin,b_ymax,b_zmin,b_zmax)
         #have three entries:
@@ -114,12 +132,12 @@ class mesh():
         # - function value of boundary condition
         #by default no flow boundary conditions are implemented
 
-        self.boundary[idb[0]:idb[1],7:] = np.array(b_xmin)
-        self.boundary[idb[1]:idb[2],7:] = np.array(b_xmax)
-        self.boundary[idb[2]:idb[3],7:] = np.array(b_ymin)
-        self.boundary[idb[3]:idb[4],7:] = np.array(b_ymax)
-        self.boundary[idb[4]:idb[5],7:] = np.array(b_zmin)
-        self.boundary[idb[5]:idb[6],7:] = np.array(b_zmax)
+        self.boundary[idb[0]:idb[1],7:] = b_xmin
+        self.boundary[idb[1]:idb[2],7:] = b_xmax
+        self.boundary[idb[2]:idb[3],7:] = b_ymin
+        self.boundary[idb[3]:idb[4],7:] = b_ymax
+        self.boundary[idb[4]:idb[5],7:] = b_zmin
+        self.boundary[idb[5]:idb[6],7:] = b_zmax
 
         #calculation of grid geometrical properties
         xsize = node_x[1:]-node_x[:-1]
@@ -162,8 +180,8 @@ class finite_difference():
         
     def central(self,order=1):
         
-        dx_imag = np.insert(self.grids.sizes,(0,-1),
-                            (self.grids.sizes[0],self.grids.sizes[-1]))
+        dx_imag = np.insert(self.grids.size[:,0],(0,-1),
+                           (self.grids.size[0,0],self.grids.size[-1,0]))
 
         dx_cntr = (dx_imag[:-1]+dx_imag[1:])/2
 
@@ -177,12 +195,12 @@ class finite_difference():
 
         dnm = (dx_upp_diag*dx_low_diag)**(1-order)
         
-        r_low_diag = self.grids.ids[1:]
-        c_low_diag = self.grids.ids[:-1]
+        r_low_diag = self.grids.id[1:,1]
+        c_low_diag = self.grids.id[:-1,2]
         f_low_diag = idf_low_diag[1:]
 
-        r_upp_diag = self.grids.ids[:-1]
-        c_upp_diag = self.grids.ids[1:]
+        r_upp_diag = self.grids.id[:-1,2]
+        c_upp_diag = self.grids.id[1:,1]
         f_upp_diag = idf_upp_diag[:-1]
 
         r_off_diag = np.append(r_low_diag,r_upp_diag)
@@ -193,50 +211,35 @@ class finite_difference():
         col = np.append(c_off_diag,r_off_diag)
         fij = np.append(f_off_diag,-f_off_diag)
 
-        dof = csr((fij,(row,col)),shape=(self.grids.number,
-                                         self.grids.number))
+        dof = csr((fij,(row,col)),shape=(self.grids.num,
+                                         self.grids.num))
 
         self.Amatrix = dof.multiply(csr(dnm).T)
 
     def implement_bc(self,bvector):
         
         self.bvector = bvector
+
+        ii = self.grids.boundary[:,0].astype('int')
         
-##        xL = lower_boundary[0]
-##        dL = lower_boundary[1]
-##        nL = lower_boundary[2]
-##        fL = lower_boundary[3]
-##        
-##        xU = upper_boundary[0]
-##        dU = upper_boundary[1]
-##        nU = upper_boundary[2]
-##        fU = upper_boundary[3]
+        jj = self.grids.boundary[:,1:3]
+        jj = jj[~np.isnan(jj)].astype('int')
 
-        for j,row in enumerate(self.grids.boundary_ids):
+        dbc = self.grids.boundary[:,7]
+        nbc = self.grids.boundary[:,8]
+        fbc = self.grids.boundary[:,9]
 
-            dxS = self.grids.sizes[row[0]] # self
-            dxN = self.grids.sizes[row[1]] # neighbour
+        dxii = self.grids.size[ii,0] # self
+        dxjj = self.grids.size[jj,0] # neighbour
 
-            Dbc = self.grids.boundary_conditions[j,0]
-            Nbc = self.grids.boundary_conditions[j,1]
-            Fbc = self.grids.boundary_conditions[j,2]
+        bc = 8/((3*dxii+dxjj)*(dbc*dxii-2*nbc))
 
-            bc = 8/((3*dxS+dxN)*(Dbc*dxS-2*Nbc))
-
-            self.Amatrix[row[0],row[0]] -= bc*Dbc
-            self.bvector[row[0]] -= bc*Fbc
-
-##        bL = 8/((3*self.dx[0]+self.dx[1])*(dL*self.dx[0]-2*nL))
-##        self.Amatrix[0,0] = self.Amatrix[0,0]-bL*dL
-##        self.bvector[0] = self.bvector[0]-bL*fL
-##
-##        bU = 8/((3*self.dx[-1]+self.dx[-2])*(dU*self.dx[-1]-2*nU))
-##        self.Amatrix[-1,-1] = self.Amatrix[-1,-1]-bU*dU
-##        self.bvector[-1] = self.bvector[-1]-bU*fU
+        self.Amatrix[ii,ii] -= bc*dbc
+        self.bvector[ii,0] -= bc*fbc
 
     def solve(self):
 
-        self.unknowns = spsolve(self.Amatrix,self.bvector)
+        self.unknown = spsolve(self.Amatrix,self.bvector)
 
 def myfunc1(x,order=0):
     if order==0:

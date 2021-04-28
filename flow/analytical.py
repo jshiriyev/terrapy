@@ -65,12 +65,12 @@ class poisson():
         f  : scalar function known for the boundary    
         """
 
-        xL = boundary_points[0,0]
+        xL = boundary_points[0]
         dL = boundary_conditions[0][0]
         nL = boundary_conditions[0][1]
         fL = boundary_conditions[0][2]
 
-        xU = boundary_points[1,0]    
+        xU = boundary_points[1]    
         dU = boundary_conditions[1][0]
         nU = boundary_conditions[1][1]
         fU = boundary_conditions[1][2]
