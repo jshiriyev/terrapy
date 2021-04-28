@@ -155,7 +155,7 @@ class mesh():
 
         self.volume = np.prod(self.size,axis=1)
         
-        self.center =  np.zeros((self.num,3))
+        self.center = np.zeros((self.num,3))
         self.center[:,0] = np.tile(xcenter,self.num_y*self.num_z)
         self.center[:,1] = np.tile(ycenter.repeat(self.num_x),self.num_z)
         self.center[:,2] = zcenter.repeat(self.num_x*self.num_y)
@@ -177,8 +177,37 @@ class finite_difference():
     def __init__(self,grids):
         
         self.grids = grids            # grids should be an input
+
+    def central2D(self,order=1):
+
+        idxm0 = self.grids.id[~np.isnan(self.grids.id[:,1]),0]
+        idxmm = self.grids.id[~np.isnan(self.grids.id[:,1]),1]
         
-    def central(self,order=1):
+        idxp0 = self.grids.id[~np.isnan(self.grids.id[:,2]),0]
+        idxpp = self.grids.id[~np.isnan(self.grids.id[:,2]),2]
+        
+        idym0 = self.grids.id[~np.isnan(self.grids.id[:,3]),0]
+        idymm = self.grids.id[~np.isnan(self.grids.id[:,3]),3]
+        
+        idyp0 = self.grids.id[~np.isnan(self.grids.id[:,4]),0]
+        idypp = self.grids.id[~np.isnan(self.grids.id[:,4]),4]
+        
+        idzm0 = self.grids.id[~np.isnan(self.grids.id[:,5]),0]
+        idzmm = self.grids.id[~np.isnan(self.grids.id[:,5]),5]
+        
+        idzp0 = self.grids.id[~np.isnan(self.grids.id[:,6]),0]
+        idzpp = self.grids.id[~np.isnan(self.grids.id[:,6]),6]
+
+        cntr_dxm = self.grids.center[idxm0,0]-self.grids.center[idxmm,0]
+        cntr_dxp = self.grids.center[idxpp,0]-self.grids.center[idxp0,0]
+        cntr_dym = self.grids.center[idym0,1]-self.grids.center[idymm,1]
+        cntr_dyp = self.grids.center[idypp,1]-self.grids.center[idyp0,1]
+        cntr_dzm = self.grids.center[idzm0,2]-self.grids.center[idzmm,2]
+        cntr_dzp = self.grids.center[idzpp,2]-self.grids.center[idzp0,2]
+
+        print(cntr_dxm)
+        
+    def central1D(self,order=1):
         
         dx_imag = np.insert(self.grids.size[:,0],(0,-1),
                            (self.grids.size[0,0],self.grids.size[-1,0]))
