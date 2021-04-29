@@ -187,73 +187,143 @@ class finite_difference():
         
         self.grids = grids            # grids should be an input
 
-    def central2D(self,order=2):
+    def central(self,order=2):
 
-        idxm = self.grids.id[:,1]
-        idxp = self.grids.id[:,2]
+        idxm = ~(self.grids.id[:,0]==self.grids.id[:,1])
+        idxp = ~(self.grids.id[:,0]==self.grids.id[:,2])
         
-        idym = self.grids.id[:,3]
-        idyp = self.grids.id[:,4]
+        idym = ~(self.grids.id[:,0]==self.grids.id[:,3])
+        idyp = ~(self.grids.id[:,0]==self.grids.id[:,4])
         
-        idzm = self.grids.id[:,5]
-        idzp = self.grids.id[:,6]
+        idzm = ~(self.grids.id[:,0]==self.grids.id[:,5])
+        idzp = ~(self.grids.id[:,0]==self.grids.id[:,6])
 
-        cntr_dxm = self.grids.center[:,0]-self.grids.center[idxm,0]
-        cntr_dxp = self.grids.center[idxp,0]-self.grids.center[:,0]
+        dxm = (self.grids.size[self.grids.id[idxm,0],0]+self.grids.size[self.grids.id[idxm,1],0])/2
+        dxp = (self.grids.size[self.grids.id[idxp,0],0]+self.grids.size[self.grids.id[idxp,2],0])/2
         
-        cntr_dym = self.grids.center[:,1]-self.grids.center[idym,1]
-        cntr_dyp = self.grids.center[idyp,1]-self.grids.center[:,1]
+        dym = (self.grids.size[self.grids.id[idym,0],1]+self.grids.size[self.grids.id[idym,3],1])/2
+        dyp = (self.grids.size[self.grids.id[idyp,0],1]+self.grids.size[self.grids.id[idyp,4],1])/2
         
-        cntr_dzm = self.grids.center[:,2]-self.grids.center[idzm,2]
-        cntr_dzp = self.grids.center[idzp,2]-self.grids.center[:,2]
+        dzm = (self.grids.size[self.grids.id[idzm,0],2]+self.grids.size[self.grids.id[idzm,5],2])/2
+        dzp = (self.grids.size[self.grids.id[idzp,0],2]+self.grids.size[self.grids.id[idzp,6],2])/2
+
+        cxp = 2/(dxp*(dxp+dxm))
+        cxm = 2/(dxm*(dxp+dxm))
+
+        cyp = 2/(dyp*(dyp+dym))
+        cym = 2/(dym*(dyp+dym))
+
+        czp = 2/(dzp*(dzp+dzm))
+        czm = 2/(dzm*(dzp+dzm))
+
+        self.Amatrix = csr((self.grids.num,self.grids.num))
+
+        self.Amatrix += csr((dxm,(self.grids.id[idxm,0],self.grids.id[idxm,1])),
+                            shape=(self.grids.num,self.grids.num))
+        self.Amatrix += csr((-dxm,(self.grids.id[idxm,0],self.grids.id[idxm,0])),
+                            shape=(self.grids.num,self.grids.num))
         
-    def central1D(self,order=2):
+        self.Amatrix += csr((dxp,(self.grids.id[idxp,0],self.grids.id[idxp,2])),
+                            shape=(self.grids.num,self.grids.num))
+        self.Amatrix += csr((-dxp,(self.grids.id[idxp,0],self.grids.id[idxp,0])),
+                            shape=(self.grids.num,self.grids.num))
         
-        dx_imag = np.insert(self.grids.size[:,0],(0,-1),
-                           (self.grids.size[0,0],self.grids.size[-1,0]))
-
-        dx_cntr = (dx_imag[:-1]+dx_imag[1:])/2
-
-        dx_upp_diag = dx_cntr[:-1]
-        dx_low_diag = dx_cntr[1:]
+        self.Amatrix += csr((dym,(self.grids.id[idym,0],self.grids.id[idym,3])),
+                            shape=(self.grids.num,self.grids.num))
+        self.Amatrix += csr((-dym,(self.grids.id[idym,0],self.grids.id[idym,0])),
+                            shape=(self.grids.num,self.grids.num))
         
-        two_dx = (dx_upp_diag+dx_low_diag)
-
-        idf_low_diag = two_dx**(-1)*(-1)**order*(2*dx_low_diag)**(order-1)
-        idf_upp_diag = two_dx**(-1)*(2*dx_upp_diag)**(order-1)
-
-        dnm = (dx_upp_diag*dx_low_diag)**(1-order)
+        self.Amatrix += csr((dyp,(self.grids.id[idyp,0],self.grids.id[idyp,4])),
+                            shape=(self.grids.num,self.grids.num))
+        self.Amatrix += csr((-dyp,(self.grids.id[idyp,0],self.grids.id[idyp,0])),
+                            shape=(self.grids.num,self.grids.num))
         
-        r_low_diag = self.grids.id[1:,1]
-        c_low_diag = self.grids.id[:-1,2]
-        f_low_diag = idf_low_diag[1:]
-
-        r_upp_diag = self.grids.id[:-1,2]
-        c_upp_diag = self.grids.id[1:,1]
-        f_upp_diag = idf_upp_diag[:-1]
-
-        r_off_diag = np.append(r_low_diag,r_upp_diag)
-        c_off_diag = np.append(c_low_diag,c_upp_diag)
-        f_off_diag = np.append(f_low_diag,f_upp_diag)
-
-        row = np.append(r_off_diag,r_off_diag)
-        col = np.append(c_off_diag,r_off_diag)
-        fij = np.append(f_off_diag,-f_off_diag)
-
-        dof = csr((fij,(row,col)),shape=(self.grids.num,
-                                         self.grids.num))
-
-        self.Amatrix = dof.multiply(csr(dnm).T)
+        self.Amatrix += csr((dzp,(self.grids.id[idzm,0],self.grids.id[idzm,5])),
+                            shape=(self.grids.num,self.grids.num))
+        self.Amatrix += csr((-dzp,(self.grids.id[idzm,0],self.grids.id[idzm,0])),
+                            shape=(self.grids.num,self.grids.num))
+        
+        self.Amatrix += csr((dzp,(self.grids.id[idzp,0],self.grids.id[idzp,6])),
+                            shape=(self.grids.num,self.grids.num))
+        self.Amatrix += csr((-dzp,(self.grids.id[idzp,0],self.grids.id[idzp,0])),
+                            shape=(self.grids.num,self.grids.num))
+        
+##    def central1D(self,order=2):
+##        
+##        dx_imag = np.insert(self.grids.size[:,0],(0,-1),
+##                           (self.grids.size[0,0],self.grids.size[-1,0]))
+##
+##        dx_cntr = (dx_imag[:-1]+dx_imag[1:])/2
+##
+##        dx_upp_diag = dx_cntr[:-1]
+##        dx_low_diag = dx_cntr[1:]
+##        
+##        two_dx = (dx_upp_diag+dx_low_diag)
+##
+##        idf_low_diag = two_dx**(-1)*(-1)**order*(2*dx_low_diag)**(order-1)
+##        idf_upp_diag = two_dx**(-1)*(2*dx_upp_diag)**(order-1)
+##
+##        dnm = (dx_upp_diag*dx_low_diag)**(1-order)
+##        
+##        r_low_diag = self.grids.id[1:,1]
+##        c_low_diag = self.grids.id[:-1,2]
+##        f_low_diag = idf_low_diag[1:]
+##
+##        r_upp_diag = self.grids.id[:-1,2]
+##        c_upp_diag = self.grids.id[1:,1]
+##        f_upp_diag = idf_upp_diag[:-1]
+##
+##        r_off_diag = np.append(r_low_diag,r_upp_diag)
+##        c_off_diag = np.append(c_low_diag,c_upp_diag)
+##        f_off_diag = np.append(f_low_diag,f_upp_diag)
+##
+##        row = np.append(r_off_diag,r_off_diag)
+##        col = np.append(c_off_diag,r_off_diag)
+##        fij = np.append(f_off_diag,-f_off_diag)
+##
+##        dof = csr((fij,(row,col)),shape=(self.grids.num,
+##                                         self.grids.num))
+##
+##        self.Amatrix = dof.multiply(csr(dnm).T)
 
     def implement_bc(self,bvector):
         
         self.bvector = bvector
 
-        ii = self.grids.boundary[:,0].astype('int')
-        
-        jj = self.grids.boundary[:,1:3]
-        jj = jj[~np.isnan(jj)].astype('int')
+        iicc = self.grids.id[:,0].astype('int')
 
+        jjxm = self.grids.id[:,1].astype('int')
+        jjxp = self.grids.id[:,2].astype('int')
+
+        jjym = self.grids.id[:,3].astype('int')
+        jjyp = self.grids.id[:,4].astype('int')
+
+        jjzm = self.grids.id[:,5].astype('int')
+        jjzp = self.grids.id[:,6].astype('int')
+
+        ii = np.array([]).astype('int')
+        jj = np.array([]).astype('int')
+
+        questbound = lambda x: True if x>1 else False
+
+        if questbound(self.grids.num_x):
+            ii = np.append(ii,iicc[iicc==jjxm])
+            jj = np.append(jj,jjxp[iicc==jjxm])
+            ii = np.append(ii,iicc[iicc==jjxp])
+            jj = np.append(jj,jjxm[iicc==jjxp])
+
+        if questbound(self.grids.num_y):
+            ii = np.append(ii,iicc[iicc==jjym])
+            jj = np.append(jj,jjyp[iicc==jjym])
+            ii = np.append(ii,iicc[iicc==jjyp])
+            jj = np.append(jj,jjym[iicc==jjyp])
+
+        if questbound(self.grids.num_z):
+            ii = np.append(ii,iicc[iicc==jjzm])
+            jj = np.append(jj,jjzp[iicc==jjzm])
+            ii = np.append(ii,iicc[iicc==jjzp])
+            jj = np.append(jj,jjzm[iicc==jjzp])
+        
         dbc = self.grids.boundary[:,7]
         nbc = self.grids.boundary[:,8]
         fbc = self.grids.boundary[:,9]

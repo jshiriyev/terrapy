@@ -1,13 +1,18 @@
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.getcwd()))
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from bhospy.flow.analytical import poisson
+from analytical import poisson
 
-from bhospy.flow.computational import mesh
-from bhospy.flow.computational import finite_difference
+from computational import mesh
+from computational import finite_difference
 
-bnd1 = (1,0,200)
-bnd2 = (0,-1,10)
+bnd1 = (0,-1,7)
+bnd2 = (1,0,10)
 
 grids = mesh()
 
@@ -18,7 +23,7 @@ grids.cartesian((7,1,1),
 
 solver = finite_difference(grids)
 
-solver.central1D(order=2)
+solver.central(order=2)
 
 bvector = np.zeros((solver.Amatrix.shape[0],1))
 
