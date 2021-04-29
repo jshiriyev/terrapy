@@ -1,6 +1,6 @@
 # bhospy
 
--flow
+"/bhospy/flow/" contains:
 
     -analytical solutions
 	common single-phase solutions:
@@ -27,7 +27,7 @@
 	- 3D central difference solution for differential order of one and two
 	finite element solution
 	
--statistics
+"/bhospy/statistics/" contains:
 
     -univariate analysis
 	heterogeneity measures
@@ -42,7 +42,7 @@
     -multivariate analysis
 	principal component analysis
 	
--logging
+"/bhospy/logging/" contains:
 
     -analytical solutions
     -numerical(computational)
@@ -50,6 +50,6 @@
 	surface integral equations
 	volume integral equations
 	
--optimize
+"/bhospy/optimize/" contains:
 
     -simulated annealing
