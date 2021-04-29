@@ -1,6 +1,7 @@
 # bhospy
 
--flow\n
+-flow
+
     -analytical solutions
 	common single-phase solutions:
 	- flow of a falling film
