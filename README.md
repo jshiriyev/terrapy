@@ -26,7 +26,9 @@
 	finite difference solution
 	- 3D central difference solution for differential order of one and two
 	finite element solution
+	
 -statistics
+
     -univariate analysis
 	heterogeneity measures
 	uncertainty estimation
@@ -39,11 +41,15 @@
 	correlation
     -multivariate analysis
 	principal component analysis
+	
 -logging
+
     -analytical solutions
     -numerical(computational)
 	axial hybrid method
 	surface integral equations
 	volume integral equations
+	
 -optimize
+
     -simulated annealing
