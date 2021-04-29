@@ -1,5 +1,3 @@
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -8,23 +6,19 @@ from bhospy.flow.analytical import poisson
 from bhospy.flow.computational import mesh
 from bhospy.flow.computational import finite_difference
 
-bnd1 = (1,0,0)
-bnd2 = (1,0,0)
-bnd3 = (1,0,0)
-bnd4 = (1,0,100)
+bnd1 = (1,0,200)
+bnd2 = (0,-1,10)
 
 grids = mesh()
 
-grids.cartesian((5,5,1),
-                (5,5,1),
+grids.cartesian((7,1,1),
+                (7,1,1),
                 b_xmin=bnd1,
-                b_xmax=bnd2,
-                b_ymin=bnd3,
-                b_ymax=bnd4)
+                b_xmax=bnd2)
 
 solver = finite_difference(grids)
 
-solver.central(order=2)
+solver.central1D(order=2)
 
 bvector = np.zeros((solver.Amatrix.shape[0],1))
 
