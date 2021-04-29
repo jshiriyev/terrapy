@@ -14,9 +14,10 @@ from scipy.stats import norm
 from data import item
 
 """
-demonstrates standard variance calculations
-demonstrates Dykstra-Parson coefficient calculations
-demonstrates Lorenz coefficient calculations
+hetereogeneity
+uncertainty
+variogram
+spatial_estimation
 """
 
 class heterogeneity(item):
@@ -43,6 +44,12 @@ class heterogeneity(item):
     lorenz():
         calculates Lorenz coefficient
     
+    """
+
+    """
+    demonstrates standard variance calculations
+    demonstrates Dykstra-Parson coefficient calculations
+    demonstrates Lorenz coefficient calculations
     """
 
     def __init__(self,props,**kwargs):
@@ -518,44 +525,46 @@ class spatial_estimation(item):
 
         perc = np.random.rand(self.x.size)
 
-        kriging.ordinary_kriging(self,prop,perc=perc)
+        self.ordinary_kriging(prop,perc=perc)
 
 if __name__ == "__main__":
-    
-    parf = os.path.dirname(os.getcwd())
 
-    data = np.loadtxt(str(parf)+"\\"+"sample.txt",skiprows=1)
+    ## Exercise: Heterogeneity Measures
+    
+##    parf = os.path.dirname(os.getcwd())
+##
+##    data = np.loadtxt(str(parf)+"\\"+"sample.txt",skiprows=1)
+##
+##    p = data[:,0]
+##    k = data[:,1]
+##    t = np.ones_like(k)
+##
+##    pm = heterogeneity({"porosity":p,
+##                        "permeability":k,
+##                        "thickness":t
+##                        })
+##    
+##    print(pm.standard("permeability"))
+##    print(pm.dykstraparson("permeability"))
+##    print(pm.lorenz())
 
-    p = data[:,0]
-    k = data[:,1]
-    t = np.ones_like(k)
+    ## Exercise: Experimental Variogram
+    
+##    z = np.array([[32,24,20,10],
+##                  [28,20,17,12],
+##                  [12,16,10,9],
+##                  [18,12,7,8]])
+##    
+##    V = variogram({"porosity": z},dX=10,dY=10)
+##    
+##    V.set_distance(V)
+##    
+##    V.set_experimental("porosity",10,30,azimuth=-90,azimuth_tol=2)
+##    print(V.experimental)
+##    V.set_experimental("porosity",20*np.sqrt(2),20*np.sqrt(2),azimuth=-135,azimuth_tol=2)
+##    print(V.experimental)
 
-    pm = heterogeneity({"porosity":p,
-                        "permeability":k,
-                        "thickness":t
-                        })
-    
-    print(pm.standard("permeability"))
-    print(pm.dykstraparson("permeability"))
-    print(pm.lorenz())
-
-    ## Class Exercise VARIOGRAM
-    
-    z = np.array([[32,24,20,10],
-                  [28,20,17,12],
-                  [12,16,10,9],
-                  [18,12,7,8]])
-    
-    V = variogram({"porosity": z},dX=10,dY=10)
-    
-    V.set_distance(V)
-    
-    V.set_experimental("porosity",10,30,azimuth=-90,azimuth_tol=2)
-    print(V.experimental)
-    V.set_experimental("porosity",20*np.sqrt(2),20*np.sqrt(2),azimuth=-135,azimuth_tol=2)
-    print(V.experimental)
-
-    ## Theoretical Semi-Variogram Models
+    ## Exercise: Theoretical Semi-Variogram Models
 
 ##    V = variogram(None)
 ##
@@ -573,161 +582,145 @@ if __name__ == "__main__":
 ##
 ##    plt.show()
 
-    ## Class Exercise 1
+    ## Example 4.2 (Kriging) and 4.3 (Simulation) page 187, Peters Volume 1
 
-    x = np.array([2,4,6])
-    y = np.array([30,50,20])
-    
-    plt.scatter(x,y,c='k')
-    plt.grid(alpha=0.2)
-    plt.xlabel('x-axis',fontsize=14)
-    plt.ylabel('property',fontsize=14)
-    plt.xlim([0,9])
-    plt.ylim([0,70])
-
-    V = variogram({"porosity": y},X=x)
-    
-    V.set_distance(V)
-
-    V.type = 'exponential'
-    V.nugget = 0
-    V.sill = 100
-    V.range = 10
-
-    V.set_theoretical()
-
-    X = np.array([1,2,3,4,5,6,7,8])
-
-    x = np.linspace(1,8,701)
-
-    E = kriging(V,X=x)
-
-    E.ordinary_kriging("porosity")
-
-    plt.plot(E.x,E.property,c='k')
-
-    E.ordinary_kriging("porosity",perc=0.975)
-
-    y1 = E.property
-
-    E.ordinary_kriging("porosity",perc=0.025)
-    
-    y2 = E.property
-
-    plt.fill_between(E.x,y1,y2,fc='lightgrey')
-
-    plt.show()
-
-    ## Class Exercise 2
-
-##    x = np.array([600,400,800])
-##    y = np.array([800,700,100])
+##    x = np.array([2,4,6])
+##    y = np.array([30,50,20])
+##    
+##    plt.grid(alpha=0.2)
+##    plt.xlabel('x-axis',fontsize=14)
+##    plt.ylabel('property',fontsize=14)
+##    
+##    plt.xlim([0,9])
+##    plt.ylim([0,70])
 ##
-##    z = np.array([0.25,0.43,0.56])
-##
-##    V = variogram({"porosity": z},X=x,Y=y)
+##    V = variogram({"porosity": y},X=x)
 ##    
 ##    V.set_distance(V)
 ##
-##    V.type = 'spherical'
+##    V.type = 'exponential'
 ##    V.nugget = 0
-##    V.sill = 0.0025
-##    V.range = 700
+##    V.sill = 100
+##    V.range = 10
 ##
 ##    V.set_theoretical()
+##
+##    X = np.array([1,2,3,4,5,6,7,8])
+##
+##    xe = np.linspace(1,8,701)
+##
+##    E = spatial_estimation(V,X=xe)
+##
+##    E.ordinary_kriging("porosity")
+##
+##    plt.plot(E.x,E.property,c='k')
+##
+##    E.ordinary_kriging("porosity",perc=0.975)
+##
+##    y1 = E.property
+##
+##    E.ordinary_kriging("porosity",perc=0.025)
 ##    
-##    plt.figure(1)
+##    y2 = E.property
 ##
-##    plt.scatter(V.x,V.y,s=20,c=V.porosity,alpha=0.5)
-##    plt.colorbar()
+##    plt.fill_between(E.x,y1,y2,fc='lightgrey')
 ##
-##    plt.xlim([0,1000])
-##    plt.ylim([0,1000])
+##    xe = np.linspace(1,8,71)
 ##
-##    plt.xlabel('x-axis')
-##    plt.ylabel('y-axis')
+##    E = spatial_estimation(V,X=xe)
 ##
-####    plt.show()
-##    
-####    x = np.array([500])
-####    y = np.array([500])
+##    E.gaussian_simulation("porosity")
 ##
-####    E = kriging(V,X=x,Y=y)
-##    
-####    E.simple_kriging()
-##    
-##    xlin = np.linspace(0,1000,50)
-##    ylin = np.linspace(0,1000,50)
+##    plt.scatter(E.x,E.property,s=4,c='r')
 ##
-##    [Xmesh,Ymesh] = np.meshgrid(xlin,ylin)
-##    
-##    E = kriging(V,X=Xmesh.flatten(),Y=Ymesh.flatten())
-##
-##    E.mean = 0.38
-##    
-##    E.simple_kriging("porosity")
-##
-##    plt.figure(2)
-##
-##    plt.contourf(Xmesh,Ymesh,E.property.reshape(50,50));
-##    plt.colorbar()
-##
-##    plt.xlabel('x-axis')
-##    plt.ylabel('y-axis')
-##
-##    plt.xlim([0,1000])
-##    plt.ylim([0,1000])
+##    plt.scatter(x,y,marker='X',c='k')
 ##
 ##    plt.show()
 
-    """
-    Exercise 4.14 Peters, page 206 Volume 1
-    """
+    ## Class Exercise 2
 
-    x = np.array([1,2,4,5,6])
-    y = np.array([2,10,4,6,14])
-    z = np.array([15,30,25,18,30])
+    x = np.array([600,400,800])
+    y = np.array([800,700,100])
 
-    V = variogram({'porosity': z},X=x,Y=y)
+    z = np.array([0.25,0.43,0.56])
 
+    V = variogram({"porosity": z},X=x,Y=y)
+    
     V.set_distance(V)
 
     V.type = 'spherical'
     V.nugget = 0
-    V.sill = 60
-    V.range = 8
+    V.sill = 0.0025
+    V.range = 700
 
     V.set_theoretical()
-
-    X = np.array([2,4])#([1,2,2,4,4,5,6])
-    Y = np.array([6,12])#([2,6,10,12,4,6,14])
-
-    E = simulation(V,X=X,Y=Y)
-
-    E.sequential_gaussian("porosity")
     
-##    smlt = sgs(obs1)
-##    smlt.simulate(est1)
-##
-##    krig = kriging(obs2)
-##    krig.ordinary(est2)
-##
-##    obs1.X = np.append(obs1.X,est1.X)
-##    obs1.F = np.append(obs1.F,est1.F)
-##    
-##    obs2.X = np.append(obs2.X,est2.X)
-##    obs2.F = np.append(obs2.F,est2.F)
+    plt.figure(1)
 
-##    idx1 = np.argsort(obs1.X)
-##    idx2 = np.argsort(obs2.X)
-##    
-##    plt.plot(obs1.X[idx1],obs1.F[idx1])
-##    plt.plot(obs2.X[idx2],obs2.F[idx2])
-##    plt.scatter(observation.X,observation.F,c='k')
-##
-##    plt.xlim([0,9])
-##    plt.ylim([0,60])
-##
-##    plt.legend(('simulation','kriging','given data'))
-##
+    plt.scatter(V.x,V.y,s=20,c=V.porosity,alpha=0.5)
+    plt.colorbar()
+
+    plt.xlim([0,1000])
+    plt.ylim([0,1000])
+
+    plt.xlabel('x-axis')
+    plt.ylabel('y-axis')
+
 ##    plt.show()
+    
+##    x = np.array([500])
+##    y = np.array([500])
+
+##    E = kriging(V,X=x,Y=y)
+    
+##    E.simple_kriging()
+    
+    xlin = np.linspace(0,1000,50)
+    ylin = np.linspace(0,1000,50)
+
+    [Xmesh,Ymesh] = np.meshgrid(xlin,ylin)
+    
+    E = spatial_estimation(V,X=Xmesh.flatten(),Y=Ymesh.flatten())
+
+##    E.mean = 0.38
+    
+##    E.simple_kriging("porosity")
+
+    E.gaussian_simulation("porosity")
+
+    plt.figure(2)
+
+    plt.contourf(Xmesh,Ymesh,E.property.reshape(50,50));
+    plt.colorbar()
+
+    plt.xlabel('x-axis')
+    plt.ylabel('y-axis')
+
+    plt.xlim([0,1000])
+    plt.ylim([0,1000])
+
+    plt.show()
+
+    ## Exercise 4.14 Peters, page 206 Volume 1 Sequential GAUSSIAN SIMULATION
+
+##    x = np.array([1,2,4,5,6])
+##    y = np.array([2,10,4,6,14])
+##    z = np.array([15,30,25,18,30])
+##
+##    V = variogram({'porosity': z},X=x,Y=y)
+##
+##    V.set_distance(V)
+##
+##    V.type = 'spherical'
+##    V.nugget = 0
+##    V.sill = 60
+##    V.range = 8
+##
+##    V.set_theoretical()
+##
+##    X = np.array([2,4])#([1,2,2,4,4,5,6])
+##    Y = np.array([6,12])#([2,6,10,12,4,6,14])
+##
+##    E = simulation(V,X=X,Y=Y)
+##
+##    E.sequential_gaussian("porosity")
