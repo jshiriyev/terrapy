@@ -12,16 +12,16 @@ from computational import mesh
 from computational import finite_difference
 
 bnd1 = (1,0,0)
-bnd2 = (1,0,0)
+bnd2 = (0,1,0)
 bnd3 = (1,0,0)
 bnd4 = (1,0,100)
 
 grids = mesh()
 
-num_x = 5
-num_y = 5
+num_x = 50
+num_y = 50
 
-grids.cartesian((20,10,1),
+grids.cartesian((20,10,10),
                 (num_x,num_y,1),
                 b_xmin=bnd1,
                 b_xmax=bnd2,
@@ -36,30 +36,17 @@ bvector = np.zeros((solver.Amatrix.shape[0],1))
 
 solver.implement_bc(bvector)
 
-analytical = poisson()
-analytical.onedimensional((0,7),(bnd1,bnd2),0)
-
 solver.solve()
-##
-##plt.scatter(solver.grids.center[:,0],solver.unknown,c='r')
-##plt.plot(analytical.x,analytical.u,'k')
-##
-##plt.show()
 
-Xlin = np.linspace(10/num_x,20-10/num_x,num_x)
-Ylin = np.linspace( 5/num_y,10- 5/num_y,num_y)
+X = solver.grids.center[:,0].reshape(num_x,num_y)
+Y = solver.grids.center[:,1].reshape(num_x,num_y)
 
-[Xmesh,Ymesh] = np.meshgrid(Xlin,Ylin)
+Z = solver.unknown.reshape(num_x,num_y)
 
-XX = Xmesh.ravel()
-YY = Ymesh.ravel()
-
-##plt.scatter(XX,YY,s=5,c='k')
-
-plt.contourf(Xmesh,Ymesh,solver.unknown.reshape(num_x,num_y),alpha=1,cmap="PuOr")
+plt.contourf(X,Y,Z,alpha=1,cmap="PuOr")
 plt.colorbar()
 
-plt.title('Porosity Map',fontsize=14)
+plt.title('Pressure Map',fontsize=14)
 plt.xlabel('x-axis',fontsize=14)
 plt.ylabel('y-axis',fontsize=14)
 
