@@ -12,21 +12,24 @@ from computational import finite_difference
 
 grids = mesh()
 
-grids.cartesian((4,3,2),
-                (4,3,2),
+grids.cartesian((5,6,2),
+                (5,6,2),
                 b_xmin=(1,0,50),
                 b_xmax=(1,0,-50),
                 b_ymin=(1,0,-70),
                 b_ymax=(1,0,100))
 
-plt.scatter(grids.center[:,0],grids.center[:,1],c='r')
+Z_idx = 0
 
-plt.axvline(np.arange(grids.length[0])[1],0,grids.length[1],c='k',linestyle='--')
-plt.axvline(np.arange(grids.length[0])[2],0,grids.length[1],c='k',linestyle='--')
-plt.axvline(np.arange(grids.length[0])[3],0,grids.length[1],c='k',linestyle='--')
+layer = np.arange(grids.num_x*grids.num_y)+grids.num_x*grids.num_y*Z_idx
 
-plt.axhline(np.arange(grids.length[1])[1],0,grids.length[0],c='k',linestyle='--')
-plt.axhline(np.arange(grids.length[1])[2],0,grids.length[0],c='k',linestyle='--')
+plt.scatter(grids.center[layer,0],grids.center[layer,1],c='r')
+
+for i in np.arange(grids.size[0,0],grids.length[0],grids.size[0,0]):
+    plt.axvline(i,0,grids.length[1],c='k',linestyle='--')
+
+for j in np.arange(grids.size[0,1],grids.length[1],grids.size[0,1]):
+    plt.axhline(j,0,grids.length[0],c='k',linestyle='--')
 
 plt.xlim([0,grids.length[0]])
 plt.ylim([0,grids.length[1]])
@@ -34,7 +37,7 @@ plt.ylim([0,grids.length[1]])
 plt.xlabel('x-axis')
 plt.ylabel('y-axis')
 
-for i, txt in enumerate(grids.id[:12,0].astype('int')):
-    plt.annotate(txt,(grids.center[i,0]+0.05,grids.center[i,1]+0.05))
+for idx in grids.id[layer,0]:
+    plt.annotate(idx,(grids.center[idx,0]+0.05,grids.center[idx,1]+0.05))
 
 plt.show()
