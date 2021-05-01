@@ -8,33 +8,27 @@ import numpy as np
 
 from analytical import poisson
 
-from computational import mesh
 from computational import finite_difference
 
-bnd1 = (0,-1,7)
-bnd2 = (1,0,10)
+bnd1 = (1,0,7)
+bnd2 = (0,1,10)
 
-grids = mesh()
+grids = finite_difference()
 
-grids.cartesian((7,1,1),
-                (7,1,1),
-                b_xmin=bnd1,
-                b_xmax=bnd2)
+grids.cartesian((7,1,1),(7,1,1))
 
-solver = finite_difference(grids)
+grids.central(order=2)
 
-solver.central(order=2)
+bvector = np.zeros((grids.Amatrix.shape[0],1))
 
-bvector = np.zeros((solver.Amatrix.shape[0],1))
-
-solver.implement_bc(bvector)
+grids.implement_bc(bvector,b_xmin=bnd1,b_xmax=bnd2)
 
 analytical = poisson()
 analytical.onedimensional((0,7),(bnd1,bnd2),0)
 
-solver.solve()
+grids.solve()
 
-plt.scatter(solver.grids.center[:,0],solver.unknown,c='r')
+plt.scatter(grids.center[:,0],grids.unknown,c='r')
 plt.plot(analytical.x,analytical.u,'k')
 
 plt.show()

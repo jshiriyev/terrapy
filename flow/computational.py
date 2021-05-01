@@ -24,7 +24,7 @@ class finite_difference():
     
     order must be either 1 or 2.
     """
-
+    
     """
     regular grids are generated in this class,
     cartesian grids are generated in 3D
@@ -35,57 +35,39 @@ class finite_difference():
         
         pass
 
-    def cartesian(self,length,
-                       grid_num,
-                       b_xmin=(0,1,0),
-                       b_xmax=(0,1,0),
-                       b_ymin=(0,1,0),
-                       b_ymax=(0,1,0),
-                       b_zmin=(0,1,0),
-                       b_zmax=(0,1,0)):
+    def cartesian(self,length,grid_num):
 
-        self.length = np.array(length)
+        """
+        length is a tuple with three entries for size in x,y,z direction
+        for rectangular parallelepiped:
+        """
 
-        # required correction
-        b_xmin = np.array(b_xmin)
-        b_xmax = np.array(b_xmax)
-        b_ymin = np.array(b_ymin)
-        b_ymax = np.array(b_ymax)
-        b_zmin = np.array(b_zmin)
-        b_zmax = np.array(b_zmax)
-        
-        b_xmax[1] = -b_xmax[1]
-        b_ymax[1] = -b_ymax[1]
-        b_zmax[1] = -b_zmax[1]
+        self.length_x = length[0]
+        self.length_y = length[1]
+        self.length_z = length[2]
 
-        #length and grid_num are tuples with three entries for
-        # size and discretization in x,y,z direction
-        # for rectangular parallelepiped:
+        """
+        grid_num is a tuple with three entries for discretization in x,y,z direction
+        for rectangular parallelepiped:
+        """
 
         self.num_x = grid_num[0]
         self.num_y = grid_num[1]
         self.num_z = grid_num[2]
 
-        node_x = np.linspace(0,length[0],self.num_x+1)
-        node_y = np.linspace(0,length[1],self.num_y+1)
-        node_z = np.linspace(0,length[2],self.num_z+1)
-
-        #self.num: total number of grids for rectangular parallelepiped
+        """
+        self.num is a total number of grids for rectangular parallelepiped
+        """
         self.num = self.num_x*self.num_y*self.num_z
-        
-        #self.id is a connectivity map and contain index of all grids
-        # their neighbours.
+
+        """
+        self.id is a connectivity map and contain index of all grids
+        their neighbours.
+        """
 
         idx = np.arange(self.num)
         
         self.id = np.tile(idx,(7,1)).T
-
-        xmin = np.arange(self.num).astype('int')
-        xmax = np.arange(self.num).astype('int')
-        ymin = np.arange(self.num).astype('int')
-        ymax = np.arange(self.num).astype('int')
-        zmin = np.arange(self.num).astype('int')
-        zmax = np.arange(self.num).astype('int')
 
         self.id[idx.reshape(-1,self.num_x)[:,1:].ravel(),1] -= 1
         self.id[idx.reshape(-1,self.num_x)[:,:-1].ravel(),2] += 1
@@ -94,70 +76,36 @@ class finite_difference():
         self.id[idx.reshape(self.num_z,-1)[1:,:],5] -= self.num_x*self.num_y
         self.id[idx.reshape(self.num_z,-1)[:-1,:],6] += self.num_x*self.num_y
 
-        #self.boundary is id of boundary grids,
-        # the id of its neighbors and boundary conditions.
+        """
+        self.size is the size of grids in x,y,z direction
+        """
 
-        idb = np.zeros(7)
+        node_x = np.linspace(0,self.length_x,self.num_x+1)
+        node_y = np.linspace(0,self.length_y,self.num_y+1)
+        node_z = np.linspace(0,self.length_z,self.num_z+1)
         
-        questbound = lambda x: True if x>1 else False
-        
-        if questbound(self.num_x):
-            idb[1] = self.num_y*self.num_z
-            idb[2] = self.num_y*self.num_z
-
-        if questbound(self.num_y):
-            idb[3] = self.num_z*self.num_x
-            idb[4] = self.num_z*self.num_x
-
-        if questbound(self.num_z):
-            idb[5] = self.num_x*self.num_y
-            idb[6] = self.num_x*self.num_y
-            
-        idb = np.cumsum(idb).astype('int')
-
-        self.boundary = np.zeros((idb[-1],1+2*3+3))
-
-        if questbound(self.num_x):
-            self.boundary[idb[0]:idb[1],:-3] = self.id[idx==self.id[:,1],:]
-            self.boundary[idb[1]:idb[2],:-3] = self.id[idx==self.id[:,2],:]
-
-        if questbound(self.num_y):
-            self.boundary[idb[2]:idb[3],:-3] = self.id[idx==self.id[:,3],:]
-            self.boundary[idb[3]:idb[4],:-3] = self.id[idx==self.id[:,4],:]
-
-        if questbound(self.num_z):
-            self.boundary[idb[4]:idb[5],:-3] = self.id[idx==self.id[:,5],:]
-            self.boundary[idb[5]:idb[6],:-3] = self.id[idx==self.id[:,6],:]
-
-        #boundaries (b_xmin,b_xmax,b_ymin,b_ymax,b_zmin,b_zmax)
-        #have three entries:
-        # - dirichlet coefficient,
-        # - neumann coefficient,
-        # - function value of boundary condition
-        #by default no flow boundary conditions are implemented
-
-        self.boundary[idb[0]:idb[1],7:] = b_xmin
-        self.boundary[idb[1]:idb[2],7:] = b_xmax
-        self.boundary[idb[2]:idb[3],7:] = b_ymin
-        self.boundary[idb[3]:idb[4],7:] = b_ymax
-        self.boundary[idb[4]:idb[5],7:] = b_zmin
-        self.boundary[idb[5]:idb[6],7:] = b_zmax
-
-        #calculation of grid geometrical properties
         xsize = node_x[1:]-node_x[:-1]
         ysize = node_y[1:]-node_y[:-1]
         zsize = node_z[1:]-node_z[:-1]
-
-        xcenter = node_x[:-1]+xsize/2
-        ycenter = node_y[:-1]+ysize/2
-        zcenter = node_z[:-1]+zsize/2
         
         self.size = np.zeros((self.num,3))
         self.size[:,0] = np.tile(xsize,self.num_y*self.num_z)
         self.size[:,1] = np.tile(ysize.repeat(self.num_x),self.num_z)
         self.size[:,2] = zsize.repeat(self.num_x*self.num_y)
 
+        """
+        self.volume is the volume of grids in x,y,z direction
+        """
+
         self.volume = np.prod(self.size,axis=1)
+
+        xcenter = node_x[:-1]+xsize/2
+        ycenter = node_y[:-1]+ysize/2
+        zcenter = node_z[:-1]+zsize/2
+
+        """
+        self.center is the x,y,z coordinate of the center of grids
+        """
         
         self.center = np.zeros((self.num,3))
         self.center[:,0] = np.tile(xcenter,self.num_y*self.num_z)
@@ -228,55 +176,111 @@ class finite_difference():
         self.Amatrix += csr((-dzp,(self.id[idzp,0],self.id[idzp,0])),
                             shape=(self.num,self.num))
 
-    def implement_bc(self,bvector):
+    def implement_bc(self,
+                     bvector,
+                     b_xmin=(0,1,0),
+                     b_xmax=(0,1,0),
+                     b_ymin=(0,1,0),
+                     b_ymax=(0,1,0),
+                     b_zmin=(0,1,0),
+                     b_zmax=(0,1,0)):
         
         self.bvector = bvector
 
-        iicc = self.id[:,0].astype('int')
-
-        jjxm = self.id[:,1].astype('int')
-        jjxp = self.id[:,2].astype('int')
-
-        jjym = self.id[:,3].astype('int')
-        jjyp = self.id[:,4].astype('int')
-
-        jjzm = self.id[:,5].astype('int')
-        jjzp = self.id[:,6].astype('int')
-
-        ii = np.array([]).astype('int')
-        jj = np.array([]).astype('int')
+        """
+        b_xmin,b_xmax,b_ymin,b_ymax,b_zmin and b_zmax have three entries:
+        - dirichlet coefficient,
+        - neumann coefficient,
+        - function value of boundary condition
+        
+        If not specified, no flow boundary conditions are implemented.
+        """
 
         questbound = lambda x: True if x>1 else False
 
         if questbound(self.num_x):
-            ii = np.append(ii,iicc[iicc==jjxm])
-            jj = np.append(jj,jjxp[iicc==jjxm])
-            ii = np.append(ii,iicc[iicc==jjxp])
-            jj = np.append(jj,jjxm[iicc==jjxp])
+            
+            ii = self.id[self.id[:,0]==self.id[:,1],0]
+            jj = self.id[self.id[:,0]==self.id[:,1],2]
+            
+            dxii = self.size[ii,0]
+            dxjj = self.size[jj,0]
+            
+            bc = 8/((3*dxii+dxjj)*(b_xmin[0]*dxii-2*b_xmin[1]))
+            
+            self.Amatrix[ii,ii] -= bc*b_xmin[0]
+            self.bvector[ii,0] -= bc*b_xmin[2]
+
+            ii = self.id[self.id[:,0]==self.id[:,2],0]
+            jj = self.id[self.id[:,0]==self.id[:,2],1]
+            
+            dxii = self.size[ii,0]
+            dxjj = self.size[jj,0]
+            
+            bc = 8/((3*dxii+dxjj)*(b_xmax[0]*dxii+2*b_xmax[1]))
+            
+            self.Amatrix[ii,ii] -= bc*b_xmax[0]
+            self.bvector[ii,0] -= bc*b_xmax[2]
 
         if questbound(self.num_y):
-            ii = np.append(ii,iicc[iicc==jjym])
-            jj = np.append(jj,jjyp[iicc==jjym])
-            ii = np.append(ii,iicc[iicc==jjyp])
-            jj = np.append(jj,jjym[iicc==jjyp])
+
+            ii = self.id[self.id[:,0]==self.id[:,3],0]
+            jj = self.id[self.id[:,0]==self.id[:,3],4]
+
+            dyii = self.size[ii,1]
+            dyjj = self.size[jj,1]
+
+            bc = 8/((3*dyii+dyjj)*(b_ymin[0]*dxii-2*b_ymin[1]))
+            
+            self.Amatrix[ii,ii] -= bc*b_ymin[0]
+            self.bvector[ii,0] -= bc*b_ymin[2]
+
+            ii = self.id[self.id[:,0]==self.id[:,4],0]
+            jj = self.id[self.id[:,0]==self.id[:,4],3]
+
+            dyii = self.size[ii,1]
+            dyjj = self.size[jj,1]
+
+            bc = 8/((3*dyii+dyjj)*(b_ymax[0]*dxii+2*b_ymax[1]))
+            
+            self.Amatrix[ii,ii] -= bc*b_ymax[0]
+            self.bvector[ii,0] -= bc*b_ymax[2]
 
         if questbound(self.num_z):
-            ii = np.append(ii,iicc[iicc==jjzm])
-            jj = np.append(jj,jjzp[iicc==jjzm])
-            ii = np.append(ii,iicc[iicc==jjzp])
-            jj = np.append(jj,jjzm[iicc==jjzp])
+
+            ii = self.id[self.id[:,0]==self.id[:,5],0]
+            jj = self.id[self.id[:,0]==self.id[:,5],6]
+
+            dzii = self.size[ii,2]
+            dzjj = self.size[jj,2]
+
+            bc = 8/((3*dzii+dzjj)*(b_zmin[0]*dzii-2*b_zmin[1]))
+            
+            self.Amatrix[ii,ii] -= bc*b_zmin[0]
+            self.bvector[ii,0] -= bc*b_zmin[2]
+
+            ii = self.id[self.id[:,0]==self.id[:,6],0]
+            jj = self.id[self.id[:,0]==self.id[:,6],5]
+
+            dzii = self.size[ii,2]
+            dzjj = self.size[jj,2]
+
+            bc = 8/((3*dzii+dzjj)*(b_zmax[0]*dzii+2*b_zmax[1]))
+            
+            self.Amatrix[ii,ii] -= bc*b_zmax[0]
+            self.bvector[ii,0] -= bc*b_zmax[2]
         
-        dbc = self.boundary[:,7]
-        nbc = self.boundary[:,8]
-        fbc = self.boundary[:,9]
+##        dbc = self.boundary[:,7]
+##        nbc = self.boundary[:,8]
+##        fbc = self.boundary[:,9]
 
-        dxii = self.size[ii,0] # self
-        dxjj = self.size[jj,0] # neighbour
+##        dxii = self.size[ii,0] # self
+##        dxjj = self.size[jj,0] # neighbour
 
-        bc = 8/((3*dxii+dxjj)*(dbc*dxii-2*nbc))
+##        bc = 8/((3*dxii+dxjj)*(dbc*dxii-2*nbc))
 
-        self.Amatrix[ii,ii] -= bc*dbc
-        self.bvector[ii,0] -= bc*fbc
+##        self.Amatrix[ii,ii] -= bc*dbc
+##        self.bvector[ii,0] -= bc*fbc
 
     def solve(self):
 

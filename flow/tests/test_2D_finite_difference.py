@@ -16,19 +16,17 @@ grids = finite_difference()
 num_x = 50
 num_y = 50
 
-grids.cartesian((20,10,10),
-                (num_x,num_y,1),
-                 b_xmin=(1,0,0),
-                 b_xmax=(0,1,0),
-                 b_ymin=(1,0,0),
-                 b_ymax=(1,0,100))
-
+grids.cartesian((20,10,10),(num_x,num_y,1))
 
 grids.central(order=2)
 
 bvector = np.zeros((grids.Amatrix.shape[0],1))
 
-grids.implement_bc(bvector)
+grids.implement_bc(bvector,
+                   b_xmin=(1,0,0),
+                   b_xmax=(0,1,0),
+                   b_ymin=(1,0,0),
+                   b_ymax=(1,0,100))
 
 grids.solve()
 
