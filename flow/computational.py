@@ -14,7 +14,7 @@ from scipy.sparse.linalg import spsolve
 
 #Local application imports
 
-##from flow.tests import test_3D_finite_difference
+from flow.tests import test_3D_finite_difference
 
 class finite_difference():
     
@@ -135,14 +135,14 @@ class finite_difference():
         dzm = (self.size[self.id[idzm,0],2]+self.size[self.id[idzm,5],2])/2
         dzp = (self.size[self.id[idzp,0],2]+self.size[self.id[idzp,6],2])/2
 
-        cxp = 2/(dxp*(dxp+dxm))
-        cxm = 2/(dxm*(dxp+dxm))
-
-        cyp = 2/(dyp*(dyp+dym))
-        cym = 2/(dym*(dyp+dym))
-
-        czp = 2/(dzp*(dzp+dzm))
-        czm = 2/(dzm*(dzp+dzm))
+##        cxp = 2/(dxp*(dxp+dxm))
+##        cxm = 2/(dxm*(dxp+dxm))
+##
+##        cyp = 2/(dyp*(dyp+dym))
+##        cym = 2/(dym*(dyp+dym))
+##
+##        czp = 2/(dzp*(dzp+dzm))
+##        czm = 2/(dzm*(dzp+dzm))
 
         self.Amatrix = csr((self.num,self.num))
 
@@ -305,5 +305,5 @@ if __name__ == "__main__":
         elif order==2:
             return -np.sin(x)
 
-##    test_3D_finite_difference
+    test_3D_finite_difference
  
