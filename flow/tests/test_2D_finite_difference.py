@@ -9,10 +9,9 @@ import numpy as np
 
 from analytical import poisson
 
-from computational import mesh
 from computational import finite_difference
 
-grids = mesh()
+grids = finite_difference()
 
 num_x = 50
 num_y = 50
@@ -24,20 +23,19 @@ grids.cartesian((20,10,10),
                  b_ymin=(1,0,0),
                  b_ymax=(1,0,100))
 
-solver = finite_difference(grids)
 
-solver.central(order=2)
+grids.central(order=2)
 
-bvector = np.zeros((solver.Amatrix.shape[0],1))
+bvector = np.zeros((grids.Amatrix.shape[0],1))
 
-solver.implement_bc(bvector)
+grids.implement_bc(bvector)
 
-solver.solve()
+grids.solve()
 
-X = solver.grids.center[:,0].reshape(num_x,num_y)
-Y = solver.grids.center[:,1].reshape(num_x,num_y)
+X = grids.center[:,0].reshape(num_x,num_y)
+Y = grids.center[:,1].reshape(num_x,num_y)
 
-Z = solver.unknown.reshape(num_x,num_y)
+Z = grids.unknown.reshape(num_x,num_y)
 
 plt.contourf(X,Y,Z,alpha=1,cmap=cm.PuBu)
 plt.colorbar()

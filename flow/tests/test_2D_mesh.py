@@ -7,21 +7,21 @@ sys.path.append(os.path.dirname(os.getcwd()))
 import matplotlib.pyplot as plt
 import numpy as np
 
-from computational import mesh
 from computational import finite_difference
 
-grids = mesh()
+grids = finite_difference()
+
+num_x = 5
+num_y = 6
 
 grids.cartesian((5,6,2),
-                (5,6,2),
-                b_xmin=(1,0,50),
-                b_xmax=(1,0,-50),
-                b_ymin=(1,0,-70),
-                b_ymax=(1,0,100))
+                (num_x,num_y,1),
+                b_xmin=(1,0,100),
+                b_xmax=(1,0,0),
+                b_ymin=(1,0,30),
+                b_ymax=(1,0,200))
 
-Z_idx = 0
-
-layer = np.arange(grids.num_x*grids.num_y)+grids.num_x*grids.num_y*Z_idx
+layer = np.arange(grids.num_x*grids.num_y)
 
 plt.scatter(grids.center[layer,0],grids.center[layer,1],c='r')
 

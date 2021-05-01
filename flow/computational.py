@@ -14,7 +14,7 @@ from scipy.sparse.linalg import spsolve
 
 #Local application imports
 
-from flow.tests import test_3D_finite_difference
+##from flow.tests import test_3D_finite_difference
 
 class finite_difference():
     
@@ -301,5 +301,5 @@ if __name__ == "__main__":
         elif order==2:
             return -np.sin(x)
 
-    test_3D_finite_difference
+##    test_3D_finite_difference
  

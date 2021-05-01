@@ -7,10 +7,9 @@ sys.path.append(os.path.dirname(os.getcwd()))
 import matplotlib.pyplot as plt
 import numpy as np
 
-from computational import mesh
 from computational import finite_difference
 
-grids = mesh()
+grids = finite_difference()
 
 num_x = 4
 num_y = 3
