@@ -1,34 +1,25 @@
-# Standard library imports
+"""1-Standard Library Imports"""
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.getcwd()))
+##sys.path.append(os.path.dirname(os.getcwd()))
 
-# Third party imports
+"""2-Third Party Imports"""
 import matplotlib.pyplot as plt
 import numpy as np
 
 from scipy.sparse import csr_matrix as csr
-
 from scipy.sparse.linalg import spsolve
 
-#Local application imports
-
-from flow.tests import test_3D_finite_difference
+"""3-Local Application Imports"""
 
 class finite_difference():
     
     """
-    This version 2 calculates matrix entries referencing grid
-    center for 1D problems. dx must be zero dimensional array.
-    
-    order must be either 1 or 2.
-    """
-    
-    """
-    regular grids are generated in this class,
-    cartesian grids are generated in 3D
-    radial grids are in progress...
+    This class is supposed to generate regular grids in cartesian and
+    radial coordinates and perform the given first or second order central
+    derivative operation by generating A matrix and implementing boundary
+    condition and solving for the given right hand side.
     """
     
     def __init__(self):
@@ -117,64 +108,55 @@ class finite_difference():
 
     def central(self,order=2):
 
-        idxm = ~(self.id[:,0]==self.id[:,1])
-        idxp = ~(self.id[:,0]==self.id[:,2])
-        
-        idym = ~(self.id[:,0]==self.id[:,3])
-        idyp = ~(self.id[:,0]==self.id[:,4])
-        
-        idzm = ~(self.id[:,0]==self.id[:,5])
-        idzp = ~(self.id[:,0]==self.id[:,6])
+        noxmin = ~(self.id[:,0]==self.id[:,1])
+        noxmax = ~(self.id[:,0]==self.id[:,2])
+        noymin = ~(self.id[:,0]==self.id[:,3])
+        noymax = ~(self.id[:,0]==self.id[:,4])
+        nozmin = ~(self.id[:,0]==self.id[:,5])
+        nozmax = ~(self.id[:,0]==self.id[:,6])
 
-        dxm = (self.size[self.id[idxm,0],0]+self.size[self.id[idxm,1],0])/2
-        dxp = (self.size[self.id[idxp,0],0]+self.size[self.id[idxp,2],0])/2
-        
-        dym = (self.size[self.id[idym,0],1]+self.size[self.id[idym,3],1])/2
-        dyp = (self.size[self.id[idyp,0],1]+self.size[self.id[idyp,4],1])/2
-        
-        dzm = (self.size[self.id[idzm,0],2]+self.size[self.id[idzm,5],2])/2
-        dzp = (self.size[self.id[idzp,0],2]+self.size[self.id[idzp,6],2])/2
+        id_noxmin = self.id[noxmin,0] #id of grids not at xmin boundary
+        id_noxmax = self.id[noxmax,0] #id of grids not at xmax boundary
+        id_noymin = self.id[noymin,0] #id of grids not at ymin boundary
+        id_noymax = self.id[noymax,0] #id of grids not at ymax boundary
+        id_nozmin = self.id[nozmin,0] #id of grids not at zmin boundary
+        id_nozmax = self.id[nozmax,0] #id of grids not at zmax boundary
 
-##        cxp = 2/(dxp*(dxp+dxm))
-##        cxm = 2/(dxm*(dxp+dxm))
-##
-##        cyp = 2/(dyp*(dyp+dym))
-##        cym = 2/(dym*(dyp+dym))
-##
-##        czp = 2/(dzp*(dzp+dzm))
-##        czm = 2/(dzm*(dzp+dzm))
+        idNnoxmin = self.id[noxmin,1] #id of xmin neighbors for id_noxmin grids
+        idNnoxmax = self.id[noxmax,2] #id of xmax neighbors for id_noxmax grids
+        idNnoymin = self.id[noymin,3] #id of ymin neighbors for id_noymin grids
+        idNnoymax = self.id[noymax,4] #id of ymax neighbors for id_noymax grids
+        idNnozmin = self.id[nozmin,5] #id of zmin neighbors for id_nozmin grids
+        idNnozmax = self.id[nozmax,6] #id of zmax neighbors for id_nozmax grids
 
-        self.Amatrix = csr((self.num,self.num))
+        dx_m = (self.size[:,0]+self.size[self.id[:,1],0])[noxmin]/2
+        dx_p = (self.size[:,0]+self.size[self.id[:,2],0])[noxmax]/2
+        dy_m = (self.size[:,1]+self.size[self.id[:,3],1])[noymin]/2
+        dy_p = (self.size[:,1]+self.size[self.id[:,4],1])[noymax]/2
+        dz_m = (self.size[:,2]+self.size[self.id[:,5],2])[nozmin]/2
+        dz_p = (self.size[:,2]+self.size[self.id[:,6],2])[nozmax]/2
 
-        self.Amatrix += csr((dxm,(self.id[idxm,0],self.id[idxm,1])),
-                            shape=(self.num,self.num))
-        self.Amatrix += csr((-dxm,(self.id[idxm,0],self.id[idxm,0])),
-                            shape=(self.num,self.num))
+        shape = (self.num,self.num)
+
+        self.Amatrix = csr(shape)
+
+        self.Amatrix += csr((dx_m,(id_noxmin,idNnoxmin)),shape=shape)
+        self.Amatrix -= csr((dx_m,(id_noxmin,id_noxmin)),shape=shape)
         
-        self.Amatrix += csr((dxp,(self.id[idxp,0],self.id[idxp,2])),
-                            shape=(self.num,self.num))
-        self.Amatrix += csr((-dxp,(self.id[idxp,0],self.id[idxp,0])),
-                            shape=(self.num,self.num))
+        self.Amatrix += csr((dx_p,(id_noxmax,idNnoxmax)),shape=shape)
+        self.Amatrix -= csr((dx_p,(id_noxmax,id_noxmax)),shape=shape)
         
-        self.Amatrix += csr((dym,(self.id[idym,0],self.id[idym,3])),
-                            shape=(self.num,self.num))
-        self.Amatrix += csr((-dym,(self.id[idym,0],self.id[idym,0])),
-                            shape=(self.num,self.num))
+        self.Amatrix += csr((dy_m,(id_noymin,idNnoymin)),shape=shape)
+        self.Amatrix -= csr((dy_m,(id_noymin,id_noymin)),shape=shape)
         
-        self.Amatrix += csr((dyp,(self.id[idyp,0],self.id[idyp,4])),
-                            shape=(self.num,self.num))
-        self.Amatrix += csr((-dyp,(self.id[idyp,0],self.id[idyp,0])),
-                            shape=(self.num,self.num))
+        self.Amatrix += csr((dy_p,(id_noymax,idNnoymax)),shape=shape)
+        self.Amatrix -= csr((dy_p,(id_noymax,id_noymax)),shape=shape)
         
-        self.Amatrix += csr((dzp,(self.id[idzm,0],self.id[idzm,5])),
-                            shape=(self.num,self.num))
-        self.Amatrix += csr((-dzp,(self.id[idzm,0],self.id[idzm,0])),
-                            shape=(self.num,self.num))
+        self.Amatrix += csr((dz_p,(id_nozmin,idNnozmin)),shape=shape)
+        self.Amatrix -= csr((dz_p,(id_nozmin,id_nozmin)),shape=shape)
         
-        self.Amatrix += csr((dzp,(self.id[idzp,0],self.id[idzp,6])),
-                            shape=(self.num,self.num))
-        self.Amatrix += csr((-dzp,(self.id[idzp,0],self.id[idzp,0])),
-                            shape=(self.num,self.num))
+        self.Amatrix += csr((dz_m,(id_nozmax,idNnozmax)),shape=shape)
+        self.Amatrix -= csr((dz_p,(id_nozmax,id_nozmax)),shape=shape)
 
     def implement_bc(self,
                      bvector,
@@ -189,104 +171,99 @@ class finite_difference():
 
         """
         b_xmin,b_xmax,b_ymin,b_ymax,b_zmin and b_zmax have three entries:
-        - dirichlet coefficient,
-        - neumann coefficient,
+        - dirichlet boundary condition coefficient,
+        - neumann boundary condition coefficient,
         - function value of boundary condition
-        
         If not specified, no flow boundary conditions are implemented.
         """
 
         questbound = lambda x: True if x>1 else False
 
         if questbound(self.num_x):
-            
-            ii = self.id[self.id[:,0]==self.id[:,1],0]
-            jj = self.id[self.id[:,0]==self.id[:,1],2]
-            
-            dxii = self.size[ii,0]
-            dxjj = self.size[jj,0]
-            
-            bc = 8/((3*dxii+dxjj)*(b_xmin[0]*dxii-2*b_xmin[1]))
-            
-            self.Amatrix[ii,ii] -= bc*b_xmin[0]
-            self.bvector[ii,0] -= bc*b_xmin[2]
 
-            ii = self.id[self.id[:,0]==self.id[:,2],0]
-            jj = self.id[self.id[:,0]==self.id[:,2],1]
+            xmin = self.id[:,0]==self.id[:,1]
+            xmax = self.id[:,0]==self.id[:,2]
+
+            id_xmin = self.id[xmin,0]
+            id_xmax = self.id[xmax,0]
+
+            idNxmin = self.id[xmin,2]
+            idNxmax = self.id[xmax,1]
+
+            dx_xmin = self.size[id_xmin,0]
+            dx_xmax = self.size[id_xmax,0]
             
-            dxii = self.size[ii,0]
-            dxjj = self.size[jj,0]
+            dxNxmin = self.size[idNxmin,0]
+            dxNxmax = self.size[idNxmax,0]
             
-            bc = 8/((3*dxii+dxjj)*(b_xmax[0]*dxii+2*b_xmax[1]))
+            bc_xmin = 8/((3*dx_xmin+dxNxmin)*(b_xmin[0]*dx_xmin-2*b_xmin[1]))
+            bc_xmax = 8/((3*dx_xmax+dxNxmax)*(b_xmax[0]*dx_xmax+2*b_xmax[1]))
             
-            self.Amatrix[ii,ii] -= bc*b_xmax[0]
-            self.bvector[ii,0] -= bc*b_xmax[2]
+            self.Amatrix[id_xmin,id_xmin] -= bc_xmin*b_xmin[0]
+            self.Amatrix[id_xmax,id_xmax] -= bc_xmax*b_xmax[0]
+            
+            self.bvector[id_xmin,0] -= bc_xmin*b_xmin[2]
+            self.bvector[id_xmax,0] -= bc_xmax*b_xmax[2]
 
         if questbound(self.num_y):
 
-            ii = self.id[self.id[:,0]==self.id[:,3],0]
-            jj = self.id[self.id[:,0]==self.id[:,3],4]
+            ymin = self.id[:,0]==self.id[:,3]
+            ymax = self.id[:,0]==self.id[:,4]
 
-            dyii = self.size[ii,1]
-            dyjj = self.size[jj,1]
+            id_ymin = self.id[ymin,0]
+            id_ymax = self.id[ymax,0]
 
-            bc = 8/((3*dyii+dyjj)*(b_ymin[0]*dxii-2*b_ymin[1]))
+            idNymin = self.id[ymin,4]
+            idNymax = self.id[ymax,3]
+
+            dy_ymin = self.size[id_ymin,1]
+            dy_ymax = self.size[id_ymax,1]
+
+            dyNymin = self.size[idNymin,1]
+            dyNymax = self.size[idNymax,1]
+
+            bc_ymin = 8/((3*dy_ymin+dyNymin)*(b_ymin[0]*dy_ymin-2*b_ymin[1]))
+            bc_ymax = 8/((3*dy_ymax+dyNymax)*(b_ymax[0]*dy_ymax+2*b_ymax[1]))
             
-            self.Amatrix[ii,ii] -= bc*b_ymin[0]
-            self.bvector[ii,0] -= bc*b_ymin[2]
-
-            ii = self.id[self.id[:,0]==self.id[:,4],0]
-            jj = self.id[self.id[:,0]==self.id[:,4],3]
-
-            dyii = self.size[ii,1]
-            dyjj = self.size[jj,1]
-
-            bc = 8/((3*dyii+dyjj)*(b_ymax[0]*dxii+2*b_ymax[1]))
+            self.Amatrix[id_ymin,id_ymin] -= bc_ymin*b_ymin[0]
+            self.Amatrix[id_ymax,id_ymax] -= bc_ymax*b_ymax[0]
             
-            self.Amatrix[ii,ii] -= bc*b_ymax[0]
-            self.bvector[ii,0] -= bc*b_ymax[2]
-
+            self.bvector[id_ymin,0] -= bc_ymin*b_ymin[2]
+            self.bvector[id_ymax,0] -= bc_ymax*b_ymax[2]
+            
         if questbound(self.num_z):
 
-            ii = self.id[self.id[:,0]==self.id[:,5],0]
-            jj = self.id[self.id[:,0]==self.id[:,5],6]
+            zmin = self.id[:,0]==self.id[:,5]
+            zmax = self.id[:,0]==self.id[:,6]
 
-            dzii = self.size[ii,2]
-            dzjj = self.size[jj,2]
+            id_zmin = self.id[zmin,0]
+            id_zmax = self.id[zmax,0]
 
-            bc = 8/((3*dzii+dzjj)*(b_zmin[0]*dzii-2*b_zmin[1]))
+            idNzmin = self.id[zmin,6]
+            idNzmax = self.id[zmin,5]
+
+            dz_zmin = self.size[id_zmin,2]
+            dz_zmax = self.size[id_zmax,2]
+
+            dzNzmin = self.size[idNzmin,2]
+            dzNzmax = self.size[idNzmax,2]
+
+            bc_zmin = 8/((3*dz_zmin+dzNzmin)*(b_zmin[0]*dz_zmin-2*b_zmin[1]))
+            bc_zmax = 8/((3*dz_zmax+dzNzmax)*(b_zmax[0]*dz_zmax+2*b_zmax[1]))
+
+            self.Amatrix[id_zmin,id_zmin] -= bc_zmin*b_zmin[0]
+            self.Amatrix[id_zmax,id_zmax] -= bc_zmax*b_zmax[0]
             
-            self.Amatrix[ii,ii] -= bc*b_zmin[0]
-            self.bvector[ii,0] -= bc*b_zmin[2]
-
-            ii = self.id[self.id[:,0]==self.id[:,6],0]
-            jj = self.id[self.id[:,0]==self.id[:,6],5]
-
-            dzii = self.size[ii,2]
-            dzjj = self.size[jj,2]
-
-            bc = 8/((3*dzii+dzjj)*(b_zmax[0]*dzii+2*b_zmax[1]))
+            self.bvector[id_zmin,0] -= bc_zmin*b_zmin[2]
+            self.bvector[id_zmax,0] -= bc_zmax*b_zmax[2]
             
-            self.Amatrix[ii,ii] -= bc*b_zmax[0]
-            self.bvector[ii,0] -= bc*b_zmax[2]
-        
-##        dbc = self.boundary[:,7]
-##        nbc = self.boundary[:,8]
-##        fbc = self.boundary[:,9]
-
-##        dxii = self.size[ii,0] # self
-##        dxjj = self.size[jj,0] # neighbour
-
-##        bc = 8/((3*dxii+dxjj)*(dbc*dxii-2*nbc))
-
-##        self.Amatrix[ii,ii] -= bc*dbc
-##        self.bvector[ii,0] -= bc*fbc
-
     def solve(self):
 
         self.unknown = spsolve(self.Amatrix,self.bvector)
 
 if __name__ == "__main__":
+
+    from tests import test_3D_finite_difference
 
     def myfunc1(x,order=0):
         if order==0:

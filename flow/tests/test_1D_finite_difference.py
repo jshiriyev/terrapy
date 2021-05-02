@@ -10,8 +10,8 @@ from analytical import poisson
 
 from computational import finite_difference
 
-bnd1 = (1,0,7)
-bnd2 = (0,1,10)
+bnd1 = (0,1,-7)
+bnd2 = (1,0,-1)
 
 grids = finite_difference()
 
