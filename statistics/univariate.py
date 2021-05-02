@@ -2,7 +2,7 @@
 import os
 import sys
 
-sys.path.append(os.getcwd())
+##sys.path.append(os.getcwd())
 
 # Third party imports
 import matplotlib.pyplot as plt

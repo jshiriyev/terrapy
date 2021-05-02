@@ -1,5 +1,9 @@
 # Standard library imports
 import csv
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.getcwd()))
 
 # Third party imports
 import matplotlib.pyplot as plt
@@ -9,10 +13,10 @@ import numpy as np
 ##from bhos.geostat import item
 ##from bhos.univariate import heterogeneity
 ##from bhos.univariate import uncertainty
-from bhos.variogram import variogram
-from bhos.kriging import kriging
+from univariate import variogram
+from univariate import spatial_estimation
 
-with open('bhos.csv') as csvfile:
+with open('reservoir.csv') as csvfile:
     
     intext = list(csv.reader(csvfile))
     
@@ -79,9 +83,9 @@ YY = Ymesh.ravel()
 
 ##plt.scatter(XX,YY,s=5,c='k')
 
-est = kriging(raman,X=XX,Y=YY)
+est = spatial_estimation(raman,X=XX,Y=YY)
 
-est.ordinary("porosity",perc=0.975)
+est.ordinary_kriging("porosity",perc=0.975)
 
 plt.contourf(Xmesh,Ymesh,est.property.reshape(Nx+1,Ny+1),alpha=1,cmap="PuOr")
 plt.colorbar()
