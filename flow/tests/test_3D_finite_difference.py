@@ -19,6 +19,10 @@ num_z = 10
 
 solver.cartesian((num_x*1.,num_y*1.,num_z*1.),(num_x,num_y,num_z))
 
+solver.set_property((1.,1.,1.),1.,1.,1.)
+
+solver.transmissibility()
+
 solver.central()
 
 bvector = np.zeros((solver.Amatrix.shape[0],1))

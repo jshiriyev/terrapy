@@ -85,6 +85,15 @@ class finite_difference():
         self.size[:,2] = zsize.repeat(self.num_x*self.num_y)
 
         """
+        self.area is the area of three faces of grids in x,y,z direction
+        """
+        
+        self.area = np.zeros((self.num,3))
+        self.area[:,0] = self.size[:,1]*self.size[:,2]
+        self.area[:,1] = self.size[:,2]*self.size[:,0]
+        self.area[:,2] = self.size[:,0]*self.size[:,1]
+
+        """
         self.volume is the volume of grids in x,y,z direction
         """
 
@@ -103,8 +112,54 @@ class finite_difference():
         self.center[:,1] = np.tile(ycenter.repeat(self.num_x),self.num_z)
         self.center[:,2] = zcenter.repeat(self.num_x*self.num_y)
 
-    def radial(self):
-        pass
+    def set_property(self,permeability,porosity,viscosity,compressibility):
+
+        self.permeability = np.zeros((self.num,3))
+        self.permeability[:,0] = permeability[0]
+        self.permeability[:,1] = permeability[1]
+        self.permeability[:,2] = permeability[2]
+
+        self.porosity = porosity
+        self.viscosity = viscosity
+        self.compressibility = compressibility
+
+    def transmissibility(self):
+        
+        dx_m = (self.size[:,0]+self.size[self.id[:,1],0])/2
+        dx_p = (self.size[:,0]+self.size[self.id[:,2],0])/2
+        dy_m = (self.size[:,1]+self.size[self.id[:,3],1])/2
+        dy_p = (self.size[:,1]+self.size[self.id[:,4],1])/2
+        dz_m = (self.size[:,2]+self.size[self.id[:,5],2])/2
+        dz_p = (self.size[:,2]+self.size[self.id[:,6],2])/2
+
+        kx_m = (2*dx_m)/(self.size[:,0]/self.permeability[:,0]+
+                         self.size[self.id[:,1],0]/self.permeability[self.id[:,1],0])
+        kx_p = (2*dx_p)/(self.size[:,0]/self.permeability[:,0]+
+                         self.size[self.id[:,2],0]/self.permeability[self.id[:,2],0])
+        ky_m = (2*dy_m)/(self.size[:,1]/self.permeability[:,1]+
+                         self.size[self.id[:,3],1]/self.permeability[self.id[:,3],1])
+        ky_p = (2*dy_p)/(self.size[:,1]/self.permeability[:,1]+
+                         self.size[self.id[:,4],1]/self.permeability[self.id[:,4],1])
+        kz_m = (2*dz_m)/(self.size[:,2]/self.permeability[:,2]+
+                         self.size[self.id[:,5],2]/self.permeability[self.id[:,5],2])
+        kz_p = (2*dz_p)/(self.size[:,2]/self.permeability[:,2]+
+                         self.size[self.id[:,6],2]/self.permeability[self.id[:,6],2])
+
+        etax_m = kx_m/(self.porosity*self.viscosity*self.compressibility)
+        etax_p = kx_p/(self.porosity*self.viscosity*self.compressibility)
+        etay_m = ky_m/(self.porosity*self.viscosity*self.compressibility)
+        etay_p = ky_p/(self.porosity*self.viscosity*self.compressibility)
+        etaz_m = kz_m/(self.porosity*self.viscosity*self.compressibility)
+        etaz_p = kz_p/(self.porosity*self.viscosity*self.compressibility)
+
+        self.transmissibility = np.zeros((self.num,6))
+
+        self.transmissibility[:,0] = (2*etax_m)/(dx_m*(dx_m+dx_p))
+        self.transmissibility[:,1] = (2*etax_p)/(dx_p*(dx_m+dx_p))
+        self.transmissibility[:,2] = (2*etay_m)/(dy_m*(dy_m+dy_p))
+        self.transmissibility[:,3] = (2*etay_p)/(dy_p*(dy_m+dy_p))
+        self.transmissibility[:,4] = (2*etaz_m)/(dz_m*(dz_m+dz_p))
+        self.transmissibility[:,5] = (2*etaz_p)/(dz_p*(dz_m+dz_p))
 
     def central(self,order=2):
 
@@ -129,35 +184,49 @@ class finite_difference():
         idNnozmin = self.id[nozmin,5] #id of zmin neighbors for id_nozmin grids
         idNnozmax = self.id[nozmax,6] #id of zmax neighbors for id_nozmax grids
 
-        dx_m = (self.size[:,0]+self.size[self.id[:,1],0])[noxmin]/2
-        dx_p = (self.size[:,0]+self.size[self.id[:,2],0])[noxmax]/2
-        dy_m = (self.size[:,1]+self.size[self.id[:,3],1])[noymin]/2
-        dy_p = (self.size[:,1]+self.size[self.id[:,4],1])[noymax]/2
-        dz_m = (self.size[:,2]+self.size[self.id[:,5],2])[nozmin]/2
-        dz_p = (self.size[:,2]+self.size[self.id[:,6],2])[nozmax]/2
+##        dx_m = (self.size[:,0]+self.size[self.id[:,1],0])/2
+##        dx_p = (self.size[:,0]+self.size[self.id[:,2],0])/2
+##        dy_m = (self.size[:,1]+self.size[self.id[:,3],1])/2
+##        dy_p = (self.size[:,1]+self.size[self.id[:,4],1])/2
+##        dz_m = (self.size[:,2]+self.size[self.id[:,5],2])/2
+##        dz_p = (self.size[:,2]+self.size[self.id[:,6],2])/2
+
+##        cx_m = (2/(dx_m*(dx_m+dx_p)))[noxmin]
+##        cx_p = (2/(dx_p*(dx_m+dx_p)))[noxmax]
+##        cy_m = (2/(dy_m*(dy_m+dy_p)))[noymin]
+##        cy_p = (2/(dy_p*(dy_m+dy_p)))[noymax]
+##        cz_m = (2/(dz_m*(dz_m+dz_p)))[nozmin]
+##        cz_p = (2/(dz_p*(dz_m+dz_p)))[nozmax]
+
+        cx_m = self.transmissibility[noxmin,0]
+        cx_p = self.transmissibility[noxmax,1]
+        cy_m = self.transmissibility[noymin,2]
+        cy_p = self.transmissibility[noymax,3]
+        cz_m = self.transmissibility[nozmin,4]
+        cz_p = self.transmissibility[nozmax,5]
 
         shape = (self.num,self.num)
 
         self.Amatrix = csr(shape)
 
-        self.Amatrix += csr((dx_m,(id_noxmin,idNnoxmin)),shape=shape)
-        self.Amatrix -= csr((dx_m,(id_noxmin,id_noxmin)),shape=shape)
+        self.Amatrix += csr((cx_m,(id_noxmin,idNnoxmin)),shape=shape)
+        self.Amatrix -= csr((cx_m,(id_noxmin,id_noxmin)),shape=shape)
         
-        self.Amatrix += csr((dx_p,(id_noxmax,idNnoxmax)),shape=shape)
-        self.Amatrix -= csr((dx_p,(id_noxmax,id_noxmax)),shape=shape)
+        self.Amatrix += csr((cx_p,(id_noxmax,idNnoxmax)),shape=shape)
+        self.Amatrix -= csr((cx_p,(id_noxmax,id_noxmax)),shape=shape)
         
-        self.Amatrix += csr((dy_m,(id_noymin,idNnoymin)),shape=shape)
-        self.Amatrix -= csr((dy_m,(id_noymin,id_noymin)),shape=shape)
+        self.Amatrix += csr((cy_m,(id_noymin,idNnoymin)),shape=shape)
+        self.Amatrix -= csr((cy_m,(id_noymin,id_noymin)),shape=shape)
         
-        self.Amatrix += csr((dy_p,(id_noymax,idNnoymax)),shape=shape)
-        self.Amatrix -= csr((dy_p,(id_noymax,id_noymax)),shape=shape)
+        self.Amatrix += csr((cy_p,(id_noymax,idNnoymax)),shape=shape)
+        self.Amatrix -= csr((cy_p,(id_noymax,id_noymax)),shape=shape)
         
-        self.Amatrix += csr((dz_p,(id_nozmin,idNnozmin)),shape=shape)
-        self.Amatrix -= csr((dz_p,(id_nozmin,id_nozmin)),shape=shape)
+        self.Amatrix += csr((cz_p,(id_nozmin,idNnozmin)),shape=shape)
+        self.Amatrix -= csr((cz_p,(id_nozmin,id_nozmin)),shape=shape)
         
-        self.Amatrix += csr((dz_m,(id_nozmax,idNnozmax)),shape=shape)
-        self.Amatrix -= csr((dz_p,(id_nozmax,id_nozmax)),shape=shape)
-
+        self.Amatrix += csr((cz_m,(id_nozmax,idNnozmax)),shape=shape)
+        self.Amatrix -= csr((cz_p,(id_nozmax,id_nozmax)),shape=shape)
+        
     def implement_bc(self,
                      bvector,
                      b_xmin=(0,1,0),
@@ -260,6 +329,9 @@ class finite_difference():
     def solve(self):
 
         self.unknown = spsolve(self.Amatrix,self.bvector)
+
+    def radial(self):
+        pass
 
 if __name__ == "__main__":
 

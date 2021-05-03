@@ -18,6 +18,10 @@ num_y = 50
 
 grids.cartesian((20,10,10),(num_x,num_y,1))
 
+grids.set_property((1.,1.,1.),1.,1.,1.)
+
+grids.transmissibility()
+
 grids.central(order=2)
 
 bvector = np.zeros((grids.Amatrix.shape[0],1))

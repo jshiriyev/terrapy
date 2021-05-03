@@ -10,12 +10,16 @@ from analytical import poisson
 
 from computational import finite_difference
 
-bnd1 = (0,1,-7)
-bnd2 = (1,0,-1)
+bnd1 = (1,-1,50)
+bnd2 = (1,0,100)
 
 grids = finite_difference()
 
 grids.cartesian((7,1,1),(7,1,1))
+
+grids.set_property((1.,1.,1.),1.,1.,1.)
+
+grids.transmissibility()
 
 grids.central(order=2)
 
