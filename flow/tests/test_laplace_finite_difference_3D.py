@@ -25,10 +25,7 @@ solver.transmissibility()
 
 solver.central()
 
-bvector = np.zeros((solver.Amatrix.shape[0],1))
-
-solver.implement_bc(bvector,
-                    b_xmin=(1,0,0),
+solver.implement_bc(b_xmin=(1,0,0),
                     b_xmax=(0,1,0),
                     b_ymin=(1,0,0),
                     b_ymax=(1,0,100),

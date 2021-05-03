@@ -228,15 +228,12 @@ class finite_difference():
         self.Amatrix -= csr((cz_p,(id_nozmax,id_nozmax)),shape=shape)
         
     def implement_bc(self,
-                     bvector,
                      b_xmin=(0,1,0),
                      b_xmax=(0,1,0),
                      b_ymin=(0,1,0),
                      b_ymax=(0,1,0),
                      b_zmin=(0,1,0),
                      b_zmax=(0,1,0)):
-        
-        self.bvector = bvector
 
         """
         b_xmin,b_xmax,b_ymin,b_ymax,b_zmin and b_zmax have three entries:
@@ -245,6 +242,8 @@ class finite_difference():
         - function value of boundary condition
         If not specified, no flow boundary conditions are implemented.
         """
+
+        self.b_correction = np.zeros(self.num)
 
         questbound = lambda x: True if x>1 else False
 
@@ -271,8 +270,8 @@ class finite_difference():
             self.Amatrix[id_xmin,id_xmin] -= bc_xmin*b_xmin[0]
             self.Amatrix[id_xmax,id_xmax] -= bc_xmax*b_xmax[0]
             
-            self.bvector[id_xmin,0] -= bc_xmin*b_xmin[2]
-            self.bvector[id_xmax,0] -= bc_xmax*b_xmax[2]
+            self.b_correction[id_xmin] -= bc_xmin*b_xmin[2]
+            self.b_correction[id_xmax] -= bc_xmax*b_xmax[2]
 
         if questbound(self.num_y):
 
@@ -297,8 +296,8 @@ class finite_difference():
             self.Amatrix[id_ymin,id_ymin] -= bc_ymin*b_ymin[0]
             self.Amatrix[id_ymax,id_ymax] -= bc_ymax*b_ymax[0]
             
-            self.bvector[id_ymin,0] -= bc_ymin*b_ymin[2]
-            self.bvector[id_ymax,0] -= bc_ymax*b_ymax[2]
+            self.b_correction[id_ymin] -= bc_ymin*b_ymin[2]
+            self.b_correction[id_ymax] -= bc_ymax*b_ymax[2]
             
         if questbound(self.num_z):
 
@@ -323,12 +322,16 @@ class finite_difference():
             self.Amatrix[id_zmin,id_zmin] -= bc_zmin*b_zmin[0]
             self.Amatrix[id_zmax,id_zmax] -= bc_zmax*b_zmax[0]
             
-            self.bvector[id_zmin,0] -= bc_zmin*b_zmin[2]
-            self.bvector[id_zmax,0] -= bc_zmax*b_zmax[2]
+            self.b_correction[id_zmin] -= bc_zmin*b_zmin[2]
+            self.b_correction[id_zmax] -= bc_zmax*b_zmax[2]
             
-    def solve(self):
+    def solve(self,beta=0):
 
-        self.unknown = spsolve(self.Amatrix,self.bvector)
+        bvector = np.full(self.num,beta).astype('float')
+        
+        bvector += self.b_correction
+
+        self.unknown = spsolve(self.Amatrix,bvector)
 
     def radial(self):
         pass

@@ -24,10 +24,7 @@ grids.transmissibility()
 
 grids.central(order=2)
 
-bvector = np.zeros((grids.Amatrix.shape[0],1))
-
-grids.implement_bc(bvector,
-                   b_xmin=(1,0,0),
+grids.implement_bc(b_xmin=(1,0,0),
                    b_xmax=(0,1,0),
                    b_ymin=(1,0,0),
                    b_ymax=(1,0,100))
