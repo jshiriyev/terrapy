@@ -184,20 +184,6 @@ class finite_difference():
         idNnozmin = self.id[nozmin,5] #id of zmin neighbors for id_nozmin grids
         idNnozmax = self.id[nozmax,6] #id of zmax neighbors for id_nozmax grids
 
-##        dx_m = (self.size[:,0]+self.size[self.id[:,1],0])/2
-##        dx_p = (self.size[:,0]+self.size[self.id[:,2],0])/2
-##        dy_m = (self.size[:,1]+self.size[self.id[:,3],1])/2
-##        dy_p = (self.size[:,1]+self.size[self.id[:,4],1])/2
-##        dz_m = (self.size[:,2]+self.size[self.id[:,5],2])/2
-##        dz_p = (self.size[:,2]+self.size[self.id[:,6],2])/2
-
-##        cx_m = (2/(dx_m*(dx_m+dx_p)))[noxmin]
-##        cx_p = (2/(dx_p*(dx_m+dx_p)))[noxmax]
-##        cy_m = (2/(dy_m*(dy_m+dy_p)))[noymin]
-##        cy_p = (2/(dy_p*(dy_m+dy_p)))[noymax]
-##        cz_m = (2/(dz_m*(dz_m+dz_p)))[nozmin]
-##        cz_p = (2/(dz_p*(dz_m+dz_p)))[nozmax]
-
         cx_m = self.transmissibility[noxmin,0]
         cx_p = self.transmissibility[noxmax,1]
         cy_m = self.transmissibility[noymin,2]
@@ -255,17 +241,14 @@ class finite_difference():
             id_xmin = self.id[xmin,0]
             id_xmax = self.id[xmax,0]
 
-            idNxmin = self.id[xmin,2]
-            idNxmax = self.id[xmax,1]
-
             dx_xmin = self.size[id_xmin,0]
             dx_xmax = self.size[id_xmax,0]
-            
-            dxNxmin = self.size[idNxmin,0]
-            dxNxmax = self.size[idNxmax,0]
-            
-            bc_xmin = 8/((3*dx_xmin+dxNxmin)*(b_xmin[0]*dx_xmin-2*b_xmin[1]))
-            bc_xmax = 8/((3*dx_xmax+dxNxmax)*(b_xmax[0]*dx_xmax+2*b_xmax[1]))
+
+            tx_xmin = self.transmissibility[id_xmin,0]
+            tx_xmax = self.transmissibility[id_xmax,1]
+
+            bc_xmin = (2*tx_xmin*dx_xmin)/(b_xmin[0]*dx_xmin-2*b_xmin[1])
+            bc_xmax = (2*tx_xmax*dx_xmax)/(b_xmax[0]*dx_xmax+2*b_xmax[1])
             
             self.Amatrix[id_xmin,id_xmin] -= bc_xmin*b_xmin[0]
             self.Amatrix[id_xmax,id_xmax] -= bc_xmax*b_xmax[0]
@@ -281,17 +264,14 @@ class finite_difference():
             id_ymin = self.id[ymin,0]
             id_ymax = self.id[ymax,0]
 
-            idNymin = self.id[ymin,4]
-            idNymax = self.id[ymax,3]
-
             dy_ymin = self.size[id_ymin,1]
             dy_ymax = self.size[id_ymax,1]
 
-            dyNymin = self.size[idNymin,1]
-            dyNymax = self.size[idNymax,1]
+            ty_ymin = self.transmissibility[id_ymin,2]
+            ty_ymax = self.transmissibility[id_ymax,3]
 
-            bc_ymin = 8/((3*dy_ymin+dyNymin)*(b_ymin[0]*dy_ymin-2*b_ymin[1]))
-            bc_ymax = 8/((3*dy_ymax+dyNymax)*(b_ymax[0]*dy_ymax+2*b_ymax[1]))
+            bc_ymin = (2*ty_ymin*dy_ymin)/(b_ymin[0]*dy_ymin-2*b_ymin[1])
+            bc_ymax = (2*ty_ymax*dy_ymax)/(b_ymax[0]*dy_ymax+2*b_ymax[1])
             
             self.Amatrix[id_ymin,id_ymin] -= bc_ymin*b_ymin[0]
             self.Amatrix[id_ymax,id_ymax] -= bc_ymax*b_ymax[0]
@@ -307,17 +287,14 @@ class finite_difference():
             id_zmin = self.id[zmin,0]
             id_zmax = self.id[zmax,0]
 
-            idNzmin = self.id[zmin,6]
-            idNzmax = self.id[zmin,5]
-
             dz_zmin = self.size[id_zmin,2]
             dz_zmax = self.size[id_zmax,2]
 
-            dzNzmin = self.size[idNzmin,2]
-            dzNzmax = self.size[idNzmax,2]
+            tz_zmin = self.transmissibility[id_zmin,4]
+            tz_zmax = self.transmissibility[id_zmax,5]
 
-            bc_zmin = 8/((3*dz_zmin+dzNzmin)*(b_zmin[0]*dz_zmin-2*b_zmin[1]))
-            bc_zmax = 8/((3*dz_zmax+dzNzmax)*(b_zmax[0]*dz_zmax+2*b_zmax[1]))
+            bc_zmin = (2*tz_zmin*dz_zmin)/(b_zmin[0]*dz_zmin-2*b_zmin[1])
+            bc_zmax = (2*tz_zmax*dz_zmax)/(b_zmax[0]*dz_zmax+2*b_zmax[1])
 
             self.Amatrix[id_zmin,id_zmin] -= bc_zmin*b_zmin[0]
             self.Amatrix[id_zmax,id_zmax] -= bc_zmax*b_zmax[0]
@@ -338,7 +315,7 @@ class finite_difference():
 
 if __name__ == "__main__":
 
-    from tests import test_3D_finite_difference
+    from tests import test_laplace_finite_difference_3D
 
     def myfunc1(x,order=0):
         if order==0:
@@ -357,5 +334,5 @@ if __name__ == "__main__":
         elif order==2:
             return -np.sin(x)
 
-    test_3D_finite_difference
+    test_laplace_finite_difference_3D
  

@@ -17,41 +17,10 @@ class diffusivity():
         
         self.eta = hydraulic_diffusivity
 
-    def cartesian_1D(self,boundary_points,boundary_pressures,time,x=None,N=50):
-
-        xL = boundary_points[0]
-        xU = boundary_points[1]
-
-        PL = boundary_pressures[0]
-        PU = boundary_pressures[1]
-
-        L = xU-xL
-
-        self.time = time.reshape((-1,1,1))
-
-        if x is None:
-            self.x = np.linspace(xL,xU).reshape((1,-1,1))
-        else:
-            self.x = x.reshape((1,-1,1))
-
-        n = np.arange(1,N).reshape((1,1,-1))
-
-        sin_ = np.sin(n*np.pi*self.x/L)
-        exp_ = np.exp(-n**2*np.pi**2/L**2*self.eta*self.time)
-
-        sum_ = np.sum(1/n*exp_*sin_,axis=2)
-
-        self.pressure = PL+(PU-PL)*((self.x/L).reshape((1,-1))+2/np.pi*sum_)
-
-    def radial_1D(self):
+    def cartesian_laplace_1D(self):
         pass
 
-class poisson():
-
-    def __init__(self):
-        pass
-
-    def onedimensional(self,boundary_points,boundary_conditions,beta):
+    def cartesian_poisson_1D(self,boundary_points,boundary_conditions,beta):
         
         """
         lower_boundary is a list of boundary conditions specified for xL
@@ -98,6 +67,51 @@ class poisson():
 
         self.u = beta/2*self.x**2+c1*self.x+c2
 
+    def cartesian_1D(self,boundary_points,boundary_pressures,time,x=None,N=50):
+
+        xL = boundary_points[0]
+        xU = boundary_points[1]
+
+        PL = boundary_pressures[0][2]
+        PU = boundary_pressures[1][2]
+
+        L = xU-xL
+
+        self.time = time.reshape((-1,1,1))
+
+        if x is None:
+            self.x = np.linspace(xL,xU).reshape((1,-1,1))
+        else:
+            self.x = x.reshape((1,-1,1))
+
+        n = np.arange(1,N).reshape((1,1,-1))
+
+        sin_ = np.sin(n*np.pi*self.x/L)
+        exp_ = np.exp(-n**2*np.pi**2/L**2*self.eta*self.time)
+
+        sum_ = np.sum(1/n*exp_*sin_,axis=2)
+
+        self.pressure = PL+(PU-PL)*((self.x/L).reshape((1,-1))+2/np.pi*sum_)
+
+    def cartesian_2D(self):
+        """green's solution"""
+        pass
+
+    def cartesian_3D(self):
+        """green's solution"""
+        pass
+
+    def radial_transient(self):
+        """line source solution"""
+        pass
+
+    def radial_steady(self):
+        pass
+
+    def radial_pseudo_steady(self):
+        """solution with shape factor"""
+        pass
+
 if __name__ == "__main__":
 
 ##    k = 50 #mD
@@ -125,9 +139,9 @@ if __name__ == "__main__":
 
     bound_conditions = np.array([[1,0,300],[0,1,0]])
 
-    analytical = poisson()
+    analytical = diffusivity(0)
     
-    analytical.onedimensional(bound_points,bound_conditions,beta)
+    analytical.cartesian_poisson_1D(bound_points,bound_conditions,beta)
     
     plt.plot(analytical.x,analytical.u,'k',label='Analytical Solution')
 
