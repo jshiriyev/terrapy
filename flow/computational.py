@@ -344,15 +344,15 @@ class finite_difference():
 
             return
         
-        ones = csr((np.ones(self.num),
-                   (self.id[:,0],self.id[:,0])),
-                    shape=(self.num,self.num))
+        t_correction = csr((np.ones(self.num)/self.timestep,
+                           (self.id[:,0],self.id[:,0])),
+                            shape=(self.num,self.num))
         
-        A = -self.Amatrix*self.timestep+ones
+        A = self.Amatrix-t_correction
         
         for i in range(1,self.time.size):
             
-            b = self.pressure[:,i-1]-self.b_correction
+            b = -self.pressure[:,i-1]/self.timestep+self.b_correction
             
             self.pressure[:,i] = spsolve(A,b)
 

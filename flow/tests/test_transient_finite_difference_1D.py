@@ -56,14 +56,14 @@ analytical.cartesian_1D((0,L),(bnd1,bnd2),time)
 
 grids = finite_difference()
 
-grids.cartesian((L,1,1),(10,1,1))
+grids.cartesian((L,1,1),(100,1,1))
 
 grids.initialize(permeability=permeability,
                  porosity=porosity,
                  viscosity=viscosity,
                  compressibility=compressibility,
                  timetot=time[-1],
-                 timestep=1.,
+                 timestep=0.01,
                  pressure=pL)
 
 grids.transmissibility()
@@ -77,7 +77,7 @@ grids.solve()
 """PLOTTING"""
 
 for i,t in enumerate(time):
-    plt.scatter(grids.center[:,0],grids.pressure[:,10]/6894.76)
+    plt.scatter(grids.center[:,0],grids.pressure[:,100]/6894.76)
     plt.plot(analytical.x.flatten(),analytical.pressure[i,:]/6894.76)
 
 plt.xlabel('x-axis')
