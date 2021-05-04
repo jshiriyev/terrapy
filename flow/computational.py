@@ -117,13 +117,13 @@ class finite_difference():
                    porosity=1,
                    viscosity=1,
                    compressibility=1,
-                   run_timetotal=None,
-                   num_timesteps=None,
+                   run_time=None,
+                   num_timestep=None,
                    pressure=None):
 
         if isinstance(permeability,tuple):
             permeability = np.array(permeability)
-        elif isinstance(permeability,int):
+        elif isinstance(permeability,float):
             permeability = np.array([permeability])
 
         self.permeability = np.zeros((self.num,3))
@@ -145,12 +145,13 @@ class finite_difference():
         
         self.compressibility = compressibility #total compressibility
 
-        if run_timetotal is None:
+        if run_time is None:
             return
         
-        self.time = np.linspace(0,run_timetotal,num_timesteps+1)
+        self.time,self.time_step = np.linspace(0,run_time,
+                                               num_timestep+1,retstep=True)
 
-        self.pressure = np.zeros((self.num,num_timesteps+1))
+        self.pressure = np.zeros((self.num,num_timestep+1))
 
         self.pressure[:,0] = pressure
 
@@ -333,13 +334,19 @@ class finite_difference():
             self.b_correction[id_zmin] -= bc_zmin*b_zmin[2]
             self.b_correction[id_zmax] -= bc_zmax*b_zmax[2]
             
-    def solve(self,beta=0):
+    def solve(self,rhs=0):
 
-        bvector = np.full(self.num,beta).astype('float')
-        
-        bvector += self.b_correction
-
-        self.unknown = spsolve(self.Amatrix,bvector)
+        if rhs != 'time-derivative':
+            bvector = np.full(self.num,rhs).astype('float')
+            bvector += self.b_correction
+            self.unknown = spsolve(self.Amatrix,bvector)
+        else:
+            ones = csr((np.ones(self.num),(self.id[:,0],self.id[:,0])),
+                        shape=(self.num,self.num))
+            A = -self.Amatrix*self.time_step+ones
+            for k,t in enumerate(self.time[:-1]):
+                b = self.pressure[:,k]-self.b_correction
+                self.pressure[:,k+1] = spsolve(A,b)
 
     def radial(self):
         pass

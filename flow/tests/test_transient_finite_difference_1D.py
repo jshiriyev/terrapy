@@ -10,10 +10,15 @@ from analytical import diffusivity
 
 from computational import finite_difference
 
+"""MAIN INPUT"""
+
 L = 10#m
 
 p0 = 0#psi
 pL = 1000#psi
+
+bnd1 = (1,0,p0)
+bnd2 = (1,0,pL)
 
 permeability = 100#mD
 
@@ -21,50 +26,68 @@ porosity = 0.2
 viscosity = 1#cp
 compressibility = 1e-5#1/psi
 
+time = np.array([1,10,20,40,100]) #these are seconds
 
+"""UNIT CONVERSION"""
 
 p0 *= 6894.76
 pL *= 6894.76
 
-bnd1 = (1,0,p0)
-bnd2 = (1,0,pL)
+bnd1 = list(bnd1)
+bnd2 = list(bnd2)
+
+bnd1[2] *= 6894.76
+bnd2[2] *= 6894.76
 
 permeability *= 9.8692326671601e-16
 
 viscosity *= 0.001
 compressibility /= 6894.76
 
+"""ANALYTICAL CALL"""
+
 eta = (permeability)/(porosity*viscosity*compressibility)
-
-##grids = finite_difference()
-##
-##grids.cartesian((7,1,1),(7,1,1))
-##
-##grids.set_property((1.,1.,1.),1.,1.,1.)
-##
-##grids.transmissibility()
-##
-##grids.central(order=2)
-##
-##grids.implement_bc(b_xmin=bnd1,b_xmax=bnd2)
-##
-##grids.solve()
-##
-##plt.scatter(grids.center[:,0],grids.unknown,c='r')
-
-time = np.array([1,10,20,50,100])
 
 analytical = diffusivity(eta)
 
 analytical.cartesian_1D((0,L),(bnd1,bnd2),time)
 
+"""NUMERICAL CALL"""
+
+grids = finite_difference()
+
+grids.cartesian((L,1,1),(10,1,1))
+
+grids.initialize(permeability=permeability,
+                 porosity=porosity,
+                 viscosity=viscosity,
+                 compressibility=compressibility,
+                 run_time=time[-1],
+                 num_timestep=100,
+                 pressure=pL)
+
+grids.transmissibility()
+
+grids.central(order=2)
+
+grids.implement_bc(b_xmin=bnd1,b_xmax=bnd2)
+
+grids.solve('time-derivative')
+
+"""PLOTTING"""
+
 for i,t in enumerate(time):
+    plt.scatter(grids.center[:,0],grids.pressure[:,40]/6894.76)
     plt.plot(analytical.x.flatten(),analytical.pressure[i,:]/6894.76)
 
 plt.xlabel('x-axis')
 plt.ylabel('pressure [psi]')
 
+yaxis = 0.75*(p0+pL)/(6894.76)
+xaxis = analytical.x.flatten()[
+    np.argmin(np.abs(analytical.pressure/6894.76-yaxis),axis=1)]
+
 for i,t in enumerate(time):
-    plt.text(np.linspace(0,L,time.shape[0])[i],3*(p0+pL)/(4*6894.76),t)
+    plt.text(xaxis[i],yaxis,t,backgroundcolor='w')
 
 plt.show()

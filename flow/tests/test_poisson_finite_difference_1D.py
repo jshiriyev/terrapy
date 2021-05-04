@@ -34,7 +34,7 @@ grids.central(order=2)
 
 grids.implement_bc(bL,bU)
 
-grids.solve(beta=beta)
+grids.solve(rhs=beta)
 
 analytical = diffusivity()
 
