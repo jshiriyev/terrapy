@@ -117,41 +117,39 @@ class finite_difference():
                    porosity=1,
                    viscosity=1,
                    compressibility=1,
-                   run_time=None,
-                   num_timestep=None,
+                   timetot=None,
+                   timestep=None,
                    pressure=None):
 
         if isinstance(permeability,tuple):
             permeability = np.array(permeability)
         elif isinstance(permeability,float):
             permeability = np.array([permeability])
-
-        self.permeability = np.zeros((self.num,3))
+        elif isinstance(permeability,int):
+            permeability = np.array([permeability])
             
         if permeability.shape==(self.num,3):
             self.permeability = permeability
-        elif permeability.shape==(1,) or permeability.shape==(self.num,):
-            self.permeability[:,0] = permeability
-            self.permeability[:,1] = permeability
-            self.permeability[:,2] = permeability
+        elif permeability.shape==(1,):
+            self.permeability = np.tile(permeability,(self.num,3))
         elif permeability.shape==(3,):
-            self.permeability[:,0] = permeability[0]
-            self.permeability[:,1] = permeability[1]
-            self.permeability[:,2] = permeability[2]
-        
+            self.permeability = permeability.repeat(self.num).reshape((-1,self.num)).T
+        elif permeability.shape==(self.num,):
+            self.permeability = permeability.repeat(3).reshape((-1,3))
+            
         self.porosity = porosity
         
         self.viscosity = viscosity
         
         self.compressibility = compressibility #total compressibility
 
-        if run_time is None:
-            return
+        if timetot is None: return
         
-        self.time,self.time_step = np.linspace(0,run_time,
-                                               num_timestep+1,retstep=True)
+        self.time = np.arange(0.,timetot+timestep/2,timestep)
 
-        self.pressure = np.zeros((self.num,num_timestep+1))
+        self.timestep = float(timestep)
+
+        self.pressure = np.zeros((self.num,self.time.size))
 
         self.pressure[:,0] = pressure
 
@@ -336,17 +334,27 @@ class finite_difference():
             
     def solve(self,rhs=0):
 
-        if rhs != 'time-derivative':
+        if not hasattr(self,'time'):
+            
             bvector = np.full(self.num,rhs).astype('float')
+            
             bvector += self.b_correction
+            
             self.unknown = spsolve(self.Amatrix,bvector)
-        else:
-            ones = csr((np.ones(self.num),(self.id[:,0],self.id[:,0])),
-                        shape=(self.num,self.num))
-            A = -self.Amatrix*self.time_step+ones
-            for k,t in enumerate(self.time[:-1]):
-                b = self.pressure[:,k]-self.b_correction
-                self.pressure[:,k+1] = spsolve(A,b)
+
+            return
+        
+        ones = csr((np.ones(self.num),
+                   (self.id[:,0],self.id[:,0])),
+                    shape=(self.num,self.num))
+        
+        A = -self.Amatrix*self.timestep+ones
+        
+        for i in range(1,self.time.size):
+            
+            b = self.pressure[:,i-1]-self.b_correction
+            
+            self.pressure[:,i] = spsolve(A,b)
 
     def radial(self):
         pass

@@ -62,8 +62,8 @@ grids.initialize(permeability=permeability,
                  porosity=porosity,
                  viscosity=viscosity,
                  compressibility=compressibility,
-                 run_time=time[-1],
-                 num_timestep=100,
+                 timetot=time[-1],
+                 timestep=1.,
                  pressure=pL)
 
 grids.transmissibility()
@@ -72,12 +72,12 @@ grids.central(order=2)
 
 grids.implement_bc(b_xmin=bnd1,b_xmax=bnd2)
 
-grids.solve('time-derivative')
+grids.solve()
 
 """PLOTTING"""
 
 for i,t in enumerate(time):
-    plt.scatter(grids.center[:,0],grids.pressure[:,40]/6894.76)
+    plt.scatter(grids.center[:,0],grids.pressure[:,10]/6894.76)
     plt.plot(analytical.x.flatten(),analytical.pressure[i,:]/6894.76)
 
 plt.xlabel('x-axis')
