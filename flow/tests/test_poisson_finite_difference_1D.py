@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 #Local application imports
-from analytical import poisson
+from analytical import diffusivity
 
 from computational import finite_difference 
 
@@ -26,7 +26,7 @@ grids = finite_difference()
 
 grids.cartesian((xN1,1,1),(70,1,1))
 
-grids.set_property((1,1,1),1,1,1)
+grids.initialize()
 
 grids.transmissibility()
 
@@ -36,9 +36,9 @@ grids.implement_bc(bL,bU)
 
 grids.solve(beta=beta)
 
-analytical = poisson()
+analytical = diffusivity()
 
-analytical.onedimensional((xN0,xN1),(bL,bU),beta)
+analytical.cartesian_poisson_1D((xN0,xN1),(bL,bU),beta)
 
 plt.scatter(grids.center[:,0],grids.unknown,c='r',label='Finite Difference')
 

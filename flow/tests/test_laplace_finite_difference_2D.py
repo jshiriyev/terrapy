@@ -7,8 +7,6 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
 
-from analytical import poisson
-
 from computational import finite_difference
 
 grids = finite_difference()
@@ -18,7 +16,7 @@ num_y = 50
 
 grids.cartesian((20,10,10),(num_x,num_y,1))
 
-grids.set_property((1.,1.,1.),1.,1.,1.)
+grids.initialize()
 
 grids.transmissibility()
 

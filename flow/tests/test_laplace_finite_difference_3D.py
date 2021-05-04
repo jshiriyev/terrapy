@@ -7,8 +7,6 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
 
-from analytical import poisson
-
 from computational import finite_difference
 
 solver = finite_difference()
@@ -19,7 +17,7 @@ num_z = 10
 
 solver.cartesian((num_x*1.,num_y*1.,num_z*1.),(num_x,num_y,num_z))
 
-solver.set_property((1.,1.,1.),1.,1.,1.)
+solver.initialize()
 
 solver.transmissibility()
 

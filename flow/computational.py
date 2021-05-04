@@ -112,16 +112,47 @@ class finite_difference():
         self.center[:,1] = np.tile(ycenter.repeat(self.num_x),self.num_z)
         self.center[:,2] = zcenter.repeat(self.num_x*self.num_y)
 
-    def set_property(self,permeability,porosity,viscosity,compressibility):
+    def initialize(self,
+                   permeability=(1,1,1),
+                   porosity=1,
+                   viscosity=1,
+                   compressibility=1,
+                   run_timetotal=None,
+                   num_timesteps=None,
+                   pressure=None):
+
+        if isinstance(permeability,tuple):
+            permeability = np.array(permeability)
+        elif isinstance(permeability,int):
+            permeability = np.array([permeability])
 
         self.permeability = np.zeros((self.num,3))
-        self.permeability[:,0] = permeability[0]
-        self.permeability[:,1] = permeability[1]
-        self.permeability[:,2] = permeability[2]
-
+            
+        if permeability.shape==(self.num,3):
+            self.permeability = permeability
+        elif permeability.shape==(1,) or permeability.shape==(self.num,):
+            self.permeability[:,0] = permeability
+            self.permeability[:,1] = permeability
+            self.permeability[:,2] = permeability
+        elif permeability.shape==(3,):
+            self.permeability[:,0] = permeability[0]
+            self.permeability[:,1] = permeability[1]
+            self.permeability[:,2] = permeability[2]
+        
         self.porosity = porosity
+        
         self.viscosity = viscosity
-        self.compressibility = compressibility
+        
+        self.compressibility = compressibility #total compressibility
+
+        if run_timetotal is None:
+            return
+        
+        self.time = np.linspace(0,run_timetotal,num_timesteps+1)
+
+        self.pressure = np.zeros((self.num,num_timesteps+1))
+
+        self.pressure[:,0] = pressure
 
     def transmissibility(self):
         

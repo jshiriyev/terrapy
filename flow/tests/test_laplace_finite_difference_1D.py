@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.getcwd()))
 import matplotlib.pyplot as plt
 import numpy as np
 
-from analytical import poisson
+from analytical import diffusivity
 
 from computational import finite_difference
 
@@ -17,7 +17,7 @@ grids = finite_difference()
 
 grids.cartesian((7,1,1),(7,1,1))
 
-grids.set_property((1.,1.,1.),1.,1.,1.)
+grids.initialize()
 
 grids.transmissibility()
 
@@ -25,8 +25,8 @@ grids.central(order=2)
 
 grids.implement_bc(b_xmin=bnd1,b_xmax=bnd2)
 
-analytical = poisson()
-analytical.onedimensional((0,7),(bnd1,bnd2),0)
+analytical = diffusivity()
+analytical.cartesian_poisson_1D((0,7),(bnd1,bnd2),0)
 
 grids.solve()
 

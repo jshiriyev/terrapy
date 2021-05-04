@@ -13,9 +13,10 @@ import numpy as np
 
 class diffusivity():
 
-    def __init__(self,hydraulic_diffusivity):
-        
-        self.eta = hydraulic_diffusivity
+    def __init__(self,hydraulic_diffusivity=None):
+
+        if hydraulic_diffusivity is not None:
+            self.eta = hydraulic_diffusivity
 
     def cartesian_laplace_1D(self):
         pass
