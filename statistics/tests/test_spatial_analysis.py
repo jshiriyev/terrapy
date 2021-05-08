@@ -85,7 +85,7 @@ YY = Ymesh.ravel()
 
 est = spatial_estimation(raman,X=XX,Y=YY)
 
-est.ordinary_kriging("porosity",perc=0.975)
+est.ordinary_kriging("porosity")
 
 plt.contourf(Xmesh,Ymesh,est.property.reshape(Nx+1,Ny+1),alpha=1,cmap="PuOr")
 plt.colorbar()

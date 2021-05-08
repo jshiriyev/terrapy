@@ -1,8 +1,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from univariate import variogram
+
 x = np.array([1,2,3,4,1,2,3,4,1,2,3,4,3])
 y = np.array([1,1,1,1,2,2,2,2,3,3,3,3,1.5])
+
+f = np.array([0.2,0.3,0.4,0.7,0.6,0.3,0.7,0.5,0.1,0.4,0.4,0.2,0.9])
+
+data = variogram({"porosity":f},X=x,Y=y)
+
+data.set_connectivity(data)
 
 lagdis = 1
 lagdis_tol = lagdis/2
