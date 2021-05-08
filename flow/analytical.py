@@ -12,6 +12,18 @@ import numpy as np
 
 
 class diffusivity():
+    
+    """
+    cartesian_1D_laplace
+    cartesian_1D_poisson
+    cartesian_1D
+    cartesian_2D
+    cartesian_3D
+
+    radial_transient
+    radial_steady
+    radial_pseudosteady
+    """
 
     def __init__(self,hydraulic_diffusivity=None):
 

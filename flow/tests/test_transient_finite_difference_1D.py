@@ -56,7 +56,7 @@ analytical.cartesian_1D((0,L),(bnd1,bnd2),time)
 
 grids = finite_difference()
 
-grids.cartesian((L,1,1),(100,1,1))
+grids.cartesian((L,1,1),(20,1,1))
 
 grids.initialize(permeability=permeability,
                  porosity=porosity,
@@ -77,8 +77,8 @@ grids.solve()
 """PLOTTING"""
 
 for i,t in enumerate(time):
-    plt.scatter(grids.center[:,0],grids.pressure[:,100]/6894.76)
-    plt.plot(analytical.x.flatten(),analytical.pressure[i,:]/6894.76)
+    plt.plot(analytical.x.flatten(),analytical.pressure[i,:]/6894.76,'k',zorder=1)
+    plt.plot(grids.center[:,0],grids.pressure[:,10000]/6894.76,'o',c='r',markerfacecolor="None",zorder=2)
 
 plt.xlabel('x-axis')
 plt.ylabel('pressure [psi]')
@@ -88,6 +88,7 @@ xaxis = analytical.x.flatten()[
     np.argmin(np.abs(analytical.pressure/6894.76-yaxis),axis=1)]
 
 for i,t in enumerate(time):
-    plt.text(xaxis[i],yaxis,t,backgroundcolor='w')
+    plt.text(xaxis[i]-0.10,yaxis,t,backgroundcolor='w',
+             bbox = dict(boxstyle=f"circle",fc="w",ec='w'))
 
 plt.show()
