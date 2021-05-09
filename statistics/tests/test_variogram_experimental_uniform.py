@@ -12,6 +12,8 @@ import numpy as np
 from geostatistics.setpy import setup
 from geostatistics.variogram import variogram
 
+
+
 class TestVariogram(unittest.TestCase):
 
 ##    def setUp(self):
@@ -19,6 +21,21 @@ class TestVariogram(unittest.TestCase):
     def test_variogram00(self):
 
         class data: pass
+
+##z = np.array([[32,24,20,10],
+##              [28,20,17,12],
+##              [12,16,10,9],
+##              [18,12,7,8]])
+##
+##V = variogram(props=z,dX=10,dY=10)
+##
+##V.set_distance()
+##
+##V.set_experimental(10,30,90,3)
+##
+##plt.scatter(V.bins,V.experimental)
+##
+##plt.show()
 
         data.X = np.array([0,0,0,0,10,10,10,10,20,20,20,20,30,30,30,30])
         data.Y = np.array([0,10,20,30,0,10,20,30,0,10,20,30,0,10,20,30])

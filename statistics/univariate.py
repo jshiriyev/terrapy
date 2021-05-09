@@ -12,15 +12,28 @@ from scipy.stats import norm
 univariate classes uses a single property data item with optional
 spatial information and includes following ananlysis:
 
-    - non-spatial homogeneity
-    - non-spatial estimation (uncertainty)
-    - spatial continuity (variogram)
-    - spatial estimation (kriging, gaussian simulation)
+    - non-spatial similarity measurements (heterogeneity)
+    - non-spatial estimation calculations (uncertainty)
+    
+    - spatial continuity measurements (variogram)
+    - spatial estimation calculations (kriging, gaussian simulation)
     
 """
 
 class item():
-    """statistical item with a single (spatio-temporal) property type"""
+    
+    """
+    statistical item with a single (spatio-temporal) property type
+
+    ...
+    Attributes
+    ----------
+    
+    Methods
+    -------
+    set_property():
+        assigns input properties to the self
+    """
 
     def __init__(self,prop,**kwargs):
         
@@ -28,10 +41,18 @@ class item():
 
     def set_property(self,prop,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
         """it creates best x,y,z values for the given property"""
-        
-        ones = np.ones(prop.shape)
-        
-        setattr(self,"property",prop.ravel())
+
+        if prop is not None:
+            ones = np.ones(prop.shape)
+            self.property = prop.ravel()
+        elif X is not None:
+            ones = np.ones(X.shape)
+        elif Y is not None:
+            ones = np.ones(Y.shape)
+        elif Z is not None:
+            ones = np.ones(Z.shape)
+        else:
+            return
         
         if X is None:
             try:
@@ -66,9 +87,6 @@ class heterogeneity(item):
 
     Attributes
     ----------
-    permeability
-    porosity
-    thickness
     
     Methods
     -------
@@ -78,19 +96,11 @@ class heterogeneity(item):
         calculates standard variance
     dykstraparson():
         calculates Dykstra-Parson coefficient
-    lorenz():
-        calculates Lorenz coefficient
-    
     """
 
-    """
-    demonstrates standard variance calculations
-    demonstrates Dykstra-Parson coefficient calculations
-    """
+    def __init__(self,prop,**kwargs):
 
-    def __init__(self,props,**kwargs):
-
-        self.set_property(props,**kwargs)
+        self.set_property(prop,**kwargs)
 
     def standard(self,prop):
 
@@ -133,11 +143,9 @@ class heterogeneity(item):
 
 class uncertainty():
 
-    def __init__(self,*args):
+    def __init__(self,prop,**kwargs):
 
-        for i,arg in enumerate(args):
-            name = "prop"+str(i)
-            setattr(self,name,arg)
+        self.set_property(prop,**kwargs)
 
     def jacknife(self):
 
@@ -162,6 +170,7 @@ class variogram(item):
 
     """
     variogram class used to represent observation points
+    and calculates semivariogram values
 
     ...
 
@@ -206,9 +215,9 @@ class variogram(item):
     demonstrates theoretical variogram calculation
     """
 
-    def __init__(self,props,**kwargs):
+    def __init__(self,prop,**kwargs):
         
-        self.set_property(props,**kwargs)
+        self.set_property(prop,**kwargs)
 
         """calculating distance and angle between observation points"""
         self.set_connection()
@@ -224,18 +233,9 @@ class variogram(item):
         """angle is calculated in 2-dimensional array form"""
         self.angle = np.arctan2(self.dy,self.dx)
 
-    def set_experimental(self,
-                         prop,
-                         lagdis,
-                         lagmax,
-                         azimuth=None,
-                         azimuthtol=None,
-                         bandwidth=None):
-
-        """selecting the property for experimental variogram generation"""
-        values = getattr(self,prop)
+    def set_experimental(self,lagdis,lagmax,azimuth=None,azimuthtol=None,bandwidth=None):
         
-        properr = (values-values.reshape((-1,1)))**2
+        prop_err = (self.property-self.property.reshape((-1,1)))**2
 
         """bins is the array of lag distances"""
         self.lagdis = lagdis
@@ -249,7 +249,7 @@ class variogram(item):
         self.experimental = np.zeros_like(self.bins)
 
         """
-        azimuth range is (-\pi,\pi] in radians or (-180,180] in degrees
+        azimuth range is (-\pi,\pi] in radians [(-180,180] in degrees]
         if we set +x to east and +y to north then the azimuth is selected
         to be zero in the +x direction and positive counterclockwise
         """
@@ -260,15 +260,16 @@ class variogram(item):
         self.bandwidth = bandwidth
 
         if self.azimuth is not None:
-            delta_angle = np.abs(self.angle-azimuth)
+            delta_angle = np.abs(self.angle-self.azimuth)
             
             con_azmtol = delta_angle<=self.azimuthtol
             con_banwdt = np.sin(delta_angle)*self.distance<=(self.bandwidth/2.)
             con_direct = np.logical_and(con_azmtol,con_banwdt)
+            
         else:
             con_direct = np.ones(self.angle.shape,dtype=bool)
 
-        for h in self.bins:
+        for i,h in enumerate(self.bins):
 
             con_distnc = np.abs(self.distance-h)<=self.lagdistol
 
@@ -276,90 +277,11 @@ class variogram(item):
 
             num_matchcon = np.count_nonzero(conoverall)
 
-            semivariance = properr[conoverall].sum()/(2*num_matchcon)
-            
-            self.experimental[i] = semivariance
-
-##    def set_experimental(self,
-##                         prop,
-##                         lagdis,
-##                         lagmax,
-##                         azimuth=0,
-##                         azimuthtol=22.5,
-##                         bandwidth=np.inf):
-##
-##        # which property to use for experimental variogram generation
-##
-##        values = getattr(self,prop)
-##
-##        """bins is the array of lag distances"""
-##
-##        self.lagdis = lagdis
-##        self.lagdistol = lagdis/2.
-##        self.lagmax = lagmax
-##
-##        self.outbound = self.lagmax+self.lagdistol
-##        
-##        self.bins = np.arange(self.lagdis,self.outbound,self.lagdis)
-##
-##        """
-##        - only directional experimental variogram calculation exist for now
-##        - calculations were verified for 2D data only
-##        """
-##
-##        while azimuth<0:
-##            azimuth += 360
-##
-##        while azimuth>360:
-##            azimuth -= 360
-##
-##        self.azimuth = np.radians(azimuth)
-##        self.azimuthtol = np.radians(azimuthtol)
-##        self.bandwidth = bandwidth
-##
-##        """
-##        if we set x direction as east and y direction as north
-##        then the following azimuth will be zero toward east and
-##        will be positive in counterclockwise direction
-##        """
-##        
-##        self.degree = np.arctan2(self.dy,self.dx)+np.pi
-##        self.degree = np.where(self.degree==2*np.pi,0,self.degree)
-##
-##        """
-##        finding indexes when lag_distance matches data spacing, disMatch
-##        and when dip angle matches azimuth, azmMatch
-##        for non uniform spacing most modification will be here probably.
-##        """
-##
-##        conAzm = np.logical_and(self.degree>self.azimuth-self.azimuthtol,
-##                                self.degree<self.azimuth+self.azimuthtol)
-##        
-##        azmMatch = np.asfortranarray(np.where(conAzm)).T
-##
-##        self.experimental = np.zeros_like(self.bins)
-##
-##        for i,h in enumerate(self.bins):
-##            
-##            conDis = np.logical_and(self.distance>h-self.lagdistol,self.distance<h+self.lagdistol)
-##
-##            disMatch = np.asfortranarray(np.where(conDis)).T
-##
-##            """
-##            comparing disMatch to azmMatch to find indices matching both
-##            """
-##
-##            dtype={'names':['f{}'.format(i) for i in range(2)],'formats':2*[disMatch.dtype]}
-##
-##            match = np.intersect1d(disMatch.view(dtype),azmMatch.view(dtype))
-##            match = match.view(disMatch.dtype).reshape(-1,2)
-##
-##            p1 = values[match[:,0]]
-##            p2 = values[match[:,1]]
-##
-##            semivariance = ((p1-p2)**2).sum()/(2*match.shape[0])
-##
-##            self.experimental[i] = semivariance
+            if num_matchcon==0:
+                self.experimental[i] = np.nan
+            else:
+                semivariance = prop_err[conoverall].sum()/(2*num_matchcon)
+                self.experimental[i] = semivariance
 
     def draw_search_box(self,origin_x=0,origin_y=0):
 
@@ -516,12 +438,9 @@ class spatial_estimation(item):
 
         self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
 
-    def simple_kriging(self,prop,perc=0.5):
-
-        "prop -> which property to krig"
+    def simple_kriging(self,perc=0.5):
+        
         "perc -> percentile, perc=0.5 gives mean values"
-
-        values = getattr(self.var,prop)
 
         self.set_distance()
         
@@ -531,7 +450,7 @@ class spatial_estimation(item):
 
         self.lambdas = np.linalg.solve(self.var.covariance,self.covariance)
         
-        calc_diff_arr = np.reshape(values,(-1,1))-self.mean
+        calc_diff_arr = np.reshape(self.var.property,(-1,1))-self.mean
         calc_prop_mat = self.lambdas*(calc_diff_arr)
         calc_vars_mat = self.lambdas*self.covariance
         
@@ -540,12 +459,9 @@ class spatial_estimation(item):
 
         self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
 
-    def ordinary_kriging(self,prop,perc=0.5):
-
-        "prop -> which property to krig"
-        "perc -> percentile, perc=0.5 gives mean values"
+    def ordinary_kriging(self,perc=0.5):
         
-        values = getattr(self.var,prop)
+        "perc -> percentile, perc=0.5 gives mean values"
 
         self.set_distance()
         
@@ -569,7 +485,7 @@ class spatial_estimation(item):
         self.lambdas = xm[:-1,:]
         self.beta = xm[-1,:]
 
-        calc_prop_mat = self.lambdas*np.reshape(values,(-1,1))
+        calc_prop_mat = self.lambdas*np.reshape(self.var.property,(-1,1))
         calc_vars_mat = self.lambdas*self.covariance
 
         self.property = calc_prop_mat.sum(axis=0)
@@ -577,11 +493,11 @@ class spatial_estimation(item):
         
         self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
 
-    def gaussian_simulation(self,prop):
+    def gaussian_simulation(self):
 
         perc = np.random.rand(self.x.size)
 
-        self.ordinary_kriging(prop,perc=perc)
+        self.ordinary_kriging(perc=perc)
 
 if __name__ == "__main__":
 
