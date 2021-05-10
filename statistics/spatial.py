@@ -23,7 +23,7 @@ spatial information and includes following ananlysis:
 class item():
     
     """
-    statistical item with a single (spatio-temporal) property type
+    statistical item with a spatial property
 
     ...
     Attributes
@@ -77,94 +77,6 @@ class item():
                 self.z = ones.ravel()
         else:
             self.z = Z.ravel()
-
-class heterogeneity(item):
-
-    """
-    univariate class carries calculations on non-spatial data
-
-    ...
-
-    Attributes
-    ----------
-    
-    Methods
-    -------
-    set_property():
-        assigns input properties to the self
-    standard():
-        calculates standard variance
-    dykstraparson():
-        calculates Dykstra-Parson coefficient
-    """
-
-    def __init__(self,prop,**kwargs):
-
-        self.set_property(prop,**kwargs)
-
-    def standard(self,prop):
-
-        values = getattr(self,prop)
-
-        return values.std()/values.mean()
-    
-    def dykstraparson(self,prop):
-
-        values = getattr(self,prop)
-
-        pr = np.flip(values.argsort())
-
-        sk = values[pr]
-        
-        numdata = sk.shape[0]
-
-        probs = 1/(numdata+1)
-
-        xaxis = np.linspace(1,numdata,numdata)
-        xaxis = norm.ppf(xaxis*probs)
-
-        yaxis = np.log(sk)
-        ##yaxis2 = np.log10(sortedPerm)
-        ##plt.plot(xaxis,yaxis,'k.')
-
-        m,c = np.polyfit(xaxis,yaxis,1)
-
-        ybestfit = m*xaxis+c
-
-        ##plt.plot(xaxis,ybestfit,'k')
-        ##plt.show()
-
-        k50p0 = np.exp(m*norm.ppf(0.5)+c)
-        k84p1 = np.exp(m*norm.ppf(0.841)+c)
-
-        coefficient = (k50p0-k84p1)/k50p0
-        
-        return coefficient
-
-class uncertainty():
-
-    def __init__(self,prop,**kwargs):
-
-        self.set_property(prop,**kwargs)
-
-    def jacknife(self):
-
-        pass
-
-    def bootstrap(self,X,Nrealization):
-
-        """
-        X should be an array with one dimension,
-        The size of X defines number of rows, and
-        Nrealization specifies number of columns of an array
-        created for bootstrap analyzes
-        """
-        
-        N = X.size
-        
-        idx = np.random.randint(0,N,(N,Nrealization))
-        
-        return idx
 
 class variogram(item):
 
@@ -378,7 +290,7 @@ class variogram(item):
 
         self.covariance = self.sill-self.theoretical
 
-class spatial_estimation(item):
+class estimation(item):
 
     """
     estimation class used to represent estimated points
@@ -404,19 +316,13 @@ class spatial_estimation(item):
     
     Methods
     -------
-    simple_kriging()
+    kriging_simple()
         calculates simple kriging values at estimation points
-    ordinary_kriging()
+    kriging_ordinary()
         calculates ordinary kriging values at estimation points
-    gaussian_simulation()
+    simulation_gaussian()
         calculates gaussian simulation values at estimation points
     
-    """
-
-    """
-    demonstrates simple kriging calculations
-    demonstrates ordinary kriging calculations
-    demonstrates gaussian simulation calculations
     """
 
     def __init__(self,var,**kwargs):
@@ -438,7 +344,65 @@ class spatial_estimation(item):
 
         self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
 
-    def simple_kriging(self,perc=0.5):
+##    def interpolation(self,X,Y,x):
+        """1D"""
+##
+##        """
+##        X are the locations where Y values are given
+##        x are the locations where we want to calculate y
+##        based on the interpolation of Y values
+##        """
+##        
+##        xadded = X[x.max()<X]
+##        
+##        x = np.append(x,xadded)
+##        
+##        N = x.size
+##        L = X.size
+##
+##        d1 = np.array(list(range(N)))
+##        d2 = np.array(list(range(N,N+L)))
+##        
+##        row = np.concatenate(((d1[0],d1[-1]),d1[:-1],d1[1:],d1[1:-1]))
+##        col = np.concatenate(((d1[0],d1[-1]),d1[1:],d1[:-1],d1[1:-1]))
+##
+##        Mone = np.ones(2)*(-1)
+##        Pone = np.ones(2*(N-1))
+##        Mtwo = np.ones((N-2))*(-2)
+##
+##        data = np.concatenate((Mone,Pone,Mtwo))
+##
+##        G = sps.csr_matrix((data,(row,col)),shape=(N,N))
+##        d = sps.csr_matrix((Y,(d2,np.zeros(L))),shape=(N+L,1))
+##
+##        x = x.reshape((1,-1))
+##        X = X.reshape((-1,1))
+##        
+##        Glow = np.zeros((L,N))
+##
+##        dmat = np.abs(x-X)              # distance matrix for the given x and X vectors
+##        
+##        colID = dmat.argsort()[:,:2]    # column indices of two minimum row values in dmat
+##        rowID = np.tile(np.arange(L).reshape((-1,1)),2)
+##                                        # row indices of two minimum row values in dmat
+##        
+##        dmin = dmat[rowID,colID]        # two minimum distance values of each row in dmat
+##
+##        Glow[rowID,colID] = 1-dmin/np.sum(dmin,axis=1,keepdims=True)
+##
+##        G = sps.vstack([G,sps.csr_matrix(Glow)])
+##
+##        A = G.transpose()*G
+##        b = G.transpose()*d
+##
+##        y = sps.linalg.spsolve(A,b)
+##
+##        if xadded.size:
+##            return y[:-xadded.size]
+##        else:
+##            return y
+
+    def kriging_simple(self,perc=0.5):
         
         "perc -> percentile, perc=0.5 gives mean values"
 
@@ -459,7 +423,7 @@ class spatial_estimation(item):
 
         self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
 
-    def ordinary_kriging(self,perc=0.5):
+    def kriging_ordinary(self,perc=0.5):
         
         "perc -> percentile, perc=0.5 gives mean values"
 
@@ -493,7 +457,7 @@ class spatial_estimation(item):
         
         self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
 
-    def gaussian_simulation(self):
+    def simulation_gaussian(self):
 
         perc = np.random.rand(self.x.size)
 

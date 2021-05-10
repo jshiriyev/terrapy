@@ -18,7 +18,7 @@ class item():
         
         self.set_property(props,**kwargs)
 
-    def set_property(self,props,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
+    def set_property(self,props,X=None,Y=None,Z=None,time=None,dX=1,dY=1,dZ=1,dtime=1):
         """it creates best x,y,z values for the given properties"""
         
         ## it inputs props as dictionary and does not really do any check
@@ -36,6 +36,8 @@ class item():
             ones = np.ones_like(Y)
         elif Z is not None:
             ones = np.ones_like(Z)
+        elif time is not None:
+            ones = np.ones_like(time)
         else:
             return
 
@@ -52,7 +54,12 @@ class item():
         if Z is None:
             try: self.z = (np.cumsum(ones,2)-1).ravel()*dZ
             except: self.z = ones.ravel()
-        else: self.z = Z.ravel() 
+        else: self.z = Z.ravel()
+
+        if time is None:
+            try: self.time = (np.cumsum(ones,2)-1).ravel()*dtime
+            except: self.time = ones.ravel()
+        else: self.time = time.ravel() 
 
 class multivariate():
 
