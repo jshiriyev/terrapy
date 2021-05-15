@@ -40,18 +40,18 @@ class item():
             ones = np.ones_like(np.array(list(props.values())[0]))
             for key,value in props.items():
                 setattr(self,key,value.ravel())
-        ##if props is not None:
-            ##ones = np.ones_like(props)
-            ##self.property = props.ravel()
+        
+        elif time is None:
+            try: 
+                self.time = (np.cumsum(ones,0)-1).ravel()*dtime
+            except: 
+                self.time = ones.ravel()
+                
         elif time is not None:
             ones = np.ones_like(time)
-        else:
-            return
 
-        if time is None:
-            try: self.time = (np.cumsum(ones,0)-1).ravel()*dtime
-            except: self.time = ones.ravel()
-        else: self.time = time.ravel()
+        else: 
+            self.time = time.ravel()
         
 if __name__ == "__main__":
 
