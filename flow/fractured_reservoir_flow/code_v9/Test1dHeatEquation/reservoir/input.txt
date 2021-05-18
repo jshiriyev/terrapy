@@ -1,0 +1,6 @@
+10000 10000 50	#ft	% reservoir size in x,y,z directions
+0.1		#	% rock porosity
+3e-6		#1/psi	% total compressibility
+0.6		#cp	% fluid viscosity
+0.1 0.1 0.1	#mD	% permeability in x,y,z direction
+0		#psi	% initial reservoir pressure

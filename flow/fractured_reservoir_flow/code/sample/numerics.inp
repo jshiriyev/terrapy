@@ -1,0 +1,15 @@
+FRACTURE FLOW ANALYTICAL SOLUTION
+DATAFILE FOR NUMERICAL PROPERTIES
+
+DATA 1 1
+PROPERTY totalTime #day      % total simulation run time
+1.0
+
+DATA 1 1
+PROPERTY deltaTime #day      % numerical time increment
+0.1
+
+DATA 2 1
+PROPERTY snapTime #day       % time steps to snapshot pressure profile
+0.1
+1.0

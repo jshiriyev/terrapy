@@ -1,0 +1,7 @@
+% [1] bottom hole condition type: constant [pressure=1,flowrate=2]
+% [2] constant bottom hole pressure, ex. 2000, psi
+% [2] constant flow rate, ex. 25*1.273, bbl/day
+% [3:end] index number of nodes on the well, dimensionles
+2       #
+31.825  #bbl/day
+2

@@ -1,0 +1,18 @@
+% fracture permeability, mD
+% number of rows needs to be equal to number of fracture segments
+permeability, FU
+42000
+42000
+42000
+42000
+42000
+42000
+42000
+42000
+42000
+42000
+42000
+42000
+42000
+42000
+42000

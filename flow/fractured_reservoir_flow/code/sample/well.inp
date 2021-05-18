@@ -1,0 +1,14 @@
+FRACTURE FLOW ANALYTICAL SOLUTION
+DATAFILE FOR WELL PROPERTIES
+
+DATA 1 1
+PROPERTY radius #ft          % wellbore radius
+0.5
+
+DATA 1 1
+PROPERTY consPressure #psi   % the other option is consFlowrate ex. 25*1.273 bbl/day
+1000
+
+DATA 1 1
+PROPERTY wellID              % number of fracture segment containing well
+54

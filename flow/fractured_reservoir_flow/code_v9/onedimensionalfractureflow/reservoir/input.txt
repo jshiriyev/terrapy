@@ -1,0 +1,8 @@
+1000 1000 50	#ft	% reservoir size in x,y,z directions
+0.1		#	% reservoir porosity
+0.1 0.1 0.1	#mD	% reservoir permeability in x,y,z direction
+4200		#psi	% reservoir initial pressure
+3e-6		#1/psi	% reservoir rock compressibility
+0.6		#cp	% oil viscosity
+1		#	% oil formation volume factor
+5e-6		#1/psi	% oil compressibility

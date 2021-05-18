@@ -1,0 +1,3 @@
+#permeability, FU
+42000
+42000

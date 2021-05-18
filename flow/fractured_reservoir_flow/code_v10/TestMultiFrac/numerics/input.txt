@@ -1,0 +1,4 @@
+1e3	#day	% total run time
+1e-1	#day	% numerical time increment
+#day		% time steps to snapshot pressure profile
+1e3

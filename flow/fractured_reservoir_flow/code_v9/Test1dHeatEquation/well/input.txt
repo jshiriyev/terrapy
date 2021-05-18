@@ -1,0 +1,4 @@
+0.5     #ft		% wellbore radius, this is not for the green's approach
+1000	#psi		% wellbore condition
+% number of nodes containing well point
+1

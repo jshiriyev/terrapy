@@ -1,0 +1,18 @@
+% map connecting node points to create fracture structure, dimensionless
+% number of rows needs to be equal to number of fracture segments
+-, -
+1	2
+3	4
+5	1
+2	6
+7	5
+6	8
+9	7
+8	10
+11	9
+10	12
+13	11
+12	14
+15	13
+14	16
+17	15
