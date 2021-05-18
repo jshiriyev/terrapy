@@ -19,6 +19,7 @@
     -- multi-phase common solutions:
     ---- liquid-gas, liquid-liquid, liquid-solid flow
     ---- flow through porous media: Buckley-Leverett Solution
+    
     numerical (computational) solutions
     -- finite difference solution
     ---- 3D cartesian regular mesh generation
@@ -39,18 +40,22 @@
     -- correlation measures
     -- principal component analysis
     -- uncertainty estimation
+    
     spatial analysis
     -- spatial continuity measures
     ---- variogram
     -- spatial estimation
     ---- kriging
     ---- gaussian simulation
+    
     temporal analysis
+    
     spatiotemporal analysis
 	
 "/bhospy/logging/" contains:
 
     analytical solutions
+    
     numerical (computational)
     -- axial hybrid method
     -- surface integral equations
