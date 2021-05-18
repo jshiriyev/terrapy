@@ -11,6 +11,7 @@
 	- flow from a tank
 	- flow in a packed bed
 	- flow through porous media
+	- flow through fractured porous media
 	analytical solution of diffusivity equation in all possible scenrarios:
 	- 1D cartesian solution (transient, steady, different boundary conditions)
 	- 1D radial solution (transient, steady, different boundary conditions)
@@ -29,23 +30,24 @@
 	
 "/bhospy/statistics/" contains:
 
-    -univariate analysis
+    -nominal analysis
 	heterogeneity measures
-	uncertainty estimation
-	spatial continuity
-	- variogram
-	spatial estimation
-	- kriging
-	- gaussian simulation
-    -bivariate analysis
-	correlation
-    -multivariate analysis
+	correlation measures
 	principal component analysis
+	uncertainty estimation
+    -spatial analysis
+	spatial continuity measures
+	 - variogram
+	spatial estimation
+	 - kriging
+	 - gaussian simulation
+    -temporal analysis
+    -spatiotemporal analysis
 	
 "/bhospy/logging/" contains:
 
     -analytical solutions
-    -numerical(computational)
+    -numerical (computational)
 	axial hybrid method
 	surface integral equations
 	volume integral equations
