@@ -39,6 +39,7 @@
     -- heterogeneity measures
     -- correlation measures
     -- principal component analysis
+    -- linear regression
     -- uncertainty estimation
     
     spatial analysis
