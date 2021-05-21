@@ -2,52 +2,39 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-def findslope(X,Y):
+class nominal():
 
-    N = X.size
+    def __init__(self,X=None,Y):
 
-    O = np.ones((N,1))
-    X = X.reshape(N,-1)
-    Y = Y.reshape(N,-1)
+        self.yvalues = Y.ravel()
 
-    G = np.concatenate((O,X),axis=1)
+        if X is None:
+            self.xvalues = np.arange(self.yvalues.size)
+        elif:
+            self.xvalues = X.ravel()
 
-    A = np.dot(G.transpose(),G)
-    b = np.dot(G.transpose(),Y)
+        self.N
 
-    x = np.linalg.solve(A,b)
+    def linear_regression(self):
 
-    #x[0] is the intercept which is "a" on the slide
-    #x[1] is the slope which is "b" on the slide
+        N = self.xvalues.size
 
-    Yapp = x[0]+x[1]*X
-    
-    return x
+        O = np.ones((N,1))
+        X = self.xvalues.reshape(N,-1)
+        Y = self.yvalues.reshape(N,-1)
 
-data = np.loadtxt("assignment2.txt",skiprows=1)
+        G = np.concatenate((O,X),axis=1)
 
-p = data[:,0]
-k = data[:,1]
-F = data[:,2]
+        A = np.dot(G.transpose(),G)
+        b = np.dot(G.transpose(),Y)
 
-x = findslope(p,np.log(k))
+        x = np.linalg.solve(A,b)
 
-##plt.hist(x[1,:])
-##plt.xlabel('slope',fontsize=14)
-##
-##plt.show()
-##
-##plt.hist(x[0,:])
-##plt.xlabel('intercept',fontsize=14)
-##
-##plt.show()
-##
-##x,Yapp = findslope(raman.porosity,raman.log10k)
-##print(x)
-##print(correlation(raman.porosity,raman.log10k)**2)
-##
-##plt.scatter(raman.porosity,raman.log10k,c='k',marker='o')
-##plt.plot(raman.porosity,Yapp,c='r')
-##plt.xlabel('porosity',fontsize=14)
-##plt.ylabel('log-permeability',fontsize=14)
-##plt.show()
+        self.slope = x[0]
+        self.yintercept = x[1]
+
+    def estimate(self,Xnew=None)
+
+        Yapp = x[0]+x[1]*X
+        
+        self.Yapp = Yapp
