@@ -35,23 +35,23 @@
 	
 "/bhospy/statistics/" contains:
 
-    nominal analysis
-    -- heterogeneity measures
-    -- correlation measures
-    -- principal component analysis
-    -- linear regression
-    -- uncertainty estimation
+    nominal study
+    -- uncertainty
+    -- heterogeneity
+    -- multivariate
+    ---- correlation
+    ---- linear regression
+    ---- monte-carlo simulation
     
-    spatial analysis
-    -- spatial continuity measures
+    spatiotemporal study
+    -- connectivity
     ---- variogram
     -- spatial estimation
-    ---- kriging
+    ---- interpolation
+    ---- moving average
+    ---- kriging simple
+    ---- kriging ordinary
     ---- gaussian simulation
-    
-    temporal analysis
-    
-    spatiotemporal analysis
 	
 "/bhospy/logging/" contains:
 
