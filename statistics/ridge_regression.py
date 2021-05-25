@@ -38,7 +38,7 @@ from data_reader import dataReader
 import numpy as np
 import matplotlib.pyplot as plt
 
-gr = dataReader('data.DAT', header_lines=123)
+gr = dataReader('garn_formation.DAT', header_lines=123)
 df = gr.get_dataframe(); df
 
 class MyRidge(Ridge):
