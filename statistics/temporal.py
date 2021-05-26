@@ -132,59 +132,7 @@ class item():
         else:
             self.z = Z.ravel()
 
-class estimation(item):
-
-    """
-    estimation class used to represent estimated points
-
-    ...
-
-    Attributes
-    ----------
-    var:
-    type:
-    nugget:
-    sill:
-    range:
-    
-    distance:
-    theoretical:
-    covariance:
-    lambdas:
-    property:
-    variance:
-    mean:
-    beta:
-    
-    Methods
-    -------
-    kriging_simple()
-        calculates simple kriging values at estimation points
-    kriging_ordinary()
-        calculates ordinary kriging values at estimation points
-    simulation_gaussian()
-        calculates gaussian simulation values at estimation points
-    
-    """
-
-    def __init__(self,var,**kwargs):
-        """var must be theoretical variogram at observation points"""
-        self.var = var
-
-        self.type = self.var.type
-        self.nugget = self.var.nugget
-        self.sill = self.var.sill
-        self.range = self.var.range
-        
-        self.set_property(None,**kwargs)
-
-    def set_distance(self):
-        """here distance is calculated in 2-dimensional array form"""
-        self.dx = self.x-self.var.x.reshape((-1,1))
-        self.dy = self.y-self.var.y.reshape((-1,1))
-        self.dz = self.z-self.var.z.reshape((-1,1))
-
-        self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
+class forecasting(item):
 
     def interpolation(self,X,Y,x):
         """1D"""
@@ -295,66 +243,7 @@ class estimation(item):
     def moving_average(self):
         pass
 
-    def kriging_simple(self,perc=0.5):
-        
-        "perc -> percentile, perc=0.5 gives mean values"
 
-        self.set_distance()
-        
-        variogram.set_theoretical(self)
-        
-        self.covariance = self.sill-self.theoretical
-
-        self.lambdas = np.linalg.solve(self.var.covariance,self.covariance)
-        
-        calc_diff_arr = np.reshape(self.var.property,(-1,1))-self.mean
-        calc_prop_mat = self.lambdas*(calc_diff_arr)
-        calc_vars_mat = self.lambdas*self.covariance
-        
-        self.property = self.mean+calc_prop_mat.sum(axis=0)
-        self.variance = self.sill-calc_vars_mat.sum(axis=0)
-
-        self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
-
-    def kriging_ordinary(self,perc=0.5):
-        
-        "perc -> percentile, perc=0.5 gives mean values"
-
-        self.set_distance()
-        
-        variogram.set_theoretical(self)
-
-        self.covariance = self.sill-self.theoretical
-        
-        Am = self.var.covariance
-        Ar = np.ones(Am.shape[0]).reshape((-1,1))
-        Ab = np.ones(Am.shape[0]).reshape((1,-1))
-        Ab = np.append(Ab,np.array([[0]]),axis=1)
-        Am = np.append(Am,Ar,axis=1)
-        Am = np.append(Am,Ab,axis=0)
-
-        bm = self.covariance
-        bb = np.ones(bm.shape[1]).reshape((1,-1))
-        bm = np.append(bm,bb,axis=0)
-
-        xm = np.linalg.solve(Am,bm)
-        
-        self.lambdas = xm[:-1,:]
-        self.beta = xm[-1,:]
-
-        calc_prop_mat = self.lambdas*np.reshape(self.var.property,(-1,1))
-        calc_vars_mat = self.lambdas*self.covariance
-
-        self.property = calc_prop_mat.sum(axis=0)
-        self.variance = self.sill-self.beta-calc_vars_mat.sum(axis=0)
-        
-        self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
-
-    def simulation_gaussian(self):
-
-        perc = np.random.rand(self.x.size)
-
-        self.ordinary_kriging(perc=perc)
 
 if __name__ == "__main__":
 
