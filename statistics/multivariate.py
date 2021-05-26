@@ -20,121 +20,6 @@ spatial information and includes following ananlysis:
     
 """
 
-class uncertainty():
-
-    def __init__(self,prop,**kwargs):
-
-        self.set_property(prop,**kwargs)
-
-    def jacknife(self):
-
-        pass
-
-    def bootstrap(self,X,Nrealization):
-
-        """
-        X should be an array with one dimension,
-        The size of X defines number of rows, and
-        Nrealization specifies number of columns of an array
-        created for bootstrap analyzes
-        """
-        
-        N = X.size
-        
-        idx = np.random.randint(0,N,(N,Nrealization))
-        
-        return idx
-
-class heterogeneity():
-
-    """
-    univariate class carries calculations on non-spatial data
-
-    ...
-
-    Attributes
-    ----------
-    
-    Methods
-    -------
-    set_property():
-        assigns input properties to the self
-    standard():
-        calculates standard variance
-    dykstraparson():
-        calculates Dykstra-Parson coefficient
-    """
-
-    def __init__(self,prop,**kwargs):
-
-        self.set_property(prop,**kwargs)
-
-    def standard(self,prop):
-
-        values = getattr(self,prop)
-
-        return values.std()/values.mean()
-    
-    def dykstraparson(self,prop):
-
-        values = getattr(self,prop)
-
-        pr = np.flip(values.argsort())
-
-        sk = values[pr]
-        
-        numdata = sk.shape[0]
-
-        probs = 1/(numdata+1)
-
-        xaxis = np.linspace(1,numdata,numdata)
-        xaxis = norm.ppf(xaxis*probs)
-
-        yaxis = np.log(sk)
-        ##yaxis2 = np.log10(sortedPerm)
-        ##plt.plot(xaxis,yaxis,'k.')
-
-        m,c = np.polyfit(xaxis,yaxis,1)
-
-        ybestfit = m*xaxis+c
-
-        ##plt.plot(xaxis,ybestfit,'k')
-        ##plt.show()
-
-        k50p0 = np.exp(m*norm.ppf(0.5)+c)
-        k84p1 = np.exp(m*norm.ppf(0.841)+c)
-
-        coefficient = (k50p0-k84p1)/k50p0
-        
-        return coefficient
-
-    def lorenz(self):
-
-        permt = getattr(self,"permeability")
-        pores = getattr(self,"porosity")
-        thick = getattr(self,"thickness")
-
-        pr = np.flip(permt.argsort())
-
-        sk = permt[pr]
-        sp = pores[pr]
-        st = thick[pr]
-
-        flowing_capacity = sk*st
-        storing_capacity = sp*st
-        
-        Xaxis = np.cumsum(flowing_capacity)/np.sum(flowing_capacity)
-        Yaxis = np.cumsum(storing_capacity)/np.sum(storing_capacity)
-
-        ##plt.plot(Xaxis,Yaxis)
-        ##plt.show()
-
-        area = np.trapz(Xaxis,Yaxis)
-        
-        coefficient = (area-0.5)/0.5
-        
-        return coefficient
-
 class multivariate():
     
     def __init__(self,Y,X=None):
@@ -209,6 +94,9 @@ class multivariate():
         
         self.Xnew = Xnew
         self.Ynew = self.intercept+self.slope*self.Xnew
+
+    def ridge_regression(self):
+        pass
 
     def monte_carlo(self):
         pass
