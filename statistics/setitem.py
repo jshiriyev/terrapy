@@ -112,7 +112,7 @@ class dataReader(object):
     def get_dataframe(self):
         return self.data
 
-class reader():
+class item():
 
     def __init__(self):
         
@@ -127,6 +127,12 @@ class reader():
             reader = list(csv.reader(csvfile))
             reader = np.array(reader)
             tuples = tuple(reader.T)
+
+    def readbin(self):
+        pass
+
+    def readtxt(self):
+        pass
 
     def set_property(self,props,header=None,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
         """it creates best x,y,z values for the given property"""

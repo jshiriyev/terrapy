@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.getcwd()))
 ##import matplotlib.pyplot as plt
 import numpy as np
 
-from setitem import reader
+from setitem import item
 
 class TestSetItem(unittest.TestCase):
 
@@ -17,8 +17,8 @@ class TestSetItem(unittest.TestCase):
     
         name = np.array(['permeability','porosity'])
 
-        krig = reader()
-
+        krig = item()
+        
         krig.set_property(data,header=name)
 
         np.testing.assert_array_equal(data[:,0],krig.permeability)
