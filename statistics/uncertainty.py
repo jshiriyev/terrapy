@@ -47,25 +47,4 @@ class uncertainty():
 
 if __name__ == "__main__":
 
-    NN = NeuralNetwork()
-    
-##    print(NN.weights)
-    
-    trainingInput = np.array([[0,0,1],[1,1,1],[1,0,1],[0,1,1]])
-    trainingOutput = np.array([[0,1,1,0]]).T
-    
-    NN.train(trainingInput,trainingOutput,20000)
-    
-##    print(NN.weights)
-    
-    newInput = np.array([[1,0,0]])
-    newOutput = NN.forward(newInput)
-
-    print("The trained input is:")
-    print(trainingInput)
-    print("The trained output is:")
-    print(trainingOutput)
-    print("The questioned input is:")
-    print(newInput)
-    print("The Answer is:")
-    print(newOutput)
+    pass

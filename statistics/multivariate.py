@@ -1,24 +1,10 @@
-"""Standard library imports"""
 import os
 import sys
 
-"""Third party imports"""
 import matplotlib.pyplot as plt
 import numpy as np
 
 from scipy.stats import norm
-
-"""
-univariate classes uses a single property data item with optional
-spatial information and includes following ananlysis:
-
-    - non-spatial similarity measurements (heterogeneity)
-    - non-spatial estimation calculations (uncertainty)
-    
-    - spatial continuity measurements (variogram)
-    - spatial estimation calculations (kriging, gaussian simulation)
-    
-"""
 
 class multivariate():
     
