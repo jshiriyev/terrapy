@@ -1,10 +1,55 @@
 import os
 import sys
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from scipy.stats import norm
+
+from connectivity import variogram
+
+class item():
+
+    def __init__(self,props,header=None,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
+        """it creates best x,y,z values for the given property"""
+
+        if props is not None:
+            self.property = props
+            ones = np.ones(props.shape[0])
+        elif X is not None:
+            ones = np.ones(X.shape)
+        elif Y is not None:
+            ones = np.ones(Y.shape)
+        elif Z is not None:
+            ones = np.ones(Z.shape)
+        else:
+            return
+
+        if header is not None:
+            self.header = header
+        
+        if X is None:
+            try:
+                self.x = (np.cumsum(ones,0)-1)*dX
+            except:
+                self.x = ones
+        else:
+            self.x = X
+
+        if Y is None:
+            try:
+                self.y = (np.cumsum(ones,1)-1)*dY
+            except:
+                self.y = ones
+        else:
+            self.y = Y
+
+        if Z is None:
+            try:
+                self.z = (np.cumsum(ones,2)-1)*dZ
+            except:
+                self.z = ones
+        else:
+            self.z = Z
 
 class estimation(item):
 
@@ -51,7 +96,7 @@ class estimation(item):
         self.sill = self.var.sill
         self.range = self.var.range
         
-        self.set_property(None,**kwargs)
+        super(estimation, self).__init__(None,**kwargs)
 
     def set_distance(self):
         """here distance is calculated in 2-dimensional array form"""
@@ -178,8 +223,12 @@ class estimation(item):
 
         perc = np.random.rand(self.x.size)
 
-        self.ordinary_kriging(perc=perc)
+        self.kriging_ordinary(perc=perc)
 
 if __name__ == "__main__":
 
-    pass
+    import unittest
+    
+    from tests import test_spatial
+    
+    unittest.main(test_spatial)

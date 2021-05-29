@@ -1,3 +1,16 @@
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.getcwd()))
+
+import matplotlib.pyplot as plt
+
+import numpy as np
+
+from connectivity import variogram
+
+from spatial import estimation
+
 ## Example 4.2 (Kriging) and 4.3 (Simulation) page 187, Peters Volume 1
 
 x = np.array([2,4,6])
@@ -10,9 +23,7 @@ plt.ylabel('property',fontsize=14)
 plt.xlim([0,9])
 plt.ylim([0,70])
 
-V = variogram({"porosity": y},X=x)
-
-V.set_distance(V)
+V = variogram(y,X=x)
 
 V.type = 'exponential'
 V.nugget = 0
@@ -21,31 +32,29 @@ V.range = 10
 
 V.set_theoretical()
 
-X = np.array([1,2,3,4,5,6,7,8])
+xe = np.linspace(1,8,71)
 
-xe = np.linspace(1,8,701)
+E = estimation(V,X=xe)
 
-E = spatial_estimation(V,X=xe)
+E.kriging_ordinary()
 
-E.ordinary_kriging("porosity")
+y0 = E.property
 
-plt.plot(E.x,E.property,c='k')
-
-E.ordinary_kriging("porosity",perc=0.975)
+E.kriging_ordinary(perc=0.975)
 
 y1 = E.property
 
-E.ordinary_kriging("porosity",perc=0.025)
+E.kriging_ordinary(perc=0.025)
 
 y2 = E.property
 
+E.simulation_gaussian()
+
+y3 = E.property
+
+plt.plot(E.x,y0,c='k')
+
 plt.fill_between(E.x,y1,y2,fc='lightgrey')
-
-xe = np.linspace(1,8,71)
-
-E = spatial_estimation(V,X=xe)
-
-E.gaussian_simulation("porosity")
 
 plt.scatter(E.x,E.property,s=4,c='r')
 

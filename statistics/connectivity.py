@@ -1,10 +1,53 @@
 import os
 import sys
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from scipy.stats import norm
+
+class item():
+
+    def __init__(self,props,header=None,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
+        """it creates best x,y,z values for the given property"""
+
+        if props is not None:
+            self.property = props
+            ones = np.ones(props.shape[0])
+        elif X is not None:
+            ones = np.ones(X.shape)
+        elif Y is not None:
+            ones = np.ones(Y.shape)
+        elif Z is not None:
+            ones = np.ones(Z.shape)
+        else:
+            return
+
+        if header is not None:
+            self.header = header
+        
+        if X is None:
+            try:
+                self.x = (np.cumsum(ones,0)-1)*dX
+            except:
+                self.x = ones
+        else:
+            self.x = X
+
+        if Y is None:
+            try:
+                self.y = (np.cumsum(ones,1)-1)*dY
+            except:
+                self.y = ones
+        else:
+            self.y = Y
+
+        if Z is None:
+            try:
+                self.z = (np.cumsum(ones,2)-1)*dZ
+            except:
+                self.z = ones
+        else:
+            self.z = Z
 
 class variogram(item):
 
@@ -55,9 +98,9 @@ class variogram(item):
     demonstrates theoretical variogram calculation
     """
 
-    def __init__(self,prop,**kwargs):
-        
-        self.set_property(prop,**kwargs)
+    def __init__(self,props,**kwargs):
+
+        super(variogram, self).__init__(props,**kwargs)
 
         """calculating distance and angle between observation points"""
         self.set_connection()
