@@ -87,6 +87,28 @@ class multivariate():
     def monte_carlo(self):
         pass
 
+def kneighbor(k=3,xtrained=None,ytrained=None,xguessed=None):
+
+    if xtrained is None:
+        xtrained = np.array([[1,2],[3,4],[5,6],[6,9],[11,15],[7,0]])
+
+    if ytrained is None:
+        ytrained = np.array([['A'],['A'],['B'],['B'],['A'],['B']])
+
+    if xguessed is None:
+        xguessed = np.array([[4,7],[8,2]])
+
+    AA = xtrained.reshape(xtrained.shape[0],1,-1)
+    BB = xguessed.reshape(1,xguessed.shape[0],-1)
+
+    euclidean_distance = np.sqrt(((AA-BB)**2).sum(2))
+
+    idx = np.argpartition(euclidean_distance,k,axis=0)
+
+    yguessed = np.array([ytrained[idx[:,i],0][:k] for i in range(idx.shape[1])]).T
+    
+    return yguessed
+
 class NeuralNetwork():
     
     def __init__(self):
