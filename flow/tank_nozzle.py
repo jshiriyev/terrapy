@@ -5,21 +5,26 @@ from scipy import optimize
 from scipy.optimize import Bounds
 
 import matplotlib.pyplot as plt
+"""tank flow through noozle"""
 
-def massflow(P2,P1,v1,k,Cd,A):
+class single_phase():
+    
+    def compressible(self,P2,P1,v1,k,Cd,A):
 
-    Pr = P2/P1
-    kr = (k-1)/k
+        Pr = P2/P1
+        kr = (k-1)/k
 
-    Sq = 2/kr*P1*v1*(1-Pr**kr)
+        Sq = 2/kr*P1*v1*(1-Pr**kr)
 
-    G = Cd*A/v1*Pr**(1/k)*np.sqrt(Sq)
+        G = Cd*A/v1*Pr**(1/k)*np.sqrt(Sq)
 
-    return G
+        return G #mass flow
 
 def obj(P2,P1,v1,k,G,Cd,A):
 
-    Gc = massflow(P2,P1,v1,k,Cd,A)
+    sp = single_phase()
+
+    Gc = sp.compressible(P2,P1,v1,k,Cd,A)
 
     return np.abs(G-Gc)
 

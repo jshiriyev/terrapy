@@ -1,0 +1,225 @@
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+from scipy import optimize
+
+class item():
+
+    def __init__(self,
+                 length=None,
+                 inner_diameter=None,
+                 outer_diameter=None,
+                 smoothness_coefficient=None):
+
+        self.length = length
+        self.ID = inner_diameter
+        self.OD = outer_diameter
+        self.epsilon = smoothness_coefficient
+
+    def set_csa(self):
+        """cross sectional area, it may change with length"""
+        self.csa = np.pi*self.ID**2/4
+
+    def set_elevation(self):
+
+        pass
+        
+
+class single_phase():
+    pass
+
+def objective1(wc,L,D,phi):
+
+    Lc = critical(wc,D,phi)
+
+    return (L-Lc)**2
+"""compressible"""
+def critical(wc,D,phi):
+    # it returns length of pipe
+    return ((1/wc)**2-(np.log(1/wc))**2-1)*D/(8*phi)
+
+def objective1(phi,Re):
+##    return phi**(-0.5)+2*np.log10(2.51*phi**(-0.5)/Re)
+    return phi**(-0.5)-2.5*np.log(Re*phi**(0.5))-3
+
+def objective2(P2,G,P1,L,D,M,T):
+
+    Gc = massflow(P2,P1,L,D,M,T)
+
+    return (G-Gc)**2
+
+def objective3(wc,L,D,phi):
+    LHS = (8*phi)*L/D
+    RHS = (1/wc)**2-(np.log(1/wc))**2-1
+    return (LHS-RHS)**2
+
+def massflow(P2,P1,L,D,M,T):
+
+    rho1 = (P1*M)/(8.314*(T+273.15))
+    rho2 = (P2*M)/(8.314*(T+273.15))
+
+    nu1 = 1/rho1
+    nu2 = 1/rho2
+
+    Dp = P1**2-P2**2
+    Rp = np.log(P1/P2)
+    Ft = 4*phi*L/D
+
+    A = np.pi*D**2/4
+    
+    G = A*np.sqrt(Dp/(2*P1*nu1*(Rp+Ft)))
+
+    return G    
+
+L = 10*1000         # meters
+D = 12*0.0254       # meters
+
+P1 = 200*6894.76    # Pascal
+
+T = 20              # Celsius
+
+G = 10              # kilogram per seconds
+
+M = 0.016           # kilogram per moles
+mu = 1.03e-5        # Pascal-second
+
+A = np.pi*D**2/4
+
+Re = (G*D)/(mu*A)
+
+phi = 0.0396/(Re)**0.25
+
+wc = optimize.minimize_scalar(
+                    objective1,
+                    args=(L,D,phi),
+                    bounds=((1e-5,1)),
+                    method='bounded').x
+
+P2c = P1*wc
+
+print("P2 is %5.1f psi when G is maximum" %(P2c/6894.76))
+
+##G = massflow(161.5*6894.76,P1,L,D,M,T)
+
+P2 = optimize.minimize_scalar(
+                    objective2,
+                    args=(G,P1,L,D,M,T),
+                    bounds=((P2c,P1)),
+                    method='bounded').x
+
+print("P2 is %5.1f psi when G is 10 kg/sec" %(P2/6894.76))
+
+rho1 = (P1*M)/(8.314*(T+273.15))
+rho2 = (P2*M)/(8.314*(T+273.15))
+
+u1 = G/(rho1*A)
+u2 = G/(rho2*A)
+
+
+
+
+
+
+"""
+## Gas properties
+"""
+
+Pg = 101325         # pressure in Pa
+Tg = 288            # Kelvin
+Mg = 0.016          # mole mass in kg/mole
+
+Qg = 50             # m3/second
+
+Rc = 8.314          # universal gas constant in SI units
+
+mu = 0.01e-3        # Pascal-second
+
+"""
+## Pipeline Properties
+"""
+
+P2 = 170e3          # Pascal
+
+L = 3*1000          # meters
+D = 0.6             # meters
+
+Tamb = 293          # ambient temperature, Kelvin
+
+"""
+## END OF INPUTS
+"""
+
+rhog = (Pg*Mg)/(Rc*Tg)
+
+G = Qg*rhog         # kilogram per seconds
+
+A = np.pi*D**2/4
+
+Re = (G*D)/(mu*A)
+
+phi = optimize.newton(objective1,8/Re,args=(Re,))
+
+P1 = optimize.minimize(objective2,P2,
+                       args=(P2,L,D,phi,Mg,Tamb,G),
+                       bounds=[(P2,None)],
+                       method='Powell').x[0]
+
+wc = optimize.minimize_scalar(objective3,args=(L,D,phi),bounds=(1e-5,1),method='bounded').x
+
+
+
+
+
+
+
+class multiphase():
+
+    """liquid-liquid flow"""
+    
+    def obj(phi,Re):
+        x1 = np.power(phi,0.5)
+        x2 = np.power(phi,-0.5)
+        return x2-(2.5*np.log(Re*x1)+0.3)
+
+    Qo = 10/60          # meter^3/sec
+    Qw = 5/60           # meter^3/sec
+
+    rhoo = 890         # kg/meter^3
+    rhow = 1020        # kg/meter^3
+
+    muo = 3.5e-3        # Pa.s
+    muw = 1.1e-3        # Pa.s
+
+    L = 10              # meter
+    D = 0.2032          # meter
+
+    C1 = 60.
+    C2 = 1.28
+
+    vo = (4*Qo)/(np.pi*D**2)   # meter/second
+    vw = (4*Qw)/(np.pi*D**2)   # meter/second
+
+    Reo = (rhoo*vo*D)/muo
+    Rew = (rhow*vw*D)/muw
+
+    phio0 = 8/Reo
+    phiw0 = 8/Rew
+
+    phio = optimize.newton(obj,phio0,args=(Reo,))
+    phiw = optimize.newton(obj,phiw0,args=(Rew,))
+
+    deltaPo = 4*phio*(L/D)*rhoo*vo**2
+    deltaPw = 4*phiw*(L/D)*rhow*vw**2
+
+    Xto2 = deltaPo/deltaPw
+
+    phio2 = C2+C1/Xto2
+    phiw2 = C1+C2*Xto2
+
+    deltaP1 = phio2*deltaPo
+    deltaP2 = phiw2*deltaPw
+
+    print(deltaP1)
+    print(deltaP2)
+        

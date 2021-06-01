@@ -7,7 +7,7 @@ mu_fluid = 1.156e-3
 rho_fluid = 745
 rho_solid = 2200
 
-data = np.loadtxt("200_sedigraph.txt",skiprows=2)
+data = np.loadtxt("202_sedigraph_solid_liquid.txt",skiprows=2)
 
 vs = data[:,0]
 wt = data[:,1]
