@@ -24,6 +24,10 @@ class item():
     def set_elevation(self):
 
         pass
+
+    def concentric(self):
+
+        pass
         
 
 class single_phase():

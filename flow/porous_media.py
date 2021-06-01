@@ -42,6 +42,10 @@ class item():
 
         pass
 
+    def fracture(self):
+
+        pass
+
 """single_phase"""
 class slightly_compressible():
     
