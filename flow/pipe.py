@@ -4,12 +4,15 @@ import matplotlib.pyplot as plt
 
 from scipy import optimize
 
+class single_phase():
+    pass
+
 def objective1(wc,L,D,phi):
 
     Lc = critical(wc,D,phi)
 
     return (L-Lc)**2
-
+"""compressible"""
 def critical(wc,D,phi):
     # it returns length of pipe
     return ((1/wc)**2-(np.log(1/wc))**2-1)*D/(8*phi)
