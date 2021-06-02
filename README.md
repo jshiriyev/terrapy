@@ -11,13 +11,11 @@ All codes work only in SI units
     
     cylindrical flow
     -- through pipe
-    ---- liquid-gas interaction
-    ---- liquid-liquid interaction
     -- through annulus
     -- through nozzle
     
     spherical flow
-    -- creeping flow around solid sphere
+    -- around solid sphere
     -- through packed bed
     
     porous media flow
