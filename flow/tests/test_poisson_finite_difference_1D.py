@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 #Local application imports
-from analytical import diffusivity
+##from analytical import diffusivity
 
-from computational import finite_difference 
+from numerical import finite_difference 
 
 """Start Input"""
 xN0 = 0
@@ -36,13 +36,13 @@ grids.implement_bc(bL,bU)
 
 grids.solve(rhs=beta)
 
-analytical = diffusivity()
-
-analytical.cartesian_poisson_1D((xN0,xN1),(bL,bU),beta)
+##analytical = diffusivity()
+##
+##analytical.cartesian_poisson_1D((xN0,xN1),(bL,bU),beta)
 
 plt.scatter(grids.center[:,0],grids.unknown,c='r',label='Finite Difference')
 
-plt.plot(analytical.x,analytical.u,'k',label='Analytical')
+##plt.plot(analytical.x,analytical.u,'k',label='Analytical')
 
 plt.xlabel('x-axis')
 plt.ylabel('pressure')

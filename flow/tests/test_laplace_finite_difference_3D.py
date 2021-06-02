@@ -7,7 +7,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
 
-from computational import finite_difference
+from numerical import finite_difference
 
 solver = finite_difference()
 
