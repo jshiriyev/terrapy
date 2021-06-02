@@ -51,10 +51,9 @@ All codes work only in SI units
     -- heterogeneity measurements
     ---- variation  coefficients
     ---- correlation coefficients
-    ---- hypothesis testing
+    -- hypothesis testing
     -- multivariate estimation
-    ---- linear regression
-    ---- ridge regression
+    ---- regression (linear + ridge)
     ---- k-nearest-neighbors
     ---- artificial neural network
     ---- support vector machine
@@ -63,13 +62,13 @@ All codes work only in SI units
     -- connectivity measurements
     ---- variogram
     -- spatial estimation
-    ---- interpolation 3D
+    ---- 3D-interpolation
     ---- kriging simple
     ---- kriging ordinary
     -- spatial prediction
     ---- gaussian simulation
     -- temporal foreasting
-    ---- interpolation 1D
+    ---- 1D-interpolation
     ---- moving average
     
 "/bhospy/logging/" contains:
