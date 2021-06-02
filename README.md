@@ -9,16 +9,16 @@ All codes work only in SI units
     -- through slit (parallel plates)
     -- through orifice (tank flow)
     
-    cylindrical flow
-    -- through pipe
-    -- through annulus
-    -- through nozzle
+    flow through cylindrical conduits
+    -- pipe
+    -- annulus
+    -- nozzle
     
-    spherical flow
-    -- around solid sphere
-    -- through packed bed
+    flow around solid sphere
+    -- grain
+    -- packed bed
     
-    porous media flow
+    flow through porous media
     -- core
     ---- 1D cartesian analytical solution of single-phase diffusivity equation (transient, steady, different boundary conditions)
     ---- both incompressible multi-phase Buckley-Leverett Solution
