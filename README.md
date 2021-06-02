@@ -44,15 +44,15 @@ All codes work only in SI units
 "/bhospy/statistics/" contains:
 
     nominal study
-    -- uncertainty estimation
+    -- univariate prediction
     ---- jacknife
     ---- bootstrap
     ---- monte-carlo simulation
-    -- heterogeneity
-    ---- coefficient of variation
-    ---- coefficient of correlation
+    -- heterogeneity measurements
+    ---- variation  coefficients
+    ---- correlation coefficients
     ---- hypothesis testing
-    -- multivariate prediction
+    -- multivariate estimation
     ---- linear regression
     ---- ridge regression
     ---- k-nearest-neighbors
@@ -60,12 +60,13 @@ All codes work only in SI units
     ---- support vector machine
     
     spatiotemporal study
-    -- connectivity
+    -- connectivity measurements
     ---- variogram
     -- spatial estimation
     ---- interpolation 3D
     ---- kriging simple
     ---- kriging ordinary
+    -- spatial prediction
     ---- gaussian simulation
     -- temporal foreasting
     ---- interpolation 1D
