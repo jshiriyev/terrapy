@@ -1,17 +1,15 @@
 # bhospy
 
+# All codes work only in SI units
+
 "/bhospy/flow/" contains:
 
-    analytical solutions
     -- single-phase common solutions:
-    ---- flow of a falling film
-    ---- flow between parallel plates
-    ---- flow through a circular tube
-    ---- flow through an annulus
-    ---- flow from a tank
+    ---- flow on plates, falling film and slit flow
+    ---- flow through a circular tube, pipe flow and annular flow
+    ---- flow from a tank through nozzle
     ---- flow in a packed bed
-    ---- flow through porous media
-    ---- flow through fractured porous media
+    ---- flow through porous media including fractured porous media
     -- single-phase diffusivity equation analytical solution:
     ---- 1D cartesian solution (transient, steady, different boundary conditions)
     ---- 1D radial solution (transient, steady, different boundary conditions)
