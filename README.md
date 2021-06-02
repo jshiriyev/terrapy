@@ -4,9 +4,10 @@ All codes work only in SI units
 
 "/bhospy/flow/" contains:
 
-    plate flow
+    cartesian flow
     -- falling film
-    -- parallel plates (flow through slit)
+    -- through slit (parallel plates)
+    -- through orifice (tank flow)
     
     cylindrical flow
     -- through pipe
@@ -17,12 +18,7 @@ All codes work only in SI units
     
     spherical flow
     -- creeping flow around solid sphere
-    
-    tank flow
-    -- through hole
-    -- through nozzle
-    
-    packed bed flow
+    -- through packed bed
     
     porous media flow
     -- core
@@ -44,14 +40,15 @@ All codes work only in SI units
 "/bhospy/statistics/" contains:
 
     nominal study
+    -- heterogeneity measurements
+    ---- variation  coefficients
+    -- hypothesis testing
     -- univariate prediction
     ---- jacknife
     ---- bootstrap
     ---- monte-carlo simulation
-    -- heterogeneity measurements
-    ---- variation  coefficients
+    -- mutlivariate analysis
     ---- correlation coefficients
-    -- hypothesis testing
     -- multivariate estimation
     ---- regression (linear + ridge)
     ---- k-nearest-neighbors
