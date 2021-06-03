@@ -4,21 +4,19 @@ All codes work only in SI units
 
 "/bhospy/flow/" contains:
 
-    flow on a inclined plate - falling film
-    flow through parallel plates with stationary plates
-    flow through parallel plates with one moving plate
-    
-    flow through pipe
-    flow through annulus
-    
-    flow through orifice
-    flow through nozzle
-    
-    flow around solid sphere
-    
-    flow through packed bed
-    
-    flow through porous media
+    1) flow including plates
+    -- falling film
+    -- parallel plates with stationary plates
+    -- parallel plates with one moving plate
+    2) flow including cylinders:
+    -- pipe
+    -- annulus
+    3) flow through hole:
+    -- orifice
+    -- nozzle
+    4) flow around solid sphere
+    5) flow through packed bed
+    6) flow through porous media
     -- core sample
     ---- 1D cartesian analytical solution of single-phase diffusivity equation (transient, steady, different boundary conditions)
     ---- both incompressible multi-phase Buckley-Leverett Solution
@@ -37,7 +35,7 @@ All codes work only in SI units
 	
 "/bhospy/statistics/" contains:
 
-    nominal study
+    1) nominal study
     -- visualization models
     -- learning models
     ---- heterogeneity measurements
@@ -55,8 +53,7 @@ All codes work only in SI units
     ---- jacknife
     ---- bootstrap
     ---- monte-carlo simulation
-    
-    spatiotemporal study
+    2) spatiotemporal study
     -- learning connectivity
     ---- variogram
     -- spatial estimation models
