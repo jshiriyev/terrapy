@@ -4,25 +4,25 @@ All codes work only in SI units
 
 "/bhospy/flow/" contains:
 
-    cartesian flow
-    -- falling film
-    -- through slit (parallel plates)
-    -- through orifice (tank flow)
+    flow on a inclined plate - falling film
+    flow through parallel plates with stationary plates
+    flow through parallel plates with one moving plate
     
-    flow through cylindrical conduits
-    -- pipe
-    -- annulus
-    -- nozzle
+    flow through pipe
+    flow through annulus
+    
+    flow through orifice
+    flow through nozzle
     
     flow around solid sphere
-    -- grain
-    -- packed bed
+    
+    flow through packed bed
     
     flow through porous media
-    -- core
+    -- core sample
     ---- 1D cartesian analytical solution of single-phase diffusivity equation (transient, steady, different boundary conditions)
     ---- both incompressible multi-phase Buckley-Leverett Solution
-    -- reservoir
+    -- reservoir model
     ---- 1D radial analytical solution of single-phase diffusivity equation (transient, steady, different boundary conditions)
     ---- 3D gaussian analytical line-solution of single-phase diffusivity equation (transient, different boundary conditions)
     ---- 3D finite difference solution, cenrtral difference, implicit solution
@@ -38,31 +38,34 @@ All codes work only in SI units
 "/bhospy/statistics/" contains:
 
     nominal study
-    -- heterogeneity measurements
-    ---- variation  coefficients
-    -- hypothesis testing
-    -- univariate prediction
-    ---- jacknife
-    ---- bootstrap
-    ---- monte-carlo simulation
-    -- mutlivariate analysis
+    -- visualization models
+    -- learning models
+    ---- heterogeneity measurements
     ---- correlation coefficients
-    -- multivariate estimation
+    ---- principal component analysis
+    ---- clustering algorithms (k-mean)
+    -- inferential models
+    ---- hypothesis testing (z,t,f,chi-squared)
+    -- estimation models
     ---- regression (linear + ridge)
     ---- k-nearest-neighbors
     ---- artificial neural network
     ---- support vector machine
+    -- prediction models
+    ---- jacknife
+    ---- bootstrap
+    ---- monte-carlo simulation
     
     spatiotemporal study
-    -- connectivity measurements
+    -- learning connectivity
     ---- variogram
-    -- spatial estimation
+    -- spatial estimation models
     ---- 3D-interpolation
     ---- kriging simple
     ---- kriging ordinary
-    -- spatial prediction
+    -- spatial prediction models
     ---- gaussian simulation
-    -- temporal foreasting
+    -- temporal foreasting models
     ---- 1D-interpolation
     ---- moving average
     
