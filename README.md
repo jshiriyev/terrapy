@@ -2,7 +2,7 @@
 
 All codes work only in SI units
 
-"/bhospy/flow/" contains:
+"/bhospy/flow/" contains: (CURRENTLY IN PROGRESS)
 
     1) flow including plates
     -- falling film
@@ -18,22 +18,10 @@ All codes work only in SI units
     5) flow through packed bed
     6) flow through porous media
     -- core sample
-    ---- 1D cartesian analytical solution of single-phase diffusivity equation (transient, steady, different boundary conditions)
-    ---- both incompressible multi-phase Buckley-Leverett Solution
     -- reservoir model
-    ---- 1D radial analytical solution of single-phase diffusivity equation (transient, steady, different boundary conditions)
-    ---- 3D gaussian analytical line-solution of single-phase diffusivity equation (transient, different boundary conditions)
-    ---- 3D finite difference solution, cenrtral difference, implicit solution
     -- reservoir with complex fractures
-    ---- 3D gaussian analytical plane-solution of single-phase diffusivity equation (transient, different boundary conditions)
-
-"/bhospy/geomech/" contains:
-
-    numerical (computational) solutions
-    -- finite element solution
-    ---- 2D triangular mesh in rectangular domain
 	
-"/bhospy/statistics/" contains:
+"/bhospy/statistics/" contains: (CURRENTLY IN PROGRESS)
 
     1) nominal study
     -- visualization models
@@ -66,7 +54,13 @@ All codes work only in SI units
     ---- 1D-interpolation
     ---- moving average
     
-"/bhospy/logging/" contains:
+"/bhospy/geomech/" contains: (PROGRESS IS UPCOMING)
+
+    numerical (computational) solutions
+    -- finite element solution
+    ---- 2D triangular mesh in rectangular domain
+    
+"/bhospy/logging/" contains: (PROGRESS IS UPCOMING)
 
     analytical solutions
     
@@ -75,6 +69,6 @@ All codes work only in SI units
     -- surface integral equations
     -- volume integral equations
 	
-"/bhospy/optimize/" contains:
+"/bhospy/optimize/" contains: (PROGRESS IS UPCOMING)
 
     simulated annealing
