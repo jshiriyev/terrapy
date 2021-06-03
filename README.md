@@ -47,7 +47,7 @@ All codes work only in SI units
     -- inferential models
     ---- hypothesis testing (z,t,f,chi-squared)
     -- estimation models
-    ---- regression (linear + ridge)
+    ---- regression (linear+ridge)
     ---- k-nearest-neighbors
     ---- artificial neural network
     ---- support vector machine
