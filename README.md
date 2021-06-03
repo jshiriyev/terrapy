@@ -8,7 +8,7 @@ All codes work only in SI units
     -- falling film
     -- parallel plates with stationary plates
     -- parallel plates with one moving plate
-    2) flow including cylinders:
+    2) flow through cylinders:
     -- pipe
     -- annulus
     3) flow through hole:
