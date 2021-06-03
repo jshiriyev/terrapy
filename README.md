@@ -24,7 +24,6 @@ All codes work only in SI units
 "/bhospy/statistics/" contains: (CURRENTLY IN PROGRESS)
 
     1) nominal study
-    -- visualization models
     -- learning models
     ---- heterogeneity measurements
     ---- correlation coefficients
