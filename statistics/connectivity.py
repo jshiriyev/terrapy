@@ -131,18 +131,19 @@ class variogram(item):
 
         self.experimental = np.zeros_like(self.bins)
 
-        """
-        azimuth range is (-\pi,\pi] in radians [(-180,180] in degrees]
-        if we set +x to east and +y to north then the azimuth is selected
-        to be zero in the +x direction and positive counterclockwise
-        """
+        if azimuth is not None:
 
-        """for an anisotropy only 2D data can be used FOR NOW"""
-        self.azimuth = np.radians(azimuth)
-        self.azimuthtol = np.radians(azimuthtol)
-        self.bandwidth = bandwidth
+            """
+            azimuth range is (-\pi,\pi] in radians [(-180,180] in degrees]
+            if we set +x to east and +y to north then the azimuth is selected
+            to be zero in the +x direction and positive counterclockwise
+            """
 
-        if self.azimuth is not None:
+            """for an anisotropy only 2D data can be used FOR NOW"""
+            self.azimuth = np.radians(azimuth)
+            self.azimuthtol = np.radians(azimuthtol)
+            self.bandwidth = bandwidth
+
             delta_angle = np.abs(self.angle-self.azimuth)
             
             con_azmtol = delta_angle<=self.azimuthtol
@@ -238,9 +239,16 @@ class variogram(item):
 
             plt.plot(origin_x+hmin_x,origin_y+hmin_y,'r')
 
-    def set_theoretical(self):
+    def set_theoretical(self,h,vtype='spherical',vsill=None,vrange=None,vnugget=0):
 
-        d = self.distance
+        self.tbins = h
+
+        self.type = vtype
+        self.sill = vsill
+        self.range = vrange
+        self.nugget = vnugget
+
+        d = self.tbins
             
         self.theoretical = np.zeros_like(d)
         
