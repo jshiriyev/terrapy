@@ -7,107 +7,24 @@ from scipy.stats import norm
 
 from connectivity import variogram
 
-class item():
-
-    def __init__(self,props,header=None,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
-        """it creates best x,y,z values for the given property"""
-
-        if props is not None:
-            self.property = props
-            ones = np.ones(props.shape[0])
-        elif X is not None:
-            ones = np.ones(X.shape)
-        elif Y is not None:
-            ones = np.ones(Y.shape)
-        elif Z is not None:
-            ones = np.ones(Z.shape)
-        else:
-            return
-
-        if header is not None:
-            self.header = header
-        
-        if X is None:
-            try:
-                self.x = (np.cumsum(ones,0)-1)*dX
-            except:
-                self.x = ones
-        else:
-            self.x = X
-
-        if Y is None:
-            try:
-                self.y = (np.cumsum(ones,1)-1)*dY
-            except:
-                self.y = ones
-        else:
-            self.y = Y
-
-        if Z is None:
-            try:
-                self.z = (np.cumsum(ones,2)-1)*dZ
-            except:
-                self.z = ones
-        else:
-            self.z = Z
-
-class estimation(item):
-
+class interpolation():
+    
     """
-    estimation class used to represent estimated points
-
+    1D interpolation, but here it must be 3D
     ...
-
     Attributes
-    ----------
-    var:
-    type:
-    nugget:
-    sill:
-    range:
-    
-    distance:
-    theoretical:
-    covariance:
-    lambdas:
-    property:
-    variance:
-    mean:
-    beta:
-    
+    ----------    
     Methods
     -------
-    interpolation()
-    kriging_simple()
-        calculates simple kriging values at estimation points
-    kriging_ordinary()
-        calculates ordinary kriging values at estimation points
-    simulation_gaussian()
-        calculates gaussian simulation values at estimation points
-    
     """
+    
+    def __init__(self):
+        pass
 
-    def __init__(self,var,**kwargs):
-        """var must be theoretical variogram at observation points"""
-        self.var = var
-
-        self.type = self.var.type
-        self.nugget = self.var.nugget
-        self.sill = self.var.sill
-        self.range = self.var.range
-        
-        super(estimation, self).__init__(None,**kwargs)
-
-    def set_distance(self):
-        """here distance is calculated in 2-dimensional array form"""
-        self.dx = self.x-self.var.x.reshape((-1,1))
-        self.dy = self.y-self.var.y.reshape((-1,1))
-        self.dz = self.z-self.var.z.reshape((-1,1))
-
-        self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
+    def smooth(self):
+        pass
 
     def interpolation(self,X,Y,x):
-        """1D interpolation, but here it must be 3D"""
 
         """
         X are the locations where Y values are given
@@ -164,13 +81,43 @@ class estimation(item):
         else:
             return y
 
-    def kriging_simple(self,perc=0.5):
+class kriging(variogram):
+
+    """
+    estimation class used to represent estimated points
+    ...
+    Attributes
+    ----------    
+    Methods
+    -------
+    """
+
+    def __init__(self,var,**kwargs):
+        """var must be theoretical variogram at observation points"""
+        self.var = var
+
+        self.type = self.var.type
+        self.nugget = self.var.nugget
+        self.sill = self.var.sill
+        self.range = self.var.range
+        
+        super(kriging,self).__init__(None,**kwargs)
+
+    def set_distance(self):
+        """here distance is calculated in 2-dimensional array form"""
+        self.dx = self.x-self.var.x.reshape((-1,1))
+        self.dy = self.y-self.var.y.reshape((-1,1))
+        self.dz = self.z-self.var.z.reshape((-1,1))
+
+        self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
+
+    def simple(self,perc=0.5):
         
         "perc -> percentile, perc=0.5 gives mean values"
 
         self.set_distance()
         
-        variogram.set_theoretical(self)
+        self.set_theoretical(self.distance,self.type,self.sill,self.range,self.nugget)
         
         self.covariance = self.sill-self.theoretical
 
@@ -185,13 +132,13 @@ class estimation(item):
 
         self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
 
-    def kriging_ordinary(self,perc=0.5):
+    def ordinary(self,perc=0.5):
         
         "perc -> percentile, perc=0.5 gives mean values"
 
         self.set_distance()
         
-        variogram.set_theoretical(self)
+        self.set_theoretical(self.distance,self.type,self.sill,self.range,self.nugget)
 
         self.covariance = self.sill-self.theoretical
         
@@ -219,11 +166,11 @@ class estimation(item):
         
         self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
 
-    def simulation_gaussian(self):
-
-        perc = np.random.rand(self.x.size)
-
-        self.kriging_ordinary(perc=perc)
+##    def simulation_gaussian(self):
+##
+##        perc = np.random.rand(self.x.size)
+##
+##        self.kriging_ordinary(perc=perc)
 
 if __name__ == "__main__":
 

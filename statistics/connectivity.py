@@ -48,14 +48,12 @@ class item():
         else:
             self.z = ones
 
-    def set_attribute(self,attribute,attributename,isnone,isnotnone=None):
+    def set_attribute(self,attribute,attributename,isnone):
 
         if attribute is None:
             setattr(self,attributename,isnone)
-        elif isnotnone is None:
-            setattr(self,attributename,attribute)
         else:
-            setattr(self,attributename,isnotnone)
+            setattr(self,attributename,attribute)
 
 class variogram(item):
 
@@ -213,19 +211,30 @@ class variogram(item):
 
     def set_theoretical(self,vbins=None,vtype='spherical',vsill=None,vrange=None,vnugget=0):
 
-        self.set_attribute(vbins,"bins_theoretical",self.bins_experimental)
+        if vbins is None:
+            if hasattr(self,"bins_experimental"):
+                d = self.bins_experimental
+            elif hasattr(self,"distance"):
+                d = self.distance
+        else:
+            self.bins_theoretical = vbins
+            d = vbins
         
         self.type = vtype
-        self.set_attribute(vsill,"sill",self.property.var())
-        self.set_attribute(vrange,"range",5*self.lagdis)
+
+        if vsill is None:
+            self.sill = self.property.var()
+        else:
+            self.sill = vsill
+        
+        self.set_attribute(vrange,"range",(d.max()-d.min())/5)
+        
         self.nugget = vnugget
             
         self.theoretical = np.zeros_like(self.bins_theoretical)
         
         Co = self.nugget
         Cd = self.sill-self.nugget
-
-        d = self.bins_theoretical
         
         if self.type == 'power':
             self.theoretical[d>0] = Co+Cd*(d[d>0])**self.power
