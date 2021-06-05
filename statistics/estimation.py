@@ -45,9 +45,6 @@ class regression(item):
 
         return Yest
 
-class monte_carlo(item):
-    pass
-
 class kneighbor(item):
 
     def __init__(self,observed_points,observed_values):
@@ -102,7 +99,7 @@ class neuralnetwork(item):
         
         for iteration in range(iterationNumber):
             
-            output = self.forward(self.xobs)
+            output = self.estimate(self.xobs)
             
             error = self.yobs-output
             

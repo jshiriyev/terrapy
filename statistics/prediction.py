@@ -20,17 +20,15 @@ spatial information and includes following ananlysis:
     
 """
 
-class uncertainty():
+class jacknife():
 
     def __init__(self,prop,**kwargs):
 
         self.set_property(prop,**kwargs)
 
-    def jacknife(self):
+class bootstrap():
 
-        pass
-
-    def bootstrap(self,X,Nrealization):
+    def __init__(self,X,Nrealization):
 
         """
         X should be an array with one dimension,
@@ -44,6 +42,17 @@ class uncertainty():
         idx = np.random.randint(0,N,(N,Nrealization))
         
         return idx
+
+class monte_carlo(item):
+
+    def __init__(self):
+        pass
+
+class mcmc():
+    """monte carlo markov chain simulation"""
+
+    def __init__(self):
+        pass
 
 if __name__ == "__main__":
 
