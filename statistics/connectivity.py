@@ -8,100 +8,71 @@ from scipy.stats import norm
 class item():
 
     def __init__(self,props,header=None,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
-        """it creates best x,y,z values for the given property"""
-
+        """if entered, X,Y,Z must be one dimensional numpy array"""
+        
         if props is not None:
-            self.property = props
-            ones = np.ones(props.shape[0])
+            ones = np.ones(props.shape)
         elif X is not None:
-            ones = np.ones(X.shape)
+            ones = np.ones(X.size)
         elif Y is not None:
-            ones = np.ones(Y.shape)
+            ones = np.ones(Y.size)
         elif Z is not None:
-            ones = np.ones(Z.shape)
+            ones = np.ones(Z.size)
         else:
             return
 
+        if props is not None:
+            self.property = props.ravel()
+
         if header is not None:
             self.header = header
-        
-        if X is None:
-            try:
-                self.x = (np.cumsum(ones,0)-1)*dX
-            except:
-                self.x = ones
-        else:
+
+        if X is not None:
             self.x = X
-
-        if Y is None:
-            try:
-                self.y = (np.cumsum(ones,1)-1)*dY
-            except:
-                self.y = ones
+        elif ones.ndim>1:
+            self.x = (np.cumsum(ones,0)-1).ravel()*dX
         else:
+            self.x = ones
+
+        if Y is not None:
             self.y = Y
-
-        if Z is None:
-            try:
-                self.z = (np.cumsum(ones,2)-1)*dZ
-            except:
-                self.z = ones
+        elif ones.ndim>1:
+            self.y = (np.cumsum(ones,1)-1).ravel()*dY
         else:
+            self.y = ones
+
+        if Z is not None:
             self.z = Z
+        elif ones.ndim>2:
+            self.z = (np.cumsum(ones,2)-1).ravel()*dZ
+        else:
+            self.z = ones
+
+    def set_attribute(self,attribute,attributename,isnone,isnotnone=None):
+
+        if attribute is None:
+            setattr(self,attributename,isnone)
+        elif isnotnone is None:
+            setattr(self,attributename,attribute)
+        else:
+            setattr(self,attributename,isnotnone)
 
 class variogram(item):
 
     """
-    variogram class used to represent observation points
-    and calculates semivariogram values
-
+    variogram class used to represent observational spatial points
+    and calculates semi-variance values
     ...
-
     Attributes
     ----------
-    property:
-    x:
-    y:
-    z:
-    
-    dx:
-    dy:
-    dz:
-    distance:
-
-    bins:
-
-    lagdis:
-    lagdistol:
-    azimuth:
-    azimuth_tol:
-    experimental:
-
-    theoretical:
-    covariance:
-    
     Methods
     -------
-    set_property():
-        assigns input properties to the self
-    set_distance(other):
-        calculates distances between the provided two set of points
-    set_experimental(prop,lagdis,lagmax,azimuth,azimuth_tol):
-        calculates experimental variogram values
-    set_theoretical():
-        calculates theoretical variogram and covariance values
-    
-    """
-
-    """
-    demonstrates experimental variogram calculations
-    demonstrates theoretical variogram calculation
     """
 
     def __init__(self,props,**kwargs):
 
-        super(variogram, self).__init__(props,**kwargs)
-
+        super(variogram,self).__init__(props,**kwargs)
+        
         """calculating distance and angle between observation points"""
         self.set_connection()
 
@@ -116,44 +87,45 @@ class variogram(item):
         """angle is calculated in 2-dimensional array form"""
         self.angle = np.arctan2(self.dy,self.dx)
 
-    def set_experimental(self,lagdis,lagmax,azimuth=None,azimuthtol=None,bandwidth=None):
+    def set_experimental(self,lagdis=None,lagdistol=None,lagmax=None,
+                             azimuth=None,azimuthtol=None,bandwidth=None):
         
         prop_err = (self.property-self.property.reshape((-1,1)))**2
 
-        """bins is the array of lag distances"""
-        self.lagdis = lagdis
-        self.lagdistol = lagdis/2.
-        self.lagmax = lagmax
-
-        self.outbound = self.lagmax+self.lagdistol
+        self.set_attribute(lagdis,"lagdis",self.distance[self.distance!=0].min())
+        self.set_attribute(lagdistol,"lagdistol",self.lagdis/2.)
+        self.set_attribute(lagmax,"lagmax",self.distance.max())
         
-        self.bins = np.arange(self.lagdis,self.outbound,self.lagdis)
-
-        self.experimental = np.zeros_like(self.bins)
-
-        if azimuth is not None:
-
-            """
-            azimuth range is (-\pi,\pi] in radians [(-180,180] in degrees]
-            if we set +x to east and +y to north then the azimuth is selected
-            to be zero in the +x direction and positive counterclockwise
-            """
-
-            """for an anisotropy only 2D data can be used FOR NOW"""
+        """for an anisotropy only 2D data can be used FOR NOW"""
+        if azimuth is None:
+            self.azimuth = 0
+            self.azimuthtol = np.pi
+            self.bandwidth = np.inf
+        else:
             self.azimuth = np.radians(azimuth)
             self.azimuthtol = np.radians(azimuthtol)
             self.bandwidth = bandwidth
 
-            delta_angle = np.abs(self.angle-self.azimuth)
-            
-            con_azmtol = delta_angle<=self.azimuthtol
-            con_banwdt = np.sin(delta_angle)*self.distance<=(self.bandwidth/2.)
-            con_direct = np.logical_and(con_azmtol,con_banwdt)
-            
-        else:
-            con_direct = np.ones(self.angle.shape,dtype=bool)
+        self.outbound = self.lagmax+self.lagdistol
 
-        for i,h in enumerate(self.bins):
+        """bins is the array of lag distances"""
+        self.bins_experimental = np.arange(self.lagdis,self.outbound,self.lagdis)
+
+        self.experimental = np.zeros_like(self.bins_experimental)
+
+        """
+        azimuth range is (-\pi,\pi] in radians [(-180,180] in degrees]
+        if we set +x to east and +y to north then the azimuth is selected
+        to be zero in the +x direction and positive counterclockwise
+        """
+        
+        delta_angle = np.abs(self.angle-self.azimuth)
+        
+        con_azmtol = delta_angle<=self.azimuthtol
+        con_banwdt = np.sin(delta_angle)*self.distance<=(self.bandwidth/2.)
+        con_direct = np.logical_and(con_azmtol,con_banwdt)
+        
+        for i,h in enumerate(self.bins_experimental):
 
             con_distnc = np.abs(self.distance-h)<=self.lagdistol
 
@@ -227,7 +199,7 @@ class variogram(item):
         plt.plot(origin_x+x5,origin_y+y5,'k')
         plt.plot(origin_x+x6,origin_y+y6,'k')
 
-        for h in self.bins:
+        for h in self.bins_experimental:
             
             hmin = h-self.lagdistol
             
@@ -239,21 +211,21 @@ class variogram(item):
 
             plt.plot(origin_x+hmin_x,origin_y+hmin_y,'r')
 
-    def set_theoretical(self,h,vtype='spherical',vsill=None,vrange=None,vnugget=0):
+    def set_theoretical(self,vbins=None,vtype='spherical',vsill=None,vrange=None,vnugget=0):
 
-        self.tbins = h
-
+        self.set_attribute(vbins,"bins_theoretical",self.bins_experimental)
+        
         self.type = vtype
-        self.sill = vsill
-        self.range = vrange
+        self.set_attribute(vsill,"sill",self.property.var())
+        self.set_attribute(vrange,"range",5*self.lagdis)
         self.nugget = vnugget
-
-        d = self.tbins
             
-        self.theoretical = np.zeros_like(d)
+        self.theoretical = np.zeros_like(self.bins_theoretical)
         
         Co = self.nugget
         Cd = self.sill-self.nugget
+
+        d = self.bins_theoretical
         
         if self.type == 'power':
             self.theoretical[d>0] = Co+Cd*(d[d>0])**self.power
