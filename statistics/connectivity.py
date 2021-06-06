@@ -231,7 +231,7 @@ class variogram(item):
         
         self.nugget = vnugget
             
-        self.theoretical = np.zeros_like(self.bins_theoretical)
+        self.theoretical = np.zeros_like(d)
         
         Co = self.nugget
         Cd = self.sill-self.nugget

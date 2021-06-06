@@ -9,7 +9,7 @@ import numpy as np
 
 from connectivity import variogram
 
-from spatial import estimation
+from spatial import kriging
 
 ## Example 4.2 (Kriging) and 4.3 (Simulation) page 187, Peters Volume 1
 
@@ -25,38 +25,30 @@ plt.ylim([0,70])
 
 V = variogram(y,X=x)
 
-V.type = 'exponential'
-V.nugget = 0
-V.sill = 100
-V.range = 10
-
-V.set_theoretical()
+V.set_theoretical(vtype='exponential',vsill=100,vrange=10,vnugget=0)
 
 xe = np.linspace(1,8,71)
 
-E = estimation(V,X=xe)
+E = kriging(V,X=xe)
 
-E.kriging_ordinary()
+E.ordinary()
 
 y0 = E.property
 
-E.kriging_ordinary(perc=0.975)
+E.ordinary(perc=0.975)
 
 y1 = E.property
 
-E.kriging_ordinary(perc=0.025)
+E.ordinary(perc=0.025)
 
 y2 = E.property
 
-E.simulation_gaussian()
-
-y3 = E.property
+##E.simulation_gaussian()
+##y3 = E.property
 
 plt.plot(E.x,y0,c='k')
 
 plt.fill_between(E.x,y1,y2,fc='lightgrey')
-
-plt.scatter(E.x,E.property,s=4,c='r')
 
 plt.scatter(x,y,marker='X',c='k')
 
