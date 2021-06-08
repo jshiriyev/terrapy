@@ -72,6 +72,41 @@ class single_phase(item):
 
         pass
 
+    def DarcyWeisbach(self,NReynolds,tol=1e-5):
+
+        if NReynolds<1000:
+            
+            f = 64/NReynolds
+            
+        elif NReynolds>2000:
+            
+            f0 = 64/NReynolds
+            
+            converged = False
+            
+            while not converged:
+                
+                Lp = (self.epsilon)/(3.7*self.diameter)
+                Rp = (2.51)/(NReynolds*np.sqrt(f0))
+                
+                f1 = 1/(-2*np.log10(Lp+Rp))**2
+                
+                if np.abs(f1-f0)>tol:
+                    
+                    f0 = f1
+                    
+                else:
+                    
+                    converged = True
+
+    def HazenWilliams(self,C=120):
+
+        k = 0.849
+
+        Rhydraulic = self.diameter/4
+
+        f = ((self.average_velocity)/(k*C*Rhydraulic**0.63))**(1/0.54)
+
     def compressible(self,P2,P1,L,D,M,T):
 
         """G is mass flow rate"""
