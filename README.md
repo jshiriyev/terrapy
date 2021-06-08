@@ -24,7 +24,7 @@ All codes work only in SI units
 "/bhospy/statistics/" contains: (CURRENTLY IN PROGRESS)
 
     1) nominal study
-    -- learning models
+    -- analytics
     ---- heterogeneity measurements
     ---- correlation coefficients
     ---- principal component analysis
@@ -41,7 +41,7 @@ All codes work only in SI units
     ---- bootstrap
     ---- monte-carlo simulation
     2) spatiotemporal study
-    -- learning connectivity
+    -- connectivity
     ---- variogram
     -- spatial estimation models
     ---- 3D-interpolation
