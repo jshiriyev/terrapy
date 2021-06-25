@@ -22,32 +22,96 @@ sys.path.append(os.path.dirname(os.getcwd()))
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from scipy.sparse import csr_matrix
+
+from scipy.special import j0
+from scipy.special import j1
+from scipy.special import y0
+from scipy.special import y1
 
 ## if you want to generate animation, install PIL and uncomment out the line 25 and animation part in the bottom
 ## for the installation, go to the command prompt and type pip install Pillow
 ##from PIL import Image
 
-class item():
+class core():
+
+    def __init__(self,length,radius,porosity,permeability,compressibility):
+
+        self.length = length
+        self.radius = radius
+
+        self.porosity = porosity
+        self.permeability = permeability
+        self.compressibility = compressibility
+
+class formation():
+
+    def __init__(self,height,radius,porosity,permeability,compressibility):
+
+        self.height = height
+        self.radius = radius
+
+        self.porosity = porosity
+        self.permeability = permeability
+        self.compressibility = compressibility
+
+    def set_total_compressibility(self,fluid):
+
+        self.ct = self.cr+fluid.cf
+        
+    def set_diffusivity(self,viscosity,total_compressibility):
+        
+        self.eta = (self.k)/(self.phi*self.mu*self.ct)
+
+class fracture():
 
     def __init__(self):
 
-        pass
+        self.thickness = thickness
 
-    def core(self):
-
-        pass
-
-    def reservoir(self):
+    def set_nodes(self):
 
         pass
 
-    def fracture(self):
+class fluid():
+
+    def __init__(self,viscosity):
+
+        self.viscosity = viscosity
+
+    def compressible(self,compressibility):
+
+        self.compressibility = compressibility
+
+    def slightly_compressible(self,compressibility):
+
+        self.compressibility = compressibility
+
+    def incompressible(self,density):
+
+        self.density = density
+
+class well():
+    
+    def __init__(self,radius):
+
+        self.radius = radius
+
+    def set_location(self):
+
+        pass
+
+    def set_true_vertical_depth(self):
+
+        pass
+
+    def set_measured_depth(self):
 
         pass
 
 """single_phase"""
-class slightly_compressible():
+class linear():
     
     """
     cartesian_1D_laplace
@@ -141,6 +205,33 @@ class slightly_compressible():
         sum_ = np.sum(1/n*exp_*sin_,axis=2)
 
         self.pressure = PL+(PU-PL)*((self.x/L).reshape((1,-1))+2/np.pi*sum_)
+
+class radial():
+
+    def __init__(self,hydraulic_diffusivity=None):
+
+        if hydraulic_diffusivity is not None:
+            self.eta = hydraulic_diffusivity
+
+    def transient(self,time):
+        
+        """line source solution"""
+
+        well.radius = radius
+
+        t0 = 100.*well_radius**2/self.eta
+        te = 0.25*self.radius**2/self.eta
+
+        if time>t0 and time<te:
+            p = pi-5
+
+    def steady_state(self):
+
+        pass
+
+    def pseudo_steady_state(self):
+
+        pass
 
     def cartesian_2D(self):
         """green's solution"""
