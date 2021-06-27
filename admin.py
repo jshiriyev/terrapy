@@ -86,8 +86,8 @@ class adminGUI():
 
         fileMenu = Menu(menubar)
     
-        fileMenu.add_command(label="Open",command=self.clear)
-        fileMenu.add_command(label="Exit",command=self.clear)
+        fileMenu.add_command(label="Open")
+        fileMenu.add_command(label="Exit")
         
         menubar.add_cascade(label="File", menu=fileMenu)
 
@@ -113,7 +113,7 @@ class adminGUI():
         self.frame_teachers.listbox = Listbox(self.frame_teachers,width=30,height=20)
         
         for entry in self.teachers.fullname:
-            self.frame_teachers.listbox.insert(END, entry)
+            self.frame_teachers.listbox.insert(END,entry)
 
         self.frame_teachers.listbox.pack()
 
@@ -128,69 +128,115 @@ class adminGUI():
         
         self.frame_fall.label = Label(self.frame_fall,text="Fall Semester")
         self.frame_fall.label.configure(background="white")
-        self.frame_fall.label.grid(row=0,column=0,columnspan=2)
+        self.frame_fall.label.grid(row=0,column=0,columnspan=3)
 
-        self.frame_fall.text = Text(self.frame_fall,width=30,height=20)
-        self.frame_fall.text.grid(row=1,column=0,columnspan=2)
+        self.frame_fall.listbox = Listbox(self.frame_fall,width=40,height=20)
+        self.frame_fall.listbox.grid(row=1,column=0,columnspan=3)
 
-        self.frame_fall.button_clear = Button(self.frame_fall,text="Clear Screen",command=lambda: self.clear(text2))
+        self.frame_fall.button_drop = \
+            Button(self.frame_fall,text="Drop Selected",
+                   command=lambda: self.move_course(self.frame_fall.listbox,
+                                                    self.frame_courses.listbox))
+        
+        self.frame_fall.button_drop.configure(background="white")
+        self.frame_fall.button_drop.grid(row=2,column=0)
+        
+        self.frame_fall.button_clear = \
+            Button(self.frame_fall,text="Drop All",
+                   command=lambda: self.move_course(self.frame_fall.listbox,
+                                                    self.frame_courses.listbox,
+                                                    moveall=True))
+        
         self.frame_fall.button_clear.configure(background="white")
-        self.frame_fall.button_clear.grid(row=2,column=0)
+        self.frame_fall.button_clear.grid(row=2,column=1)
 
-        self.frame_fall.button_save = Button(self.frame_fall,text="Save Courses",command=self.save)
+        self.frame_fall.button_save = \
+            Button(self.frame_fall,text="Save Courses",command=self.save)
+        
         self.frame_fall.button_save.configure(background="white")
-        self.frame_fall.button_save.grid(row=2,column=1)
+        self.frame_fall.button_save.grid(row=2,column=2)
 
     def set_frame_spring(self):
         
-        self.frame_spring = Frame(self.root,padx=5,pady=5,width=10,height=20) #,text="Spring Semester Schedule"
+        self.frame_spring = Frame(self.root,padx=5,pady=5,width=10,height=20)
         self.frame_spring.configure(background="white")
         
         self.frame_spring.label = Label(self.frame_spring,text="Spring Semester")
         self.frame_spring.label.configure(background="white")
-        self.frame_spring.label.grid(row=0,column=0,columnspan=2)
+        self.frame_spring.label.grid(row=0,column=0,columnspan=3)
         
-        self.frame_spring.text = Text(self.frame_spring,width=30,height=20)
-        self.frame_spring.text.grid(row=1,column=0,columnspan=2)
+        self.frame_spring.listbox = Listbox(self.frame_spring,width=40,height=20)
+        self.frame_spring.listbox.grid(row=1,column=0,columnspan=3)
 
-        self.frame_spring.button_clear = Button(self.frame_spring,text="Clear Screen",command=lambda: self.clear(text3))
+        self.frame_spring.button_drop = \
+            Button(self.frame_spring,text="Drop Selected",
+                   command=lambda: self.move_course(self.frame_spring.listbox,
+                                                    self.frame_courses.listbox))
+        
+        self.frame_spring.button_drop.configure(background="white")
+        self.frame_spring.button_drop.grid(row=2,column=0)
+
+        self.frame_spring.button_clear = \
+            Button(self.frame_spring,text="Drop All",
+                   command=lambda: self.move_course(self.frame_spring.listbox,
+                                                    self.frame_courses.listbox,
+                                                    moveall=True))
+
         self.frame_spring.button_clear.configure(background="white")
-        self.frame_spring.button_clear.grid(row=2,column=0)
+        self.frame_spring.button_clear.grid(row=2,column=1)
 
-        self.frame_spring.button_save = Button(self.frame_spring,text="Save Courses",command=self.save)
+        self.frame_spring.button_save = Button(self.frame_spring,
+                                               text="Save Courses",
+                                               command=self.save)
+        
         self.frame_spring.button_save.configure(background="white")
-        self.frame_spring.button_save.grid(row=2,column=1)
+        self.frame_spring.button_save.grid(row=2,column=2)
 
     def set_frame_courses(self):
         
-        self.frame_courses = Frame(self.root,padx=5,pady=5,width=10,height=20) #,text="Courses"
-
+        self.frame_courses = Frame(self.root,padx=5,pady=5,width=10,height=20)
         self.frame_courses.configure(background="white")
 
         self.frame_courses.label = Label(self.frame_courses,text="Courses")
         self.frame_courses.label.configure(background="white")
         self.frame_courses.label.grid(row=0,column=0,columnspan=2)
 
-        self.frame_courses.listbox = Listbox(self.frame_courses,width=30,height=20)
+        self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
         
         for entry in self.courses.code:
-            self.frame_courses.listbox.insert(END, entry)
+            self.frame_courses.listbox.insert(END,entry)
             
         self.frame_courses.listbox.grid(row=1,column=0,columnspan=2)
 
-        self.frame_courses.button_tofall = Button(self.frame_courses,text="to Fall")
+        self.frame_courses.button_tofall = \
+            Button(self.frame_courses,text="Add to Fall",
+                   command=lambda: self.move_course(self.frame_courses.listbox,
+                                                    self.frame_fall.listbox))
+
         self.frame_courses.button_tofall.configure(background="white")
         self.frame_courses.button_tofall.grid(row=2,column=0)
 
-        self.frame_courses.button_tospring = Button(self.frame_courses,text="to Spring")
+        self.frame_courses.button_tospring = \
+            Button(self.frame_courses,text="Add to Spring",
+                   command=lambda: self.move_course(self.frame_courses.listbox,
+                                                    self.frame_spring.listbox))
+
         self.frame_courses.button_tospring.configure(background="white")
         self.frame_courses.button_tospring.grid(row=2,column=1)
+
+    def move_course(self,frombox,tobox,moveall=False):
+
+        if moveall:
+            for entry in frombox.get(0,END):
+                tobox.insert(END,entry)
+            frombox.delete(0,END)
         
-    def clear(self,txt):
-        
-        txt.delete('1.0',END)
+        elif frombox.curselection():
+            tobox.insert(END,frombox.get(frombox.curselection()))
+            frombox.delete(frombox.curselection())
 
     def save(self):
+        
         pass
 
 if __name__ == "__main__":
