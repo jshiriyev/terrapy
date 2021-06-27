@@ -3,6 +3,7 @@ import numpy as np
 import openpyxl
 
 from tkinter import *
+from tkinter import ttk
 
 class adminGUI():
 
@@ -91,15 +92,51 @@ class adminGUI():
         
         menubar.add_cascade(label="File", menu=fileMenu)
 
-        self.set_frame_teachers()
-        self.set_frame_fall()
-        self.set_frame_spring()
+        self.set_notebook()
+##        self.set_frame_teachers()
+##        self.set_frame_fall()
+##        self.set_frame_spring()
         self.set_frame_courses()
-        
-        self.frame_teachers.pack(side=LEFT)
-        self.frame_fall.pack(side=LEFT)
-        self.frame_spring.pack(side=LEFT)
+
+        self.notebook.pack(side=LEFT)
+##        self.frame_teachers.pack(side=LEFT)
+##        self.frame_fall.pack(side=LEFT)
+##        self.frame_spring.pack(side=LEFT)
         self.frame_courses.pack(side=LEFT)
+
+    def set_notebook(self):
+
+        self.style = ttk.Style(self.root)
+
+        mygreen = "#d2ffd2"
+
+        self.style.theme_create( "yummy", parent="alt",settings={
+            "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0] } },
+            "TNotebook.Tab": {
+                "configure": {"padding": [5, 1], "background": "white"},
+                "map":       {"background": [("selected", "grey")],
+                              "expand": [("selected", [1, 1, 1, 0])] } } } )
+
+        self.style.theme_use("yummy")
+
+        self.style.configure('lefttab.TNotebook',
+                             tabposition='wn',
+                             background="white",
+                             foreground="grey")
+
+        self.notebook = ttk.Notebook(self.root,style='lefttab.TNotebook')
+
+        for i,name in enumerate(self.teachers.fullname):
+
+            framename = "frame"+str(i)
+
+            frame = self.set_frame_semester()
+
+            setattr(self,framename,frame)
+            
+            getattr(self,framename).pack(fill='both',expand=True)
+
+            self.notebook.add(getattr(self,framename),text=name)
 
     def set_frame_teachers(self):
 
@@ -121,9 +158,46 @@ class adminGUI():
         self.frame_teachers.button.configure(background="white")
         self.frame_teachers.button.pack()
 
+    def set_frame_semester(self):
+
+        frame = Frame(self.notebook,width=300,height=200)
+        frame.configure(background="white")
+
+        frame.label = Label(frame,text="Fall Semester")
+        frame.label.configure(background="white")
+        frame.label.grid(row=0,column=0,columnspan=3)
+
+        frame.listbox = Listbox(frame,width=40,height=20)
+        frame.listbox.grid(row=1,column=0,columnspan=3)
+
+        frame.button_drop = \
+            Button(frame,text="Drop Selected",
+                   command=lambda: self.move_course(frame.listbox,
+                                                    self.frame_courses.listbox))
+        
+        frame.button_drop.configure(background="white")
+        frame.button_drop.grid(row=2,column=0)
+        
+        frame.button_clear = \
+            Button(frame,text="Drop All",
+                   command=lambda: self.move_course(frame.listbox,
+                                                    self.frame_courses.listbox,
+                                                    moveall=True))
+        
+        frame.button_clear.configure(background="white")
+        frame.button_clear.grid(row=2,column=1)
+
+        frame.button_save = \
+            Button(frame,text="Save Courses",command=self.save)
+        
+        frame.button_save.configure(background="white")
+        frame.button_save.grid(row=2,column=2)
+
+        return frame
+
     def set_frame_fall(self):
         
-        self.frame_fall = Frame(self.root,padx=5,pady=5,width=10,height=20)
+        self.frame_fall = ttk.Frame(self.root,padx=5,pady=5,width=10,height=20)
         self.frame_fall.configure(background="white")
         
         self.frame_fall.label = Label(self.frame_fall,text="Fall Semester")
@@ -156,9 +230,9 @@ class adminGUI():
         self.frame_fall.button_save.configure(background="white")
         self.frame_fall.button_save.grid(row=2,column=2)
 
-    def set_frame_spring(self):
+    def set_frame_spring(self,main):
         
-        self.frame_spring = Frame(self.root,padx=5,pady=5,width=10,height=20)
+        self.frame_spring = Frame(main,padx=5,pady=5,width=10,height=20)
         self.frame_spring.configure(background="white")
         
         self.frame_spring.label = Label(self.frame_spring,text="Spring Semester")
