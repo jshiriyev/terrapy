@@ -4,84 +4,15 @@ import openpyxl
 
 from tkinter import *
 from tkinter import ttk
+from tkinter import filedialog
 
 class adminGUI():
 
-    def __init__(self,window,path):
+    def __init__(self,window):
 
         self.root = window
 
-        self.path = path
-        
-        self.set_input()
-
-        self.set_teachers()
-        self.set_courses()
-        self.set_hours()
-
         self.initUI()
-
-    def set_input(self):
-
-        wb = openpyxl.load_workbook(self.path)
-
-        class teachers: pass
-        class courses: pass
-        class hours: pass
-
-        sheet_teachers = wb["instructors"]
-        sheet_lectures = wb["lectures"]
-
-        teachers.tuple = tuple(sheet_teachers.iter_cols(min_row=1,max_row=18,
-                                     min_col=1,max_col=4,values_only=True))
-
-        courses.tuple = tuple(sheet_lectures.iter_cols(min_row=2,max_row=47,
-                                     min_col=2,max_col=6,values_only=True))
-        
-        hours.tuple = tuple(sheet_lectures.iter_rows(min_row=2,max_row=47,
-                                     min_col=7,max_col=22,values_only=True))
-
-        self.teachers = teachers
-        self.courses = courses
-        self.hours = hours
-        
-    def set_teachers(self):
-        
-        for i in range(len(self.teachers.tuple)):
-            
-            header = self.teachers.tuple[i][0]
-            body = np.array(self.teachers.tuple[i][1:])
-            
-            setattr(self.teachers,header,body)
-
-        name = np.char.add(self.teachers.first," ")
-
-        self.teachers.fullname = np.char.add(name,self.teachers.last)
-
-    def set_courses(self):
-        
-        for i in range(len(self.courses.tuple)):
-            
-            header = self.courses.tuple[i][0]
-            body = np.array(self.courses.tuple[i][1:])
-            
-            setattr(self.courses,header,body)
-
-        name = np.char.add(self.courses.code,"-")
-        
-        name = np.char.add(name,self.courses.semester_number.astype(str))
-
-        name = np.char.add(name,"-")
-        
-        self.courses.description = np.char.add(name,self.courses.name_ENG) 
-
-    def set_hours(self):
-
-        self.hours.definition = self.hours.tuple[0]
-
-        self.hours.nparray = np.array(self.hours.tuple[1:])
-        
-        self.hours.total = self.hours.nparray.sum(axis=1)
 
     def initUI(self):
 
@@ -95,19 +26,18 @@ class adminGUI():
 
         fileMenu = Menu(menubar)
     
-        fileMenu.add_command(label="Open")
-        fileMenu.add_command(label="Exit")
+        fileMenu.add_command(label="Open",command=self.openfile)
+        fileMenu.add_command(label="Exit") #,command=self.root.quit
         
         menubar.add_cascade(label="File", menu=fileMenu)
 
-        self.set_notebook()
-        
+        self.set_frame_notebook()
         self.set_frame_courses()
 
-        self.notebook.pack(side=LEFT)
+        self.frame_notebook.pack(side=LEFT)
         self.frame_courses.pack(side=LEFT)
 
-    def set_notebook(self):
+    def set_frame_notebook(self):
 
         self.style = ttk.Style(self.root)
 
@@ -125,23 +55,17 @@ class adminGUI():
 
         self.style.theme_use("yummy")
 
-        self.notebook = ttk.Notebook(self.root,style='lefttab.TNotebook')
+        self.frame_notebook = ttk.Notebook(self.root,style='lefttab.TNotebook')
 
-        for i,name in enumerate(self.teachers.fullname):
+        self.frame0 = self.set_frame_notebook_sheet()
+        
+        self.frame0.pack(fill='both',expand=True)
 
-            framename = "frame"+str(i)
+        self.frame_notebook.add(self.frame0,text="Instructor's Name")
 
-            frame = self.set_frame_notebook()
+    def set_frame_notebook_sheet(self):
 
-            setattr(self,framename,frame)
-            
-            getattr(self,framename).pack(fill='both',expand=True)
-
-            self.notebook.add(getattr(self,framename),text=name)
-
-    def set_frame_notebook(self):
-
-        frame = Frame(self.notebook,width=300,height=200)
+        frame = Frame(self.frame_notebook,width=300,height=200)
         frame.configure(background="white")
 
         frame.label0 = Label(frame,text="Fall Semester")
@@ -202,13 +126,10 @@ class adminGUI():
         self.frame_courses.label.grid(row=0,column=0,columnspan=3)
 
         self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
-        
-        for entry in self.courses.description:
-            self.frame_courses.listbox.insert(END,entry)
             
         self.frame_courses.listbox.grid(row=1,column=0,columnspan=3)
 
-        idx = self.notebook.index(self.notebook.select())
+        idx = self.frame_notebook.index(self.frame_notebook.select())
 
         self.frame_courses.button_tofall = \
             Button(self.frame_courses,text="Add to Fall",
@@ -239,20 +160,105 @@ class adminGUI():
         self.frame_courses.status.configure(background="white")
         self.frame_courses.status.grid(row=3,column=0,columnspan=3,pady=10,sticky=EW)
 
+    def set_input(self):
+
+        wb = openpyxl.load_workbook(self.filepath)
+
+        class teachers: pass
+        class courses: pass
+        class hours: pass
+
+        sheet_teachers = wb["instructors"]
+        sheet_lectures = wb["lectures"]
+
+        teachers.tuple = tuple(sheet_teachers.iter_cols(min_row=1,max_row=18,
+                                     min_col=1,max_col=4,values_only=True))
+
+        courses.tuple = tuple(sheet_lectures.iter_cols(min_row=2,max_row=47,
+                                     min_col=2,max_col=6,values_only=True))
+        
+        hours.tuple = tuple(sheet_lectures.iter_rows(min_row=2,max_row=47,
+                                     min_col=7,max_col=22,values_only=True))
+
+        self.teachers = teachers
+        self.courses = courses
+        self.hours = hours
+
+        self.set_teachers()
+        self.set_courses()
+        self.set_hours()
+        
+    def set_teachers(self):
+        
+        for i in range(len(self.teachers.tuple)):
+            
+            header = self.teachers.tuple[i][0]
+            body = np.array(self.teachers.tuple[i][1:])
+            
+            setattr(self.teachers,header,body)
+
+        name = np.char.add(self.teachers.first," ")
+
+        self.teachers.fullname = np.char.add(name,self.teachers.last)
+
+        for i,name in enumerate(self.teachers.fullname):
+
+            framename = "frame"+str(i)
+
+            frame = self.set_frame_notebook_sheet()
+
+            setattr(self,framename,frame)
+            
+            getattr(self,framename).pack(fill='both',expand=True)
+
+            self.frame_notebook.add(getattr(self,framename),text=name)
+
+    def set_courses(self):
+        
+        for i in range(len(self.courses.tuple)):
+            
+            header = self.courses.tuple[i][0]
+            body = np.array(self.courses.tuple[i][1:])
+            
+            setattr(self.courses,header,body)
+
+        name = np.char.add(self.courses.code,"-")
+        
+        name = np.char.add(name,self.courses.semester_number.astype(str))
+
+        name = np.char.add(name,"-")
+        
+        self.courses.description = np.char.add(name,self.courses.name_ENG)
+
+        for entry in self.courses.description:
+            self.frame_courses.listbox.insert(END,entry)
+
+    def set_hours(self):
+
+        self.hours.definition = self.hours.tuple[0]
+
+        self.hours.nparray = np.array(self.hours.tuple[1:])
+        
+        self.hours.total = self.hours.nparray.sum(axis=1)
+
     def drop_course(self,frombox,tobox,moveall=False):
 
         if moveall:
+            
             for entry in frombox.get(0,END):
                 tobox.insert(END,entry)
+                
             frombox.delete(0,END)
         
         elif frombox.curselection():
+            
             tobox.insert(END,frombox.get(frombox.curselection()))
+            
             frombox.delete(frombox.curselection())
 
     def add_course(self,semester):
 
-        idx = self.notebook.index(self.notebook.select())
+        idx = self.frame_notebook.index(self.frame_notebook.select())
 
         frameID = "frame"+str(idx)
 
@@ -261,14 +267,17 @@ class adminGUI():
         if semester == "Fall":
             tobox = getattr(self,frameID).listbox0
         elif semester == "Spring":
-            tobox = getattr(self,frameID).listbox1 
+            tobox = getattr(self,frameID).listbox1
 
-        tobox.insert(END,frombox.get(frombox.curselection()))
-        frombox.delete(frombox.curselection())
+        if frombox.curselection():
+
+            tobox.insert(END,frombox.get(frombox.curselection()))
+            
+            frombox.delete(frombox.curselection())
 
     def test_load(self):
 
-        idx = self.notebook.index(self.notebook.select())
+        idx = self.frame_notebook.index(self.frame_notebook.select())
 
         frameID = "frame"+str(idx)
 
@@ -276,6 +285,9 @@ class adminGUI():
         s1 = getattr(self,frameID).listbox1.get(0,END)
 
         annual_load = np.array([np.array(s0+s1)]).T
+
+        if not hasattr(self,"courses"):
+            return
 
         idy = np.argwhere(np.array([self.courses.description])==annual_load)[:,1]
             
@@ -291,13 +303,23 @@ class adminGUI():
         
         pass
 
+    def openfile(self):
+
+        self.filepath = filedialog.askopenfilename(
+            initialdir = "/",title = "Select a File",
+            filetypes = (("Excel files","*.xl*"),("All files","*.*")))
+
+        for tabid in self.frame_notebook.tabs():
+            self.frame_notebook.forget(tabid)
+
+        self.set_input()
+
 if __name__ == "__main__":
 
-    path = "C:\\Users\\Cavid\\Documents\\nmdoc.xlsx"
     
     window = Tk()
 
-    schedule = adminGUI(window,path)
+    schedule = adminGUI(window)
     
 ##    window.geometry("1100x500")
     
