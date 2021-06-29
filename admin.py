@@ -1,12 +1,17 @@
+import os
+
 import numpy as np
 
 import openpyxl
+
+from openpyxl.styles import Alignment
+from openpyxl.utils import get_column_letter
 
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
 
-class adminGUI():
+class schedule():
 
     def __init__(self,window):
 
@@ -26,7 +31,8 @@ class adminGUI():
 
         fileMenu = Menu(menubar)
     
-        fileMenu.add_command(label="Open",command=self.openfile)
+        fileMenu.add_command(label="Open",command=self.open_file)
+        fileMenu.add_command(label="Save",command=self.save_schedule)
         fileMenu.add_command(label="Exit") #,command=self.root.quit
         
         menubar.add_cascade(label="File", menu=fileMenu)
@@ -112,7 +118,13 @@ class adminGUI():
                                    command=self.test_load)
         
         frame.button_test.configure(background="white")
-        frame.button_test.grid(row=3,column=0,columnspan=4,pady=10)
+        frame.button_test.grid(row=3,column=0,columnspan=2,pady=10)
+
+        frame.button_print = Button(frame,text="Print Instructor's Schedule",
+                                   command=self.save_schedule_instructor)
+        
+        frame.button_print.configure(background="white")
+        frame.button_print.grid(row=3,column=2,columnspan=2,pady=10)
 
         return frame
 
@@ -241,6 +253,17 @@ class adminGUI():
         
         self.hours.total = self.hours.nparray.sum(axis=1)
 
+    def open_file(self):
+
+        self.filepath = filedialog.askopenfilename(
+            initialdir = "/",title = "Select a File",
+            filetypes = (("Excel files","*.xl*"),("All files","*.*")))
+
+        for tabid in self.frame_notebook.tabs():
+            self.frame_notebook.forget(tabid)
+
+        self.set_input()
+
     def drop_course(self,frombox,tobox,moveall=False):
 
         if moveall:
@@ -281,17 +304,22 @@ class adminGUI():
 
         frameID = "frame"+str(idx)
 
+        f0 = getattr(self,frameID).listbox0.get(ACTIVE)
+        f1 = getattr(self,frameID).listbox1.get(ACTIVE)
+
+        if not f0 and not f1:
+            status = "total hours is "+str(0)
+            self.frame_courses.status_text.set(status)
+            return
+
         s0 = getattr(self,frameID).listbox0.get(0,END)
         s1 = getattr(self,frameID).listbox1.get(0,END)
 
         annual_load = np.array([np.array(s0+s1)]).T
 
-        if not hasattr(self,"courses"):
-            return
-
         idy = np.argwhere(np.array([self.courses.description])==annual_load)[:,1]
             
-        hours = schedule.hours.nparray[idy,:]
+        hours = self.hours.nparray[idy,:]
 
         hours_sum = hours.sum(axis=0)
 
@@ -299,28 +327,73 @@ class adminGUI():
 
         self.frame_courses.status_text.set(status)
 
-    def save(self):
+    def save_schedule_instructor(self):
+
+        idx = self.frame_notebook.index(self.frame_notebook.select())
+
+        frameID = "frame"+str(idx)
+
+        f0 = getattr(self,frameID).listbox0.get(ACTIVE)
+        f1 = getattr(self,frameID).listbox1.get(ACTIVE)
+
+        if not f0 and not f1:
+            status = "No Course to Print"
+            self.frame_courses.status_text.set(status)
+            return
+
+        s0 = getattr(self,frameID).listbox0.get(0,END)
+        s1 = getattr(self,frameID).listbox1.get(0,END)
+
+        annual_load = np.array([np.array(s0+s1)]).T
+
+        idy = np.argwhere(np.array([self.courses.description])==annual_load)[:,1]
+            
+        hour_rows = self.hours.nparray[idy,:]
+
+        if not hasattr(self,"wb"):
+            self.wb = openpyxl.Workbook()
+
+        ws = self.wb.create_sheet(self.teachers.fullname[idx])
+
+        names = list(np.array(["code","name"]))
+        hours = list(self.hours.definition)
+
+        ws.append(names+hours)
+
+        names_colnum = len(names)
+        hours_colnum = len(hours)
+
+        for i in range(names_colnum+1,names_colnum+hours_colnum+1):
+
+            ws.cell(1,i).alignment = Alignment(textRotation=90)
+
+            ws.column_dimensions[get_column_letter(i)].width = 4
+
+        for i,hour_row in enumerate(hour_rows):
+
+            code = self.courses.code[idy[i]]
+            name = self.courses.name_AZE[idy[i]]
+
+            ws.append(list(np.array([code,name]))+list(hour_row))
+
+        status = "Printed " + self.teachers.fullname[idx] + "'s Schedule"
         
-        pass
+        self.frame_courses.status_text.set(status)
 
-    def openfile(self):
+    def save_schedule(self):
+        
+        self.wb.save(filename="schedule.xlsx")
 
-        self.filepath = filedialog.askopenfilename(
-            initialdir = "/",title = "Select a File",
-            filetypes = (("Excel files","*.xl*"),("All files","*.*")))
-
-        for tabid in self.frame_notebook.tabs():
-            self.frame_notebook.forget(tabid)
-
-        self.set_input()
-
+        status = "Saved to \"" + os.getcwd() + "schedule.xlsx\""
+        
+        self.frame_courses.status_text.set(status)
+        
 if __name__ == "__main__":
-
     
     window = Tk()
-
-    schedule = adminGUI(window)
     
+    gui = schedule(window)
+                                                                  
 ##    window.geometry("1100x500")
     
     window.mainloop()
