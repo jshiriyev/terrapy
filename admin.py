@@ -44,8 +44,8 @@ class schedule():
         self.set_frame_notebook()
         self.set_frame_courses()
 
-        self.frame_notebook.pack(side=LEFT,expand=1)
-        self.frame_courses.pack(side=LEFT,expand=1,padx=5)
+        self.frame_notebook.pack(side=LEFT,expand=1,fill=BOTH)
+        self.frame_courses.pack(side=LEFT,expand=1,fill=BOTH)
 
     def set_frame_notebook(self):
 
@@ -53,10 +53,10 @@ class schedule():
         
         configN = {"tabmargins":[2,5,2,0],"tabposition":"wn","background":"white"}
 
-        configT = {"padding":[5,1],"background":"white"}
+        configT = {"padding":[40, 1, 5, 0],"background":"white"}
 
         mapT = {"background":[("selected","lightgrey")],
-                    "expand":[("selected",[1,1,1,0])]} 
+                    "expand":[("selected",[1,1,1,0])]}
         
         settings = {"TNotebook":{"configure":configN},
                 "TNotebook.Tab":{"configure":configT,"map":mapT}}
@@ -71,26 +71,34 @@ class schedule():
         
         self.frame0.pack(fill='both',expand=True)
 
-        self.frame_notebook.add(self.frame0,text="Instructor's Name")
+        self.frame_notebook.add(self.frame0,text="Instructor's Name",compound=RIGHT)
 
     def set_frame_notebook_sheet(self):
 
         frame = Frame(self.frame_notebook,width=300,height=200)
+
+        Grid.rowconfigure(frame,1,weight=1)
+
+        Grid.columnconfigure(frame,0,weight=1)
+        Grid.columnconfigure(frame,1,weight=1)
+        Grid.columnconfigure(frame,2,weight=1)
+        Grid.columnconfigure(frame,3,weight=1)
+        
         frame.configure(background="white")
 
         frame.label0 = Label(frame,text="Fall Semester")
         frame.label0.configure(background="white")
-        frame.label0.grid(row=0,column=0,columnspan=2)
+        frame.label0.grid(row=0,column=0,columnspan=2,sticky=EW)
 
         frame.label1 = Label(frame,text="Spring Semester")
         frame.label1.configure(background="white")
-        frame.label1.grid(row=0,column=2,columnspan=2)
+        frame.label1.grid(row=0,column=2,columnspan=2,sticky=EW)
 
         frame.listbox0 = Listbox(frame,width=40,height=20)
-        frame.listbox0.grid(row=1,column=0,columnspan=2,sticky=NSEW,pady=5)
+        frame.listbox0.grid(row=1,column=0,columnspan=2,sticky=NSEW)
         
         frame.listbox1 = Listbox(frame,width=40,height=20)
-        frame.listbox1.grid(row=1,column=2,columnspan=2,sticky=NSEW,pady=5)
+        frame.listbox1.grid(row=1,column=2,columnspan=2,sticky=NSEW)
 
         frame.button_drop0 = Button(frame,text="Drop Selected",
             command=lambda: self.drop_course(frame.listbox0,self.frame_courses.listbox))
@@ -122,28 +130,44 @@ class schedule():
                                    command=self.test_load)
         
         frame.button_test.configure(background="white")
-        frame.button_test.grid(row=3,column=0,columnspan=2,sticky=EW,pady=5)
+        frame.button_test.grid(row=3,column=0,columnspan=2,sticky=EW)
 
         frame.button_print = Button(frame,text="Add Instructor's Schedule to Export",
                                    command=self.export_schedule_instructor)
         
         frame.button_print.configure(background="white")
-        frame.button_print.grid(row=3,column=2,columnspan=2,sticky=EW,pady=5)
+        frame.button_print.grid(row=3,column=2,columnspan=2,sticky=EW)
 
         return frame
 
     def set_frame_courses(self):
         
-        self.frame_courses = Frame(self.root,padx=5,width=10,height=20)
+        self.frame_courses = Frame(self.root,width=10,height=20)
+
+        Grid.rowconfigure(self.frame_courses,1,weight=1)
+        Grid.rowconfigure(self.frame_courses,3,weight=1)
+
+        Grid.columnconfigure(self.frame_courses,0,weight=1)
+        Grid.columnconfigure(self.frame_courses,1,weight=1)
+        Grid.columnconfigure(self.frame_courses,2,weight=1)
+        
         self.frame_courses.configure(background="white")
 
         self.frame_courses.label = Label(self.frame_courses,text="Courses")
         self.frame_courses.label.configure(background="white")
-        self.frame_courses.label.grid(row=0,column=0,columnspan=3,sticky=NSEW)
+        self.frame_courses.label.grid(row=0,column=0,columnspan=3,sticky=EW)
 
         self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
             
-        self.frame_courses.listbox.grid(row=1,column=0,columnspan=3,pady=5)
+        self.frame_courses.listbox.grid(row=1,column=0,columnspan=3,sticky=NSEW)
+
+        scroll = Scrollbar(self.frame_courses.listbox)
+
+        scroll.config(command=self.frame_courses.listbox.yview)
+
+        self.frame_courses.listbox.config(yscrollcommand=scroll.set)
+        
+        scroll.pack(side=RIGHT,fill=Y)
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
 
@@ -152,29 +176,30 @@ class schedule():
                    command=lambda: self.add_course("Fall"))
 
         self.frame_courses.button_tofall.configure(background="white")
-        self.frame_courses.button_tofall.grid(row=2,column=0)
+        self.frame_courses.button_tofall.grid(row=2,column=0,sticky=EW)
 
         self.frame_courses.button_tospring = \
             Button(self.frame_courses,text="Add to Spring",
                    command=lambda: self.add_course("Spring"))
 
         self.frame_courses.button_tospring.configure(background="white")
-        self.frame_courses.button_tospring.grid(row=2,column=1)
+        self.frame_courses.button_tospring.grid(row=2,column=1,sticky=EW)
 
         self.frame_courses.button_extended = Button(self.frame_courses,
                                                     text="Extended View")
 
         self.frame_courses.button_extended.configure(background="white")
-        self.frame_courses.button_extended.grid(row=2,column=2)
+        self.frame_courses.button_extended.grid(row=2,column=2,sticky=EW)
 
         self.frame_courses.status_text = StringVar()
 
         self.frame_courses.status = Label(self.frame_courses,
                                           relief="sunken",
-                                          textvariable=self.frame_courses.status_text)
+                                          textvariable=self.frame_courses.status_text,
+                                          anchor=NW)
         
         self.frame_courses.status.configure(background="white")
-        self.frame_courses.status.grid(row=3,column=0,columnspan=3,sticky=EW,pady=5)
+        self.frame_courses.status.grid(row=3,column=0,columnspan=3,sticky=NSEW)
 
     def set_input(self):
 
@@ -227,7 +252,7 @@ class schedule():
             
             getattr(self,framename).pack(fill='both',expand=True)
 
-            self.frame_notebook.add(getattr(self,framename),text=name)
+            self.frame_notebook.add(getattr(self,framename),text=name,compound=RIGHT)
 
     def set_courses(self):
         
@@ -274,7 +299,7 @@ class schedule():
         
         self.set_input()
 
-        status = "Opened \""+self.filepath+"\""
+        status = "Opened \""+self.filepath+"\"."
         
         self.frame_courses.status_text.set(status)
 
@@ -322,7 +347,7 @@ class schedule():
         f1 = getattr(self,frameID).listbox1.get(ACTIVE)
 
         if not f0 and not f1:
-            status = "total hours is "+str(0)
+            status = "Total hours is "+str(0)+"."
             self.frame_courses.status_text.set(status)
             return
 
@@ -337,7 +362,7 @@ class schedule():
 
         hours_sum = hours.sum(axis=0)
 
-        status = "total hours is "+str(int(hours_sum[8]))
+        status = "Total hours is "+str(int(hours_sum[8]))+"."
 
         self.frame_courses.status_text.set(status)
 
@@ -351,7 +376,7 @@ class schedule():
         f1 = getattr(self,frameID).listbox1.get(ACTIVE)
 
         if not f0 and not f1:
-            status = "course is not selected"
+            status = "No course is selected."
             self.frame_courses.status_text.set(status)
             return
 
@@ -390,14 +415,14 @@ class schedule():
 
             ws.append(list(np.array([code,name]))+list(hour_row))
 
-        status = "Printed " + self.teachers.fullname[idx] + "'s Schedule"
+        status = "Saved " + self.teachers.fullname[idx] + "'s schedule to export"
         
         self.frame_courses.status_text.set(status)
 
     def export_schedule(self):
 
         if not hasattr(self,"wb"):
-            status = "Nothing added to export"
+            status = "No schedule is added to export."
             self.frame_courses.status_text.set(status)
             return
 
@@ -409,7 +434,7 @@ class schedule():
         
         self.wb.save(filename=exportfilepath)
 
-        status = "Saved to \""+exportfilepath+"\""
+        status = "Saved to \""+exportfilepath+"\"."
         
         self.frame_courses.status_text.set(status)
         
@@ -420,5 +445,25 @@ if __name__ == "__main__":
     gui = schedule(window)
                                                                   
 ##    window.geometry("1100x500")
-    
+
+##    Grid.rowconfigure(window, 0, weight=1)
+##    Grid.columnconfigure(window, 0, weight=1)
+
+##    frame = Frame(window)
+##
+##    Grid.columnconfigure(frame, 0, weight=1)
+##    Grid.columnconfigure(frame, 1, weight=1)
+##
+##    Grid.rowconfigure(frame, 0, weight=1)
+##
+##    listbox1 = Listbox(frame,width=40,height=20)
+##    listbox2 = Listbox(frame,width=80,height=20)
+##
+##    listbox1.grid(row=0,column=0,sticky=N+E+W+S)
+##    listbox2.grid(row=0,column=1,sticky=N+E+W+S)
+
+##    frame.grid(row=0,column=0,sticky=EW)
+
+##    frame.pack(expand=1,fill=BOTH)
+
     window.mainloop()
