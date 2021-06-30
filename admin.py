@@ -11,6 +11,8 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
 
+##from ttkwidgets.autocomplete import AutocompleteEntry
+
 class schedule():
 
     def __init__(self,window):
@@ -143,9 +145,9 @@ class schedule():
     def set_frame_courses(self):
         
         self.frame_courses = Frame(self.root,width=10,height=20)
-
-        Grid.rowconfigure(self.frame_courses,1,weight=1)
-        Grid.rowconfigure(self.frame_courses,3,weight=1)
+        
+        Grid.rowconfigure(self.frame_courses,2,weight=1)
+        Grid.rowconfigure(self.frame_courses,4,weight=1)
 
         Grid.columnconfigure(self.frame_courses,0,weight=1)
         Grid.columnconfigure(self.frame_courses,1,weight=1)
@@ -157,9 +159,14 @@ class schedule():
         self.frame_courses.label.configure(background="white")
         self.frame_courses.label.grid(row=0,column=0,columnspan=3,sticky=EW)
 
+##        self.frame_courses.entry = AutocompleteEntry(
+##            self.frame_courses,completevalues=[])
+##        
+##        self.frame_courses.entry.grid(row=1,column=0,columnspan=3,sticky=EW)
+
         self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
             
-        self.frame_courses.listbox.grid(row=1,column=0,columnspan=3,sticky=NSEW)
+        self.frame_courses.listbox.grid(row=2,column=0,columnspan=3,sticky=NSEW)
 
         scroll = Scrollbar(self.frame_courses.listbox)
 
@@ -176,20 +183,20 @@ class schedule():
                    command=lambda: self.add_course("Fall"))
 
         self.frame_courses.button_tofall.configure(background="white")
-        self.frame_courses.button_tofall.grid(row=2,column=0,sticky=EW)
+        self.frame_courses.button_tofall.grid(row=3,column=0,sticky=EW)
 
         self.frame_courses.button_tospring = \
             Button(self.frame_courses,text="Add to Spring",
                    command=lambda: self.add_course("Spring"))
 
         self.frame_courses.button_tospring.configure(background="white")
-        self.frame_courses.button_tospring.grid(row=2,column=1,sticky=EW)
+        self.frame_courses.button_tospring.grid(row=3,column=1,sticky=EW)
 
         self.frame_courses.button_extended = Button(self.frame_courses,
                                                     text="Extended View")
 
         self.frame_courses.button_extended.configure(background="white")
-        self.frame_courses.button_extended.grid(row=2,column=2,sticky=EW)
+        self.frame_courses.button_extended.grid(row=3,column=2,sticky=EW)
 
         self.frame_courses.status_text = StringVar()
 
@@ -199,7 +206,7 @@ class schedule():
                                           anchor=NW)
         
         self.frame_courses.status.configure(background="white")
-        self.frame_courses.status.grid(row=3,column=0,columnspan=3,sticky=NSEW)
+        self.frame_courses.status.grid(row=4,column=0,columnspan=3,sticky=NSEW)
 
     def set_input(self):
 
@@ -273,6 +280,8 @@ class schedule():
 
         for entry in self.courses.description:
             self.frame_courses.listbox.insert(END,entry)
+
+##        self.frame_courses.entry.set_completion_list(list(self.courses.description))
 
     def set_hours(self):
 
