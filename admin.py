@@ -12,6 +12,7 @@ from tkinter import ttk
 from tkinter import filedialog
 
 ##from ttkwidgets.autocomplete import AutocompleteEntry
+##from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
 class schedule():
 
@@ -159,7 +160,7 @@ class schedule():
         self.frame_courses.label.configure(background="white")
         self.frame_courses.label.grid(row=0,column=0,columnspan=3,sticky=EW)
 
-##        self.frame_courses.entry = AutocompleteEntry(
+##        self.frame_courses.entry = AutocompleteEntryListbox(
 ##            self.frame_courses,completevalues=[])
 ##        
 ##        self.frame_courses.entry.grid(row=1,column=0,columnspan=3,sticky=EW)
@@ -281,6 +282,15 @@ class schedule():
         for entry in self.courses.description:
             self.frame_courses.listbox.insert(END,entry)
 
+##        print(list(self.courses.description))
+##
+##        self.frame_courses.entry = AutocompleteEntryListbox(
+##            self.frame_courses,completevalues=list(self.courses.description))
+##
+##        self.frame_courses.entry.grid(row=1,column=0,columnspan=3,sticky=EW)
+
+##        for entry in self.courses.description:
+##            self.frame_courses.entry.listbox.insert(END,entry)
 ##        self.frame_courses.entry.set_completion_list(list(self.courses.description))
 
     def set_hours(self):
