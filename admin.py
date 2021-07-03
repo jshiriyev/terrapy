@@ -145,7 +145,7 @@ class schedule():
 
     def set_frame_courses(self):
         
-        self.frame_courses = Frame(self.root,width=10,height=20)
+        self.frame_courses = Frame(self.root,width=300,height=200)
         
         Grid.rowconfigure(self.frame_courses,1,weight=1)
         Grid.rowconfigure(self.frame_courses,4,weight=1)
@@ -161,16 +161,12 @@ class schedule():
         self.frame_courses.label.grid(row=0,column=0,columnspan=3,sticky=EW)
 
         self.frame_courses.searchbox = AutocompleteEntryListbox(
-            self.frame_courses,completevalues=[],allow_other_values=False)
+            self.frame_courses,width=40,height=40,completevalues=[],allow_other_values=False)
         
         self.frame_courses.searchbox.grid(row=1,column=0,columnspan=3,sticky=NSEW)
 
 ##        self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
 ##        self.frame_courses.listbox.grid(row=2,column=0,columnspan=3,sticky=NSEW)
-##        scroll = Scrollbar(self.frame_courses.listbox)
-##        scroll.config(command=self.frame_courses.listbox.yview)
-##        self.frame_courses.listbox.config(yscrollcommand=scroll.set)
-##        scroll.pack(side=RIGHT,fill=Y)
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
 
@@ -194,15 +190,23 @@ class schedule():
         self.frame_courses.button_extended.configure(background="white")
         self.frame_courses.button_extended.grid(row=3,column=2,sticky=EW)
 
-        self.frame_courses.status_text = StringVar()
+##        self.frame_courses.status_text = StringVar()
 
-        self.frame_courses.status = Label(self.frame_courses,
-                                          relief="sunken",
-                                          textvariable=self.frame_courses.status_text,
-                                          anchor=NW)
-        
-        self.frame_courses.status.configure(background="white")
+        self.frame_courses.status = Listbox(self.frame_courses,width=40,height=10)
+##        self.frame_courses.status.configure(background="white",justify=LEFT)
+
         self.frame_courses.status.grid(row=4,column=0,columnspan=3,sticky=NSEW)
+
+##        self.frame_courses.status = Label(
+##            self.frame_courses,relief="sunken",anchor=NW,
+##            textvariable=self.frame_courses.status_text,wraplength=200)
+
+##        scroll = Scrollbar(self.frame_courses.status)
+##        scroll.configure(command=self.frame_courses.status.yview)
+        
+##        self.frame_courses.status.configure(yscrollcommand=scroll.set)
+        
+##        scroll.pack(side=RIGHT,fill=Y)
 
     def set_input(self):
 
@@ -279,6 +283,8 @@ class schedule():
 
         self.frame_courses.searchbox.content = self.courses.description.tolist()
 
+        self.frame_courses.searchbox.content.sort()
+
         self.frame_courses.searchbox.configure(
             completevalues=self.frame_courses.searchbox.content,allow_other_values=True)
 
@@ -312,32 +318,39 @@ class schedule():
 
         status = "Opened \""+self.filepath+"\"."
         
-        self.frame_courses.status_text.set(status)
+        self.frame_courses.status.insert(END,status)
+        self.frame_courses.status.see(END)
 
     def drop_course(self,frombox,tobox,moveall=False):
 
         if not frombox.get(0,END):
             status = "No course to drop."
-            self.frame_courses.status_text.set(status)
+            self.frame_courses.status.insert(END,status)
+            self.frame_courses.status.yview(END)
             return
 
         if moveall:
             tobox.content = tobox.content+list(frombox.get(0,END))
+            tobox.content.sort()
             tobox.configure(completevalues=tobox.content)
             frombox.delete(0,END)
             status = "Dropped all courses."
-            self.frame_courses.status_text.set(status)
+            self.frame_courses.status.insert(END,status)
+            self.frame_courses.status.yview(END)
         
         elif frombox.curselection():
             tobox.content.append(frombox.get(frombox.curselection()))
+            tobox.content.sort()
             tobox.configure(completevalues=tobox.content)
             frombox.delete(frombox.curselection())
             status = "Dropped selected course."
-            self.frame_courses.status_text.set(status)
+            self.frame_courses.status.insert(END,status)
+            self.frame_courses.status.yview(END)
 
         else:
             status = "No course is selected."
-            self.frame_courses.status_text.set(status)
+            self.frame_courses.status.insert(END,status)
+            self.frame_courses.status.yview(END)
             
     def add_course(self,semester):
 
@@ -371,7 +384,8 @@ class schedule():
 
         if not f0 and not f1:
             status = "Total hours is "+str(0)+"."
-            self.frame_courses.status_text.set(status)
+            self.frame_courses.status.insert(END,status)
+            self.frame_courses.status.yview(END)
             return
 
         s0 = getattr(self,frameID).listbox0.get(0,END)
@@ -387,7 +401,8 @@ class schedule():
 
         status = "Total hours is "+str(int(hours_sum[8]))+"."
 
-        self.frame_courses.status_text.set(status)
+        self.frame_courses.status.insert(END,status)
+        self.frame_courses.status.yview(END)
 
     def export_schedule_instructor(self):
 
@@ -400,7 +415,8 @@ class schedule():
 
         if not f0 and not f1:
             status = "No course is selected."
-            self.frame_courses.status_text.set(status)
+            self.frame_courses.status.insert(END,status)
+            self.frame_courses.status.yview(END)
             return
 
         s0 = getattr(self,frameID).listbox0.get(0,END)
@@ -440,13 +456,15 @@ class schedule():
 
         status = "Saved " + self.teachers.fullname[idx] + "'s schedule to export"
         
-        self.frame_courses.status_text.set(status)
+        self.frame_courses.status.insert(END,status)
+        self.frame_courses.status.yview(END)
 
     def export_schedule(self):
 
         if not hasattr(self,"wb"):
             status = "No schedule is added to export."
-            self.frame_courses.status_text.set(status)
+            self.frame_courses.status.insert(END,status)
+            self.frame_courses.status.yview(END)
             return
 
         exportfilepath = filedialog.asksaveasfilename(
@@ -459,7 +477,8 @@ class schedule():
 
         status = "Saved to \""+exportfilepath+"\"."
         
-        self.frame_courses.status_text.set(status)
+        self.frame_courses.status.insert(END,status)
+        self.frame_courses.status.yview(END)
         
 if __name__ == "__main__":
     
