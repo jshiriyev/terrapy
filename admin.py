@@ -12,7 +12,7 @@ from tkinter import ttk
 from tkinter import filedialog
 
 ##from ttkwidgets.autocomplete import AutocompleteEntry
-##from ttkwidgets.autocomplete import AutocompleteEntryListbox
+from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
 class schedule():
 
@@ -104,26 +104,26 @@ class schedule():
         frame.listbox1.grid(row=1,column=2,columnspan=2,sticky=NSEW)
 
         frame.button_drop0 = Button(frame,text="Drop Selected",
-            command=lambda: self.drop_course(frame.listbox0,self.frame_courses.listbox))
+            command=lambda: self.drop_course(frame.listbox0,self.frame_courses.searchbox))
         
         frame.button_drop0.configure(background="white")
         frame.button_drop0.grid(row=2,column=0,sticky=EW)
         
         frame.button_clear0 = Button(frame,text="Drop All",
-            command=lambda: self.drop_course(frame.listbox0,self.frame_courses.listbox,
+            command=lambda: self.drop_course(frame.listbox0,self.frame_courses.searchbox,
                                                     moveall=True))
         
         frame.button_clear0.configure(background="white")
         frame.button_clear0.grid(row=2,column=1,sticky=EW)
 
         frame.button_drop1 = Button(frame,text="Drop Selected",
-            command=lambda: self.drop_course(frame.listbox1,self.frame_courses.listbox))
+            command=lambda: self.drop_course(frame.listbox1,self.frame_courses.searchbox))
         
         frame.button_drop1.configure(background="white")
         frame.button_drop1.grid(row=2,column=2,sticky=EW)
         
         frame.button_clear1 = Button(frame,text="Drop All",
-            command=lambda: self.drop_course(frame.listbox1,self.frame_courses.listbox,
+            command=lambda: self.drop_course(frame.listbox1,self.frame_courses.searchbox,
                                                     moveall=True))
         
         frame.button_clear1.configure(background="white")
@@ -147,7 +147,7 @@ class schedule():
         
         self.frame_courses = Frame(self.root,width=10,height=20)
         
-        Grid.rowconfigure(self.frame_courses,2,weight=1)
+        Grid.rowconfigure(self.frame_courses,1,weight=1)
         Grid.rowconfigure(self.frame_courses,4,weight=1)
 
         Grid.columnconfigure(self.frame_courses,0,weight=1)
@@ -160,22 +160,17 @@ class schedule():
         self.frame_courses.label.configure(background="white")
         self.frame_courses.label.grid(row=0,column=0,columnspan=3,sticky=EW)
 
-##        self.frame_courses.entry = AutocompleteEntryListbox(
-##            self.frame_courses,completevalues=[])
-##        
-##        self.frame_courses.entry.grid(row=1,column=0,columnspan=3,sticky=EW)
-
-        self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
-            
-        self.frame_courses.listbox.grid(row=2,column=0,columnspan=3,sticky=NSEW)
-
-        scroll = Scrollbar(self.frame_courses.listbox)
-
-        scroll.config(command=self.frame_courses.listbox.yview)
-
-        self.frame_courses.listbox.config(yscrollcommand=scroll.set)
+        self.frame_courses.searchbox = AutocompleteEntryListbox(
+            self.frame_courses,completevalues=[],allow_other_values=False)
         
-        scroll.pack(side=RIGHT,fill=Y)
+        self.frame_courses.searchbox.grid(row=1,column=0,columnspan=3,sticky=NSEW)
+
+##        self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
+##        self.frame_courses.listbox.grid(row=2,column=0,columnspan=3,sticky=NSEW)
+##        scroll = Scrollbar(self.frame_courses.listbox)
+##        scroll.config(command=self.frame_courses.listbox.yview)
+##        self.frame_courses.listbox.config(yscrollcommand=scroll.set)
+##        scroll.pack(side=RIGHT,fill=Y)
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
 
@@ -279,19 +274,13 @@ class schedule():
         
         self.courses.description = np.char.add(name,self.courses.name_ENG)
 
-        for entry in self.courses.description:
-            self.frame_courses.listbox.insert(END,entry)
-
-##        print(list(self.courses.description))
-##
-##        self.frame_courses.entry = AutocompleteEntryListbox(
-##            self.frame_courses,completevalues=list(self.courses.description))
-##
-##        self.frame_courses.entry.grid(row=1,column=0,columnspan=3,sticky=EW)
-
 ##        for entry in self.courses.description:
-##            self.frame_courses.entry.listbox.insert(END,entry)
-##        self.frame_courses.entry.set_completion_list(list(self.courses.description))
+##            self.frame_courses.listbox.insert(END,entry)
+
+        self.frame_courses.searchbox.content = self.courses.description.tolist()
+
+        self.frame_courses.searchbox.configure(
+            completevalues=self.frame_courses.searchbox.content,allow_other_values=True)
 
     def set_hours(self):
 
@@ -313,8 +302,11 @@ class schedule():
 
         for tabid in self.frame_notebook.tabs():
             self.frame_notebook.forget(tabid)
-            
-        self.frame_courses.listbox.delete(0,END)
+
+        self.frame_courses.searchbox.content = []
+
+        self.frame_courses.searchbox.configure(
+            completevalues=self.frame_courses.searchbox.content,allow_other_values=False)
         
         self.set_input()
 
@@ -324,37 +316,49 @@ class schedule():
 
     def drop_course(self,frombox,tobox,moveall=False):
 
+        if not frombox.get(0,END):
+            status = "No course to drop."
+            self.frame_courses.status_text.set(status)
+            return
+
         if moveall:
-            
-            for entry in frombox.get(0,END):
-                tobox.insert(END,entry)
-                
+            tobox.content = tobox.content+list(frombox.get(0,END))
+            tobox.configure(completevalues=tobox.content)
             frombox.delete(0,END)
+            status = "Dropped all courses."
+            self.frame_courses.status_text.set(status)
         
         elif frombox.curselection():
-            
-            tobox.insert(END,frombox.get(frombox.curselection()))
-            
+            tobox.content.append(frombox.get(frombox.curselection()))
+            tobox.configure(completevalues=tobox.content)
             frombox.delete(frombox.curselection())
+            status = "Dropped selected course."
+            self.frame_courses.status_text.set(status)
 
+        else:
+            status = "No course is selected."
+            self.frame_courses.status_text.set(status)
+            
     def add_course(self,semester):
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
 
         frameID = "frame"+str(idx)
 
-        frombox = self.frame_courses.listbox
+        frombox = self.frame_courses.searchbox
 
         if semester == "Fall":
             tobox = getattr(self,frameID).listbox0
         elif semester == "Spring":
             tobox = getattr(self,frameID).listbox1
 
-        if frombox.curselection():
+        if frombox.listbox.curselection():
 
-            tobox.insert(END,frombox.get(frombox.curselection()))
+            frombox.content.pop(frombox.listbox.curselection()[0])
+
+            tobox.insert(END,frombox.listbox.get(frombox.listbox.curselection()))
             
-            frombox.delete(frombox.curselection())
+            frombox.configure(completevalues=frombox.content)
 
     def test_load(self):
 
