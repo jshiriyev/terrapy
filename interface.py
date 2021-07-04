@@ -33,9 +33,12 @@ class schedule():
         
         self.root.config(menu=menubar)
 
-        fileMenu = tk.Menu(menubar,tearoff="off")
+        fileMenu = tk.Menu(menubar,tearoff="Off")
+
+        fileMenu.add_command(label="Open")
+        fileMenu.add_command(label="Save as ...")
     
-        fileMenu.add_command(label="Open",command=self.open_file)
+        fileMenu.add_command(label="Import",command=self.import_inputs)
         fileMenu.add_command(label="Export",command=self.export_schedule)
         fileMenu.add_command(label="Exit",command=self.root.destroy)
 
@@ -137,7 +140,7 @@ class schedule():
         frame.button_test.grid(row=3,column=0,columnspan=2,sticky=tk.EW)
 
         frame.button_print = tk.Button(frame,text="Add Instructor's Schedule to Export",
-                                   command=self.export_schedule_instructor)
+                                   command=self.add_export)
         
         frame.button_print.configure(background="white")
         frame.button_print.grid(row=3,column=2,columnspan=2,sticky=tk.EW)
@@ -148,68 +151,58 @@ class schedule():
         
         self.frame_courses = tk.Frame(self.root,width=300,height=200)
         
-##        tk.Grid.rowconfigure(self.frame_courses,1,weight=1)
-##        tk.Grid.rowconfigure(self.frame_courses,4,weight=1)
-##
-##        tk.Grid.columnconfigure(self.frame_courses,0,weight=1)
-##        tk.Grid.columnconfigure(self.frame_courses,1,weight=1)
-##        tk.Grid.columnconfigure(self.frame_courses,2,weight=1)
-##        
-##        self.frame_courses.configure(background="white")
-##
-##        self.frame_courses.label = tk.Label(self.frame_courses,text="Courses")
-##        self.frame_courses.label.configure(background="white")
-##        self.frame_courses.label.grid(row=0,column=0,columnspan=3,sticky=tk.EW)
-##
-##        self.frame_courses.searchbox = AutocompleteEntryListbox(
-##            self.frame_courses,width=40,height=40,completevalues=[],allow_other_values=False)
-##        
-##        self.frame_courses.searchbox.grid(row=1,column=0,columnspan=3,sticky=tk.NSEW)
-##
-####        self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
-####        self.frame_courses.listbox.grid(row=2,column=0,columnspan=3,sticky=NSEW)
-##
-##        idx = self.frame_notebook.index(self.frame_notebook.select())
-##
-##        self.frame_courses.button_tofall = tk.Button(
-##            self.frame_courses,text="Add to Fall",command=lambda: self.add_course("Fall"))
-##
-##        self.frame_courses.button_tofall.configure(background="white")
-##        self.frame_courses.button_tofall.grid(row=3,column=0,sticky=tk.EW)
-##
-##        self.frame_courses.button_tospring = tk.Button(
-##            self.frame_courses,text="Add to Spring",command=lambda: self.add_course("Spring"))
-##
-##        self.frame_courses.button_tospring.configure(background="white")
-##        self.frame_courses.button_tospring.grid(row=3,column=1,sticky=tk.EW)
-##
-##        self.frame_courses.button_extended = tk.Button(
-##            self.frame_courses,text="Extended View")
-##
-##        self.frame_courses.button_extended.configure(background="white")
-##        self.frame_courses.button_extended.grid(row=3,column=2,sticky=tk.EW)
-##
-####        self.frame_courses.status_text = StringVar()
-##
-##        self.frame_courses.status = tk.Listbox(self.frame_courses,width=40,height=10)
-####        self.frame_courses.status.configure(background="white",justify=LEFT)
-##
-##        self.frame_courses.status.grid(row=4,column=0,columnspan=3,sticky=tk.NSEW)
-##
-####        self.frame_courses.status = Label(
-####            self.frame_courses,relief="sunken",anchor=NW,
-####            textvariable=self.frame_courses.status_text,wraplength=200)
-##
-####        scroll = Scrollbar(self.frame_courses.status)
-####        scroll.configure(command=self.frame_courses.status.yview)
-##        
-####        self.frame_courses.status.configure(yscrollcommand=scroll.set)
-##        
-####        scroll.pack(side=RIGHT,fill=Y)
+        tk.Grid.rowconfigure(self.frame_courses,1,weight=1)
+        tk.Grid.rowconfigure(self.frame_courses,4,weight=1)
 
-        self.frame_courses.bind("<ButtonPress-1>",self.start_resize)
-##        self.frame_courses.bind("<ButtonRelease-1>",self.stop_resize)
-##        self.frame_courses.bind("<Motion>",self.resize_frame)
+        tk.Grid.columnconfigure(self.frame_courses,0,weight=1)
+        tk.Grid.columnconfigure(self.frame_courses,1,weight=1)
+        tk.Grid.columnconfigure(self.frame_courses,2,weight=1)
+
+        self.frame_courses.searchbox = AutocompleteEntryListbox(
+            self.frame_courses,width=40,height=40,completevalues=[],allow_other_values=False)
+        
+        self.frame_courses.searchbox.grid(row=1,column=0,columnspan=3,sticky=tk.NSEW)
+
+##        self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
+##        self.frame_courses.listbox.grid(row=2,column=0,columnspan=3,sticky=NSEW)
+
+        idx = self.frame_notebook.index(self.frame_notebook.select())
+
+        self.frame_courses.button_tofall = tk.Button(
+            self.frame_courses,text="Add to Fall",command=lambda: self.add_course("Fall"))
+
+        self.frame_courses.button_tofall.configure(background="white")
+        self.frame_courses.button_tofall.grid(row=3,column=0,sticky=tk.EW)
+
+        self.frame_courses.button_tospring = tk.Button(
+            self.frame_courses,text="Add to Spring",command=lambda: self.add_course("Spring"))
+
+        self.frame_courses.button_tospring.configure(background="white")
+        self.frame_courses.button_tospring.grid(row=3,column=1,sticky=tk.EW)
+
+        self.frame_courses.button_extended = tk.Button(
+            self.frame_courses,text="Extended View")
+
+        self.frame_courses.button_extended.configure(background="white")
+        self.frame_courses.button_extended.grid(row=3,column=2,sticky=tk.EW)
+
+##        self.frame_courses.status_text = StringVar()
+
+        self.frame_courses.status = tk.Listbox(self.frame_courses,width=40,height=10)
+##        self.frame_courses.status.configure(background="white",justify=LEFT)
+
+        self.frame_courses.status.grid(row=4,column=0,columnspan=3,sticky=tk.NSEW)
+
+##        self.frame_courses.status = Label(
+##            self.frame_courses,relief="sunken",anchor=NW,
+##            textvariable=self.frame_courses.status_text,wraplength=200)
+
+##        scroll = Scrollbar(self.frame_courses.status)
+##        scroll.configure(command=self.frame_courses.status.yview)
+        
+##        self.frame_courses.status.configure(yscrollcommand=scroll.set)
+        
+##        scroll.pack(side=RIGHT,fill=Y)
 
     def set_input(self):
 
@@ -299,7 +292,7 @@ class schedule():
         
         self.hours.total = self.hours.nparray.sum(axis=1)
 
-    def open_file(self):
+    def import_inputs(self):
 
         self.filepath = filedialog.askopenfilename(
             title = "Select a File",
@@ -319,7 +312,7 @@ class schedule():
         
         self.set_input()
 
-        status = "Opened \""+self.filepath+"\"."
+        status = "Imported \""+self.filepath+"\"."
         
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.see(tk.END)
@@ -376,6 +369,8 @@ class schedule():
             
             frombox.configure(completevalues=frombox.content)
 
+            frombox.entry.delete(0,tk.END)
+
     def test_load(self):
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
@@ -407,7 +402,7 @@ class schedule():
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.yview(tk.END)
 
-    def export_schedule_instructor(self):
+    def add_export(self):
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
 
@@ -483,22 +478,38 @@ class schedule():
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.yview(tk.END)
 
-    def start_resize(self,event):
-
-        print(event.x)
-        
-##        print(self.check_resize_mode(self.frame_courses,event.x,event.y))
-
-    def check_resize_mode(self,frame,x,y):
-        
-        width,height = frame.cget('width'),frame.cget('height')
-        
-        mode = 0
-        
-        if x > width-10: mode |= tk.HORIZONTAL    
-        if y > height-10: mode |= tk.VERTICAL
-        
-        return mode
+##    def check_resize_mode(self,x,y):
+##        
+##        width = self.frame_notebook.cget('width')
+####        height = self.frame_courses.cget('height')
+##        
+##        mode = 0
+##        
+##        if x > width-10: mode |= HORIZONTAL    
+####        if y < 10: mode |= VERTICAL
+##        
+##        return mode
+##
+##    def start_resize(self,event):
+##
+####        print(event.x)
+##        self.resize_mode = self.check_resize_mode(event.x,event.y)        
+####        print(self.check_resize_mode(self.frame_courses,event.x,event.y))
+##
+##    def resize_frame(self,event):
+##        if self.resize_mode:
+##            if self.resize_mode & HORIZONTAL:
+##                self.frame_notebook.config(width=event.x)
+####            if self.resize_mode & VERTICAL:
+####                self.frame_notebook.config(height=event.y)
+##        else:
+##            cursor = 'sb_h_double_arrow' if self.check_resize_mode(event.x,event.y) else ''
+##            if cursor != self.cursor:
+##                self.frame_notebook.config(cursor=cursor)
+##                self.cursor = cursor
+##
+##    def stop_resize(self,event):
+##        self.resize_mode = 0
         
 if __name__ == "__main__":
     
