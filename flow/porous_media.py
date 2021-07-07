@@ -385,8 +385,131 @@ class buckleyleverett():
 
         self.x_Sw = v*t*self.fw_der_IC
 
-if __name__ == "__main__":
+class relative_permeability():
 
+    def __init__(self,water_saturation,gas_saturation=0):
+
+        self.Sw = water_saturation
+        self.Sg = gas_saturation
+
+        self.So = 1-self.Sw-self.Sg
+
+    def model2phase(self,
+                    system="oil-water",
+                    residual_oil_saturation=0.4,
+                    connate_water_saturation=0.1,
+                    critical_gas_saturation=0.05,
+                    krowc=0.8,
+                    krwor=0.3,
+                    krogc=0.8,
+                    krglc=0.3,
+                    model_type="Analytical"):
+
+        """
+        OIL-WATER system
+
+        Swc = connate water saturation
+        Sor = residual oil saturation
+
+        krowc = oil relative permeability at connate water saturaton
+        krwor = water relative permeability at the residual oil saturation
+
+        GAS-OIL system
+
+        Sor = residual oil saturation
+        Swc = connate water saturation
+        Slc = critical liquid saturation = Swc+Sor
+        Sgc = critical gas saturation
+
+        krogc = oil relative permeability at critical gas saturation
+        krglc = gas relative permeability at critical liquid saturation
+        """
+
+        self.system = system
+
+        if self.system == "oil-water":
+            class oil_water: pass
+            
+            oil_water.Sor = residual_oil_saturation
+            oil_water.Swc = connate_water_saturation
+            
+            oil_water.krowc = krowc
+            oil_water.krwor = krwor
+            
+            self.oil_water = oil_water
+            
+        elif self.system == "gas-oil":
+            class gas_oil: pass
+            
+            gas_oil.Sor = residual_oil_saturation
+            gas_oil.Swc = connate_water_saturation
+            gas_oil.Slc = gas_oil.Swc+gas_oil.Sor
+            gas_oil.Sgc = critical_gas_saturation
+
+            gas_oil.krogc = krogc
+            gas_oil.krglc = krglc
+            
+            self.gas_oil = gas_oil
+
+        if model_type == "Wyllie and Gardner Correlation":
+            self.wyllie_and_gardner()
+            
+        elif model_type == "Pirson's Correlation":
+            self.pirsons_correlation()
+            
+        elif model_type == "Corey's Method":
+            self.coreys_method()
+            
+        elif model_type == "Analytical":
+
+            if self.system == "oil-water":
+
+                movable_oil = 1-self.Sw-self.oil_water.Sor
+                movable_water = self.Sw-self.oil_water.Swc
+                movable_liquid = 1-self.oil_water.Sor-self.oil_water.Swc
+                
+                self.oil_water.oil = self.oil_water.krowc*(movable_oil/movable_liquid)
+                self.oil_water.water = self.oil_water.krwor*(movable_water/movable_liquid)
+
+            elif self.system == "gas-oil":
+
+                movable_oil = 1-self.Sg-self.gas_oil.Slc
+                movable_gas = self.Sg-self.gas_oil.Sgc
+
+                movable_fluid = 1-self.gas_oil.Sgc-self.gas_oil.Slc
+
+                self.gas_oil.oil = self.gas_oil.krogc*(movable_oil/movable_fluid)
+                self.gas_oil.gas = self.gas_oil.krglc*(movable_gas/movable_fluid)
+
+    def wyllie_and_gardner(self):
+
+        pass
+
+    def pirsons_correlation(self):
+
+        pass
+
+    def coreys_method(self):
+
+        pass
+
+    def model3phase(self):
+
+        pass
+
+    def stones_model_I(self):
+
+        pass
+
+    def stones_model_II(self):
+
+        pass
+        
+
+        
+
+if __name__ == "__main__":
+    pass
 ##    k = 50 #mD
 ##    k *= 0.986923e-15
 ##
@@ -406,61 +529,61 @@ if __name__ == "__main__":
 ##
 ##    print(sp.pressure/6894.76)
 
-    beta = 10
+##    beta = 10
+##
+##    bound_points = np.array([[0],[7]])
+##
+##    bound_conditions = np.array([[1,0,300],[0,1,0]])
+##
+##    analytical = slightly_compressible(0)
+##    
+##    analytical.cartesian_poisson_1D(bound_points,bound_conditions,beta)
+##    
+##    plt.plot(analytical.x,analytical.u,'k',label='Analytical Solution')
+##
+##    plt.tight_layout()
+##
+##    plt.show()
 
-    bound_points = np.array([[0],[7]])
-
-    bound_conditions = np.array([[1,0,300],[0,1,0]])
-
-    analytical = slightly_compressible(0)
-    
-    analytical.cartesian_poisson_1D(bound_points,bound_conditions,beta)
-    
-    plt.plot(analytical.x,analytical.u,'k',label='Analytical Solution')
-
-    plt.tight_layout()
-
-    plt.show()
-
-    ## ALL CALCULATIONS ARE CARRIED IN BUCKLEYLEVERETT CLASS ABOVE
-## BASED ON THE INPUT PROVIDED BELOW
-
-    Sor = 0.25
-    Swi = 0.15
-    Swr = 0.15
-##    koro = 1.0
-##    korw = 0.78
-##    m = 2.6
-##    n = 3.7
-    muo = 8.
-    muw = 1.
-    
-    q = 1000*5.615
-    A = 2500
-    L = 1000
-    phi = 0.2
-    
-    BL = buckleyleverett(Sor,Swr,muo,muw)
-    
-##    BL.coreymodel(koro,korw,m,n)
-    BL.k_model()
-    BL.fractionalflow()
-    BL.shockfront(Swi)
-
-    BL.production(q,A,L,phi)
-    BL.profile(q,A,phi,BL.tbt*0.3)#0.02 is for the time
-
-    Np = BL.Np*BL.Vp/5.615          # oil produced, bbl
-
-    qo = np.empty_like(Np)
-    qo[0] = Np[1]/BL.tp[1]
-    qo[1:] = Np[1:]/BL.tp[1:]       # bbl/day
-    
-    qw = q/5.615-qo                 # bbl/day
-    
-    WOR = qw/qo
-
-    WOR[WOR<1e-15] = 0
+##    ## ALL CALCULATIONS ARE CARRIED IN BUCKLEYLEVERETT CLASS ABOVE
+#### BASED ON THE INPUT PROVIDED BELOW
+##
+##    Sor = 0.25
+##    Swi = 0.15
+##    Swr = 0.15
+####    koro = 1.0
+####    korw = 0.78
+####    m = 2.6
+####    n = 3.7
+##    muo = 8.
+##    muw = 1.
+##    
+##    q = 1000*5.615
+##    A = 2500
+##    L = 1000
+##    phi = 0.2
+##    
+##    BL = buckleyleverett(Sor,Swr,muo,muw)
+##    
+####    BL.coreymodel(koro,korw,m,n)
+##    BL.k_model()
+##    BL.fractionalflow()
+##    BL.shockfront(Swi)
+##
+##    BL.production(q,A,L,phi)
+##    BL.profile(q,A,phi,BL.tbt*0.3)#0.02 is for the time
+##
+##    Np = BL.Np*BL.Vp/5.615          # oil produced, bbl
+##
+##    qo = np.empty_like(Np)
+##    qo[0] = Np[1]/BL.tp[1]
+##    qo[1:] = Np[1:]/BL.tp[1:]       # bbl/day
+##    
+##    qw = q/5.615-qo                 # bbl/day
+##    
+##    WOR = qw/qo
+##
+##    WOR[WOR<1e-15] = 0
 
 ## INPUTS END HERE
 
