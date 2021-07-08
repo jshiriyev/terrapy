@@ -39,7 +39,7 @@ class plot_production():
 
         fileMenu = tk.Menu(menubar,tearoff="Off")
 
-        fileMenu.add_command(label="Open",command=self.select_path)
+        fileMenu.add_command(label="Open",command=self.set_path)
 
         menubar.add_cascade(label="File",menu=fileMenu)
 
@@ -55,22 +55,25 @@ class plot_production():
         self.listbox = tk.Listbox(self.frame,width=10,height=30)
         self.listbox.grid(row=0,column=0,sticky=tk.NSEW)
 
-        self.listbox.bind('<Double-1>',self.select_list_entry)
+        self.listbox.bind('<Double-1>',self.get_listentry)
 
-        self.button = tk.Button(self.frame,text="Plot Graph",command=self.select_sheet)
+        self.button = tk.Button(self.frame,text="Plot Graph",command=lambda: self.get_sheet(self.listbox))
         self.button.grid(row=1,column=0)
 
-        self.plot_frame = tk.Frame(self.frame,width=250,height=30)
-        self.plot_frame.grid(row=0,column=1,sticky=tk.NSEW)
+        self.figure = plt.Figure()
+        
+        self.plot = FigureCanvasTkAgg(self.figure,self.frame)
 
-        self.plot_frame.canvas_widget = None
+        self.plot_widget = self.plot.get_tk_widget()
 
+        self.plot_widget.grid(row=0,column=1,sticky=tk.NSEW) #width=250,height=30
+        
         self.status = tk.Listbox(self.frame,width=250,height=5)
         self.status.grid(row=1,column=1,sticky=tk.EW)
 
         self.frame.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
-
-    def select_path(self):
+        
+    def set_path(self):
 
         self.filepath = filedialog.askopenfilename(
             title = "Select a File",
@@ -92,95 +95,101 @@ class plot_production():
         self.status.insert(tk.END,status)
         self.status.see(tk.END)
 
-    def select_list_entry(self,event):
+    def get_listentry(self,event):
+        
+        self.get_sheet(event.widget)
 
-        self.select_sheet()
+    def get_sheet(self,item):
 
-    def select_sheet(self):
-
-        if not self.listbox.curselection():
+        if not item.curselection():
             return
 
-        if self.plot_frame.canvas_widget:
-            self.plot_frame.canvas_widget.destroy()
-            
-        sheetname = self.listbox.get(self.listbox.curselection())
+        if hasattr(self,"axes"):
+            for axis in self.axes:
+                axis.remove()
 
-        self.ws = self.wb[sheetname]
+        self.template()
 
-        Head = list(self.ws.iter_rows(max_row=1,min_col=2,values_only=True))[0]
-        Body = list(self.ws.iter_cols(min_row=2,min_col=2,values_only=True))
-
-        fig,axs = plt.subplots(2,2,tight_layout=True)
-
-        self.plot_frame.canvas = FigureCanvasTkAgg(fig,self.plot_frame)
-
-        self.plot_frame.date = list(self.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
+        class data: pass
+                
+        data.ws = self.wb[self.listbox.get(item.curselection())]
+        
+        data.date = list(data.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
+        
+        Head = list(data.ws.iter_rows(max_row=1,min_col=2,values_only=True))[0]
+        Body = list(data.ws.iter_cols(min_row=2,min_col=2,values_only=True))
 
         for i,head in enumerate(Head):
             string = head.split(":")[1].split(",")[0].strip().replace(" ","_")
             string = string.replace("(","").replace(")","").replace(".","")
-            setattr(self.plot_frame,string,np.array(Body[i]))
+            setattr(data,string,np.array(Body[i]))
+        
+        try: self.axes[0].plot(data.date,data.Oil_Rate,c='k')
+        except: pass
+        try: self.axes[0].plot(data.date,data.Oil_Rate_H,'--',c='g')
+        except: pass
+        try: self.axes[1].plot(data.date,data.Oil_Total/1000,c='k')
+        except: pass
+        try: self.axes[1].plot(data.date,data.Oil_Total_H/1000,'--',c='g')
+        except: pass
+        
+        try: self.axes[2].plot(data.date,data.Gas_Rate/1000,c='k')
+        except: pass
+        try: self.axes[2].plot(data.date,data.Gas_Rate_H/1000,'--',c='r')
+        except: pass
+        try: self.axes[3].plot(data.date,data.Gas_Total/1000000,c='k')
+        except: pass
+        try: self.axes[3].plot(data.date,data.Gas_Total_H/1000000,'--',c='r')
+        except: pass
+        
+        try: self.axes[4].plot(data.date,data.Water_Rate,c='k')
+        except: pass
+        try: self.axes[4].plot(data.date,data.Water_Rate_H,'--',c='b')
+        except: pass
+        try: self.axes[5].plot(data.date,data.Water_Total/1000,c='k')
+        except: pass
+        try: self.axes[5].plot(data.date,data.Water_Total_H/1000,'--',c='b')
+        except: pass
+        
+        try: self.axes[6].plot(data.date,data.Bottom_Hole_Pressure,c='k')
+        except: self.axes[6].plot(data.date,data.Avg_Pressure,c='k')
+        try: self.axes[6].plot(data.date,data.Bottom_Hole_Pressure_H,'--',c='m')
+        except: pass
 
-        self.plot_frame.canvas_widget = self.plot_frame.canvas.get_tk_widget()
+        self.figure.set_tight_layout(True)
         
-        self.plot_frame.canvas_widget.pack(fill=tk.BOTH,expand=1)
-        
-        try: axs[0,0].plot(self.plot_frame.date,self.plot_frame.Oil_Rate,c='k')
-        except: pass
-        try: axs[0,0].plot(self.plot_frame.date,self.plot_frame.Oil_Rate_H,'--',c='g')
-        except: pass
-        axs0 = axs[0,0].twinx()
-        try: axs0.plot(self.plot_frame.date,self.plot_frame.Oil_Total/1000,c='k')
-        except: pass
-        try: axs0.plot(self.plot_frame.date,self.plot_frame.Oil_Total_H/1000,'--',c='g')
-        except: pass
-        
-        try: axs[0,1].plot(self.plot_frame.date,self.plot_frame.Gas_Rate/1000,c='k')
-        except: pass
-        try: axs[0,1].plot(self.plot_frame.date,self.plot_frame.Gas_Rate_H/1000,'--',c='r')
-        except: pass
-        axs1 = axs[0,1].twinx()
-        try: axs1.plot(self.plot_frame.date,self.plot_frame.Gas_Total/1000000,c='k')
-        except: pass
-        try: axs1.plot(self.plot_frame.date,self.plot_frame.Gas_Total_H/1000000,'--',c='r')
-        except: pass
-        
-        try: axs[1,0].plot(self.plot_frame.date,self.plot_frame.Water_Rate,c='k')
-        except: pass
-        try: axs[1,0].plot(self.plot_frame.date,self.plot_frame.Water_Rate_H,'--',c='b')
-        except: pass
-        axs2 = axs[1,0].twinx()
-        try: axs2.plot(self.plot_frame.date,self.plot_frame.Water_Total/1000,c='k')
-        except: pass
-        try: axs2.plot(self.plot_frame.date,self.plot_frame.Water_Total_H/1000,'--',c='b')
-        except: pass
-        
-        try: axs[1,1].plot(self.plot_frame.date,self.plot_frame.Bottom_Hole_Pressure,c='k')
-        except: axs[1,1].plot(self.plot_frame.date,self.plot_frame.Avg_Pressure,c='k')
-        try: axs[1,1].plot(self.plot_frame.date,self.plot_frame.Bottom_Hole_Pressure_H,'--',c='m')
-        except: pass
-        
-        axs[0,0].set_xlabel("Date")
-        axs[0,1].set_xlabel("Date")
-        axs[1,0].set_xlabel("Date")
-        axs[1,1].set_xlabel("Date")
+        self.plot.draw()
 
-        axs[0,0].set_ylabel("Liquid Rate, sm3/day")
-        axs[0,1].set_ylabel("Gas Rate, th. sm3/day")
-        axs[1,0].set_ylabel("Liquid Rate, sm3/day")
-        axs[1,1].set_ylabel("Pressure, Bars")
+    def template(self):
 
-        axs0.set_ylabel("Liquid Volume, th. sm3")
-        axs1.set_ylabel("Surface Gas Volume, mln. sm3")
-        axs2.set_ylabel("Liquid Volume, th. sm3")
+        self.axes = []
 
-        axs[0,0].grid()
-        axs[0,1].grid()
-        axs[1,0].grid()
-        axs[1,1].grid()
+        self.axes.append(self.figure.add_subplot(221))
+        self.axes.append(self.axes[0].twinx())
+        self.axes.append(self.figure.add_subplot(222))
+        self.axes.append(self.axes[2].twinx())
+        self.axes.append(self.figure.add_subplot(223))
+        self.axes.append(self.axes[4].twinx())
+        self.axes.append(self.figure.add_subplot(224))
 
-        plt.close()
+        self.axes[0].set_xlabel("Date")
+        self.axes[2].set_xlabel("Date")
+        self.axes[4].set_xlabel("Date")
+        self.axes[6].set_xlabel("Date")
+
+        self.axes[0].set_ylabel("Liquid Rate, sm3/day")
+        self.axes[2].set_ylabel("Gas Rate, th. sm3/day")
+        self.axes[4].set_ylabel("Liquid Rate, sm3/day")
+        self.axes[6].set_ylabel("Pressure, Bars")
+
+        self.axes[1].set_ylabel("Liquid Volume, th. sm3")
+        self.axes[3].set_ylabel("Surface Gas Volume, mln. sm3")
+        self.axes[5].set_ylabel("Liquid Volume, th. sm3")
+
+        self.axes[0].grid()
+        self.axes[2].grid()
+        self.axes[4].grid()
+        self.axes[6].grid()
         
 if __name__ == "__main__":
 
