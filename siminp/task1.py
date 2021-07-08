@@ -5,6 +5,7 @@ The task
 """
 
 import datetime
+import os
 
 import matplotlib.pyplot as plt
 
@@ -12,119 +13,179 @@ import numpy as np
 
 import openpyxl
 
-inputfile = 'C:\\Users\\javid.s\\Documents\\South_GD_history_match_06_July_2020.xlsx'
+import tkinter as tk
 
-##wells = ["409","412","413","414","415","417","418","430","field"]
+from tkinter import filedialog
 
-class read_production_data():
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-    def __init__(self,inputfile):
+class plot_production():
 
-        self.inputfile = inputfile
+    def __init__(self,window):
+
+        self.root = window
+
+        self.initUI()
+
+    def initUI(self):
+
+        self.root.title("BEOC-Subsurface")
+        
+        self.root.configure(background="white")
+
+        menubar = tk.Menu(self.root)
+        
+        self.root.config(menu=menubar)
+
+        fileMenu = tk.Menu(menubar,tearoff="Off")
+
+        fileMenu.add_command(label="Open",command=self.select_path)
+
+        menubar.add_cascade(label="File",menu=fileMenu)
+
+        self.frame = tk.Frame(self.root,width=300,height=200)
+
+        tk.Grid.rowconfigure(self.frame,0,weight=1)
+
+        tk.Grid.columnconfigure(self.frame,0,weight=1)
+        tk.Grid.columnconfigure(self.frame,1,weight=1)
+
+        self.frame.configure(background="white")
+
+        self.listbox = tk.Listbox(self.frame,width=10,height=30)
+        self.listbox.grid(row=0,column=0,sticky=tk.NSEW)
+
+        self.listbox.bind('<Double-1>',self.select_list_entry)
+
+        self.button = tk.Button(self.frame,text="Plot Graph",command=self.select_sheet)
+        self.button.grid(row=1,column=0)
+
+        self.plot_frame = tk.Frame(self.frame,width=250,height=30)
+        self.plot_frame.grid(row=0,column=1,sticky=tk.NSEW)
+
+        self.plot_frame.canvas_widget = None
+
+        self.status = tk.Listbox(self.frame,width=250,height=5)
+        self.status.grid(row=1,column=1,sticky=tk.EW)
+
+        self.frame.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+    def select_path(self):
+
+        self.filepath = filedialog.askopenfilename(
+            title = "Select a File",
+            initialdir = os.getcwd(),
+            filetypes = (("Excel files","*.xl*"),("All files","*.*")))
+
+        if not self.filepath:
+            return
+
+        self.inputfile = self.filepath
         
         self.wb = openpyxl.load_workbook(self.inputfile)
 
-    def get_well(self,wellname):
+        status = "Imported \""+self.filepath+"\"."
 
-        self.ws = self.wb[wellname]
+        for sheet in self.wb.sheetnames:
+            self.listbox.insert(tk.END,sheet)
+        
+        self.status.insert(tk.END,status)
+        self.status.see(tk.END)
 
-        Date = list(self.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
+    def select_list_entry(self,event):
 
-        Head = np.array(list(self.ws.iter_rows(max_row=1,min_col=2,values_only=True))[0])
-        Body = np.array(list(self.ws.iter_cols(min_row=2,min_col=2,values_only=True)))
+        self.select_sheet()
 
-        cols_calc = (0,2,4,6,8,10,12)
-        cols_hist = (1,3,5,7,9,11,13)
+    def select_sheet(self):
 
-        Head = Head[cols_calc,]
-        Calc = Body[cols_calc,]
-        Hist = Body[cols_hist,]
+        if not self.listbox.curselection():
+            return
 
-        head = []
+        if self.plot_frame.canvas_widget:
+            self.plot_frame.canvas_widget.destroy()
+            
+        sheetname = self.listbox.get(self.listbox.curselection())
 
-        for i,h in enumerate(Head):
-            string = h.split(":")[1].split(",")[0].strip().replace(" ","_")
-            head.append(string)
+        self.ws = self.wb[sheetname]
 
-        self.date = Date
-        self.head = head
-        self.calc = Calc
-        self.hist = Hist
+        Head = list(self.ws.iter_rows(max_row=1,min_col=2,values_only=True))[0]
+        Body = list(self.ws.iter_cols(min_row=2,min_col=2,values_only=True))
 
-    def get_field(self,fieldname):
+        fig,axs = plt.subplots(2,2,tight_layout=True)
 
-        self.ws = self.wb[fieldname]
+        self.plot_frame.canvas = FigureCanvasTkAgg(fig,self.plot_frame)
 
-        Date = list(self.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
+        self.plot_frame.date = list(self.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
 
-        Head = np.array(list(self.ws.iter_rows(max_row=1,min_col=2,values_only=True))[0])
-        Body = np.array(list(self.ws.iter_cols(min_row=2,min_col=2,values_only=True)))
+        for i,head in enumerate(Head):
+            string = head.split(":")[1].split(",")[0].strip().replace(" ","_")
+            string = string.replace("(","").replace(")","").replace(".","")
+            setattr(self.plot_frame,string,np.array(Body[i]))
 
-        cols_calc = (0,2,4,6,8,10,12)
-        cols_hist = (1,3,5,7,9,11)
+        self.plot_frame.canvas_widget = self.plot_frame.canvas.get_tk_widget()
+        
+        self.plot_frame.canvas_widget.pack(fill=tk.BOTH,expand=1)
+        
+        try: axs[0,0].plot(self.plot_frame.date,self.plot_frame.Oil_Rate,c='k')
+        except: pass
+        try: axs[0,0].plot(self.plot_frame.date,self.plot_frame.Oil_Rate_H,'--',c='g')
+        except: pass
+        axs0 = axs[0,0].twinx()
+        try: axs0.plot(self.plot_frame.date,self.plot_frame.Oil_Total/1000,c='k')
+        except: pass
+        try: axs0.plot(self.plot_frame.date,self.plot_frame.Oil_Total_H/1000,'--',c='g')
+        except: pass
+        
+        try: axs[0,1].plot(self.plot_frame.date,self.plot_frame.Gas_Rate/1000,c='k')
+        except: pass
+        try: axs[0,1].plot(self.plot_frame.date,self.plot_frame.Gas_Rate_H/1000,'--',c='r')
+        except: pass
+        axs1 = axs[0,1].twinx()
+        try: axs1.plot(self.plot_frame.date,self.plot_frame.Gas_Total/1000000,c='k')
+        except: pass
+        try: axs1.plot(self.plot_frame.date,self.plot_frame.Gas_Total_H/1000000,'--',c='r')
+        except: pass
+        
+        try: axs[1,0].plot(self.plot_frame.date,self.plot_frame.Water_Rate,c='k')
+        except: pass
+        try: axs[1,0].plot(self.plot_frame.date,self.plot_frame.Water_Rate_H,'--',c='b')
+        except: pass
+        axs2 = axs[1,0].twinx()
+        try: axs2.plot(self.plot_frame.date,self.plot_frame.Water_Total/1000,c='k')
+        except: pass
+        try: axs2.plot(self.plot_frame.date,self.plot_frame.Water_Total_H/1000,'--',c='b')
+        except: pass
+        
+        try: axs[1,1].plot(self.plot_frame.date,self.plot_frame.Bottom_Hole_Pressure,c='k')
+        except: axs[1,1].plot(self.plot_frame.date,self.plot_frame.Avg_Pressure,c='k')
+        try: axs[1,1].plot(self.plot_frame.date,self.plot_frame.Bottom_Hole_Pressure_H,'--',c='m')
+        except: pass
+        
+        axs[0,0].set_xlabel("Date")
+        axs[0,1].set_xlabel("Date")
+        axs[1,0].set_xlabel("Date")
+        axs[1,1].set_xlabel("Date")
 
-        Head = Head[cols_calc,]
-        Calc = Body[cols_calc,]
-        Hist = Body[cols_hist,]
+        axs[0,0].set_ylabel("Liquid Rate, sm3/day")
+        axs[0,1].set_ylabel("Gas Rate, th. sm3/day")
+        axs[1,0].set_ylabel("Liquid Rate, sm3/day")
+        axs[1,1].set_ylabel("Pressure, Bars")
 
-        head = []
+        axs0.set_ylabel("Liquid Volume, th. sm3")
+        axs1.set_ylabel("Surface Gas Volume, mln. sm3")
+        axs2.set_ylabel("Liquid Volume, th. sm3")
 
-        for i,h in enumerate(Head):
-            string = h.split(":")[1].split(",")[0].strip().replace(" ","_")
-            head.append(string)
+        axs[0,0].grid()
+        axs[0,1].grid()
+        axs[1,0].grid()
+        axs[1,1].grid()
 
-        self.date = Date
-        self.head = head
-        self.calc = Calc
-        self.hist = Hist
+        plt.close()
+        
+if __name__ == "__main__":
 
-P = read_production_data(inputfile)
+    window = tk.Tk()
 
-P.get_field("field")
+    gui = plot_production(window)
 
-fig,axs = plt.subplots(2,2,figsize=(14,8))
-
-axs0 = axs[0,0].twinx()
-axs1 = axs[0,1].twinx()
-axs2 = axs[1,0].twinx()
-
-axs[0,0].plot(P.date,P.calc[1],c='k')
-axs[0,1].plot(P.date,P.calc[3]/1000,c='k')
-axs[1,0].plot(P.date,P.calc[5],c='k')
-axs[1,1].plot(P.date,P.calc[6],c='k')
-
-axs0.plot(P.date,P.calc[0]/1000,c='k')
-axs1.plot(P.date,P.calc[2]/1000000,c='k')
-axs2.plot(P.date,P.calc[4]/1000,c='k')
-
-axs[0,0].plot(P.date,P.hist[1],'--',c='g')
-axs[0,1].plot(P.date,P.hist[3]/1000,'--',c='r')
-axs[1,0].plot(P.date,P.hist[5],'--',c='b')
-##axs[1,1].plot(P.date,P.hist[6],'--',c='m')
-
-axs0.plot(P.date,P.hist[0]/1000,'--',c='g')
-axs1.plot(P.date,P.hist[2]/1000000,'--',c='r')
-axs2.plot(P.date,P.hist[4]/1000,'--',c='b')
-
-axs[0,0].set_xlabel("Date")
-axs[0,1].set_xlabel("Date")
-axs[1,0].set_xlabel("Date")
-axs[1,1].set_xlabel("Date")
-
-axs[0,0].set_ylabel("Liquid Rate, sm3/day")
-axs[0,1].set_ylabel("Gas Rate, th. sm3/day")
-axs[1,0].set_ylabel("Liquid Rate, sm3/day")
-axs[1,1].set_ylabel("Pressure, Bars")
-
-axs0.set_ylabel("Liquid Volume, th. sm3")
-axs1.set_ylabel("Surface Gas Volume, mln. sm3")
-axs2.set_ylabel("Liquid Volume, th. sm3")
-
-axs[0,0].grid()
-axs[0,1].grid()
-axs[1,0].grid()
-axs[1,1].grid()
-
-plt.tight_layout()
-plt.show()
-                
+    window.mainloop()
