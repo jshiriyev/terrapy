@@ -1,7 +1,7 @@
 """
-
-The task 
-
+The task is about the history matches. When we do changes to input files and run
+it, we want to compare two sets of production-history data. It is kinda
+having set point between each runs that allow us to select best path to follow.
 """
 
 import datetime
