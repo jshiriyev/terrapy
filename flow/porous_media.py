@@ -1,19 +1,3 @@
-## SOME PYTHON TIPS ON THE IDLE USE:
-##
-## PYTHON IS INDENTATION AND CASE SENSITIVE,
-## DO NOT LEAVE UNNECESSARY SPACES IN THE BEGINNING OF LINE
-## TO DEDENT, SELECT THE LINES YOU WANT TO DEDENT AND CLICK CTRL+[
-## TO INDENT, SELECT THE LINES YOU WANT TO INDENT AND CLICK CTRL+]
-## PAY ATTENTION TO THE UPPER AND LOWER CASES YOU ARE USING FOR THE VARIABLE NAMES
-##
-## COMMENT OUT MEANS ADDING HASHTAGS IN THE BEGINNING OF LINE
-## TO COMMENT OUT, SELECT THE LINES YOU WANT TO COMMENT OUT AND CLICK ALT+3
-## UNCOMMENT OUT MEANS REMOVING HASHTAGS FROM THE BEGINNING OF LINE
-## TO UNCOMMENT OUT, SELECT THE LINES YOU WANT TO UNCOMMENT OUT AND CLICK ALT+4
-## 
-## FOR THE SECTION STARTING AFTER [if __name__ == "__main__":],
-## EVERY LINE SHOULD BE INDENTED FOUR SPACES
-
 import io
 import os
 import sys
@@ -32,7 +16,26 @@ from scipy.special import y1
 
 ## if you want to generate animation, install PIL and uncomment out the line 25 and animation part in the bottom
 ## for the installation, go to the command prompt and type pip install Pillow
+
 ##from PIL import Image
+
+class fluid():
+
+    def __init__(self,viscosity):
+
+        self.viscosity = viscosity
+
+    def compressible(self,compressibility):
+
+        self.compressibility = compressibility
+
+    def slightly_compressible(self,compressibility):
+
+        self.compressibility = compressibility
+
+    def incompressible(self,density):
+
+        self.density = density
 
 class core():
 
@@ -64,51 +67,229 @@ class formation():
         
         self.eta = (self.k)/(self.phi*self.mu*self.ct)
 
-class fracture():
+    def set_well(self,radius,location,true_vertical_depth,measured_depth):
 
-    def __init__(self):
+        self.radius = radius
+        
+    def set_fracture_nodes(self,thickness,nodes):
 
         self.thickness = thickness
 
-    def set_nodes(self):
+class relative_permeability():
 
-        pass
+    """
 
-class fluid():
+    This Model Provides IMBIBITION Relative Permeability MODELS for a system provided.
 
-    def __init__(self,viscosity):
-
-        self.viscosity = viscosity
-
-    def compressible(self,compressibility):
-
-        self.compressibility = compressibility
-
-    def slightly_compressible(self,compressibility):
-
-        self.compressibility = compressibility
-
-    def incompressible(self,density):
-
-        self.density = density
-
-class well():
+    So      = oil saturation
+    Sw      = water saturation
+    Sg      = gas saturation
     
-    def __init__(self,radius):
+    MODEL: OIL-WATER system
 
-        self.radius = radius
+    Sorow   = residual oil saturation in oil-water system
+    Swc     = connate water saturation
+    krowc   = oil relative permeability at connate water saturaton
+    krwor   = water relative permeability at the residual oil saturation
+    no      = oil exponent on relative permeability curve
+    nw      = water exponent on relative permeability curve
 
-    def set_location(self):
+    MODEL: GAS-OIL system
 
-        pass
+    Sorgo   = residual oil saturation in gas-oil system
+    Swc     = connate water saturation
+    Slc     = critical liquid saturation = Swc+Sor
+    Sgc     = critical gas saturation
+    krogc   = oil relative permeability at critical gas saturation
+    krglc   = gas relative permeability at critical liquid saturation
+    no      = oil exponent on relative permeability curve
+    ng      = gas exponent on relative permeability curve
 
-    def set_true_vertical_depth(self):
+    MODEL: THREE-PHASE system
 
-        pass
+    Som     = minimum oil saturation in three-phase system
+    Sorow   = residual oil saturtaion in oil-water system
+    Sorgo   = residual oil saturation in gas-oil system
+    Swc     = connate water saturation
+    Sgc     = criticial gas saturation
+    krowc   = oil relative permeability at connate water saturaton in oil-water system
+    krwor   = water relative permeability at the residual oil saturation in oil-water system
+    krogc   = oil relative permeability at critical gas saturation in gas-oil system
+    krglc   = gas relative permeability at critical liquid saturation in gas-oil system
+    no      = oil exponent on relative permeability curve
+    nw      = water exponent on relative permeability curve
+    ng      = gas exponent on relative permeability curve
+    
+    """
 
-    def set_measured_depth(self):
+    def __init__(self,
+                 Sw,
+                 Sg=0,
+                 Sorow=0.4,
+                 Sorgo=0.4,
+                 Swc=0.1,
+                 Sgc=0.05,
+                 krowc=0.8,
+                 krwor=0.3,
+                 krogc=0.8,
+                 krglc=0.3,
+                 no=2,
+                 nw=2,
+                 ng=2,
+                 Som=None):
 
-        pass
+        self.So = 1-Sw-Sg
+        self.Sw = Sw
+        self.Sg = Sg
+        self.Sorow = Sorow
+        self.Sorgo = Sorgo
+        self.Swc = Swc
+        self.Sgc = Sgc
+        self.krowc = krowc
+        self.krwor = krwor
+        self.krogc = krogc
+        self.krglc = krglc
+        self.no = no
+        self.nw = nw
+        self.ng = ng
+
+        if Som is None:
+            self.Som = self._estimate_Som()
+        else:
+            self.Som = Som
+
+    def system2phase(self,model="oil-water"):
+
+        if model == "oil-water":
+            self.kro,self.krw = self._oil_water()
+        elif model == "gas-oil":
+            self.kro,self.krg = self._gas_oil()
+        
+    def _oil_water(self):
+
+        movable_o = self.So-self.Sorow
+        movable_w = self.Sw-self.Swc
+        movable_l = 1-self.Sorow-self.Swc
+        
+        kro = self.krowc*(movable_o/movable_l)**self.no
+        krw = self.krwor*(movable_w/movable_l)**self.nw
+
+        return kro,krw
+
+    def _gas_oil(self):
+
+        Slc = self.Sorgo+self.Swc
+        
+        movable_o = 1-Slc-self.Sg
+        movable_g = self.Sg-self.Sgc
+        movable_f = 1-Slc-self.Sgc
+
+        kro = self.krogc*(movable_o/movable_f)**self.no
+        krg = self.krglc*(movable_g/movable_f)**self.ng
+
+        return kro,krg
+
+    def system3phase(self,model="Stone's Model I",n=None):
+
+        if model=="Stone's Model I":
+            self.kro,self.krw,self.krg = self._stones_model_I()
+        elif model=="Aziz and Settari":
+            self.kro,self.krw,self.krg = self._aziz_settari()
+        elif model=="Stone's Model II":
+            self.kro,self.krw,self.krg = self._stones_model_II()
+        elif model=="Hustad-Holt Correlation":
+            self.kro,self.krw,self.krg = self._hustad_holt(n)
+
+    def _stones_model_I(self):
+
+        movable_o = self.So-self.Som
+        movable_w = self.Sw-self.Swc
+        movable_g = self.Sg
+
+        movable_f = 1-self.Swc-self.Som
+
+        So_star = movable_o/movable_f
+        Sw_star = movable_w/movable_f
+        Sg_star = movable_g/movable_f
+
+        kroow,krw = self._oil_water()
+        krogo,krg = self._gas_oil()
+
+        beta_w = (kroow)/(1-Sw_star)
+        beta_g = (krogo)/(1-Sg_star)
+
+        kro = So_star*beta_w*beta_g
+
+        return kro,krw,krg
+
+    def _estimate_Som(self):
+
+        alpha = 1-(self.Sg)/(1-self.Swc-self.Sorgo)
+
+        Som = alpha*self.Sorow+(1-alpha)*self.Sorgo
+
+        return Som
+
+    def _aziz_settari(self):
+        
+        movable_o = self.So-self.Som
+        movable_w = self.Sw-self.Swc
+        movable_g = self.Sg
+
+        movable_f = 1-self.Swc-self.Som
+
+        So_star = movable_o/movable_f
+        Sw_star = movable_w/movable_f
+        Sg_star = movable_g/movable_f
+
+        kroow,krw = self._oil_water()
+        krogo,krg = self._gas_oil()
+
+        beta = (So_star)/(1-Sw_star)/(1-Sg_star)
+
+        kro = (kroow*krogo)/(self.krowc)*beta
+
+        return kro,krw,krg
+
+    def _stones_model_II(self):
+
+        movable_o = self.So-self.Som
+        movable_w = self.Sw-self.Swc
+        movable_g = self.Sg
+
+        movable_f = 1-self.Swc-self.Som
+
+        So_star = movable_o/movable_f
+        Sw_star = movable_w/movable_f
+        Sg_star = movable_g/movable_f
+
+        kroow,krw = self._oil_water()
+        krogo,krg = self._gas_oil()
+
+        kro = self.krowc*((kroow/self.krowc+krw)*(krogo/self.krowc+krg)-(krw+krg))
+
+        return kro,krw,krg
+
+    def _hustad_holt(self,n):
+
+        movable_o = self.So-self.Som
+        movable_w = self.Sw-self.Swc
+        movable_g = self.Sg-self.Sgc
+
+        movable_f = 1-self.Som-self.Swc-self.Sgc
+
+        So_star = movable_o/movable_f
+        Sw_star = movable_w/movable_f
+        Sg_star = movable_g/movable_f
+
+        kroow,krw = self._oil_water()
+        krogo,krg = self._gas_oil()
+
+        beta = (So_star)/(1-Sw_star)/(1-Sg_star)
+
+        kro = (kroow*krogo)/(self.krowc)*beta**n
+
+        return kro,krw,krg
 
 """single_phase"""
 class linear():
@@ -384,132 +565,24 @@ class buckleyleverett():
         v = q/(phi*A)        
 
         self.x_Sw = v*t*self.fw_der_IC
-
-class relative_permeability():
-
-    def __init__(self,water_saturation,gas_saturation=0):
-
-        self.Sw = water_saturation
-        self.Sg = gas_saturation
-
-        self.So = 1-self.Sw-self.Sg
-
-    def model2phase(self,
-                    system="oil-water",
-                    residual_oil_saturation=0.4,
-                    connate_water_saturation=0.1,
-                    critical_gas_saturation=0.05,
-                    krowc=0.8,
-                    krwor=0.3,
-                    krogc=0.8,
-                    krglc=0.3,
-                    model_type="Analytical"):
-
-        """
-        OIL-WATER system
-
-        Swc = connate water saturation
-        Sor = residual oil saturation
-
-        krowc = oil relative permeability at connate water saturaton
-        krwor = water relative permeability at the residual oil saturation
-
-        GAS-OIL system
-
-        Sor = residual oil saturation
-        Swc = connate water saturation
-        Slc = critical liquid saturation = Swc+Sor
-        Sgc = critical gas saturation
-
-        krogc = oil relative permeability at critical gas saturation
-        krglc = gas relative permeability at critical liquid saturation
-        """
-
-        self.system = system
-
-        if self.system == "oil-water":
-            class oil_water: pass
-            
-            oil_water.Sor = residual_oil_saturation
-            oil_water.Swc = connate_water_saturation
-            
-            oil_water.krowc = krowc
-            oil_water.krwor = krwor
-            
-            self.oil_water = oil_water
-            
-        elif self.system == "gas-oil":
-            class gas_oil: pass
-            
-            gas_oil.Sor = residual_oil_saturation
-            gas_oil.Swc = connate_water_saturation
-            gas_oil.Slc = gas_oil.Swc+gas_oil.Sor
-            gas_oil.Sgc = critical_gas_saturation
-
-            gas_oil.krogc = krogc
-            gas_oil.krglc = krglc
-            
-            self.gas_oil = gas_oil
-
-        if model_type == "Wyllie and Gardner Correlation":
-            self.wyllie_and_gardner()
-            
-        elif model_type == "Pirson's Correlation":
-            self.pirsons_correlation()
-            
-        elif model_type == "Corey's Method":
-            self.coreys_method()
-            
-        elif model_type == "Analytical":
-
-            if self.system == "oil-water":
-
-                movable_oil = 1-self.Sw-self.oil_water.Sor
-                movable_water = self.Sw-self.oil_water.Swc
-                movable_liquid = 1-self.oil_water.Sor-self.oil_water.Swc
-                
-                self.oil_water.oil = self.oil_water.krowc*(movable_oil/movable_liquid)
-                self.oil_water.water = self.oil_water.krwor*(movable_water/movable_liquid)
-
-            elif self.system == "gas-oil":
-
-                movable_oil = 1-self.Sg-self.gas_oil.Slc
-                movable_gas = self.Sg-self.gas_oil.Sgc
-
-                movable_fluid = 1-self.gas_oil.Sgc-self.gas_oil.Slc
-
-                self.gas_oil.oil = self.gas_oil.krogc*(movable_oil/movable_fluid)
-                self.gas_oil.gas = self.gas_oil.krglc*(movable_gas/movable_fluid)
-
-    def wyllie_and_gardner(self):
-
-        pass
-
-    def pirsons_correlation(self):
-
-        pass
-
-    def coreys_method(self):
-
-        pass
-
-    def model3phase(self):
-
-        pass
-
-    def stones_model_I(self):
-
-        pass
-
-    def stones_model_II(self):
-
-        pass
         
-
-        
-
 if __name__ == "__main__":
-    pass
+
+    import unittest
+
+    from tests import test_porous_media
+
+    unittest.main(test_porous_media)
+
+##    Sw = 0.3
+##    Sg = 0.3
+##
+##    RP = relative_permeability(Sw,Sg,Som=0.1125,Sorow=0.15,Sorgo=0.05,Swc=0.15,Sgc=0.1,krowc=0.88)
+##
+##    RP.system3phase(model="Stone's Model II")
+##
+##    print(RP.kro,RP.krw,RP.krg)
+
 ##    k = 50 #mD
 ##    k *= 0.986923e-15
 ##
