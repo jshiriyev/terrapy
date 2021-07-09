@@ -21,9 +21,9 @@ class schedule():
 
         self.root = window
 
-        self.initUI()
+        self.init_interface()
 
-    def initUI(self):
+    def init_interface(self):
 
         self.root.title("BHOS-PE Administration")
         
