@@ -12,7 +12,6 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 
-##from ttkwidgets.autocomplete import AutocompleteEntry
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
 class schedule():
@@ -26,59 +25,67 @@ class schedule():
     def init_interface(self):
 
         self.root.title("BHOS-PE Administration")
-        
         self.root.configure(background="white")
 
         menubar = tk.Menu(self.root)
-        
         self.root.config(menu=menubar)
 
         fileMenu = tk.Menu(menubar,tearoff="Off")
-
         fileMenu.add_command(label="Open")
-        fileMenu.add_command(label="Save as ...")
-    
+        fileMenu.add_command(label="Save")
+        fileMenu.add_command(label="Save As")
+        fileMenu.add_separator()
         fileMenu.add_command(label="Import",command=self.import_inputs)
         fileMenu.add_command(label="Export",command=self.export_schedule)
+        fileMenu.add_separator()
         fileMenu.add_command(label="Exit",command=self.root.destroy)
 
-        helpMenu = tk.Menu(menubar,tearoff="off")
+        editMenu = tk.Menu(menubar,tearoff="Off")
+        editMenu.add_command(label="Instructors")
+        editMenu.add_command(label="Courses")
+
+        helpMenu = tk.Menu(menubar,tearoff="Off")
         helpMenu.add_command(label="Info")
         
         menubar.add_cascade(label="File",menu=fileMenu)
+        menubar.add_cascade(label="Edit",menu=editMenu)
         menubar.add_cascade(label="Help",menu=helpMenu)
 
-        self.set_frame_notebook()
-        self.set_frame_courses()
-
-        self.frame_notebook.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
-        self.frame_courses.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
-
-    def set_frame_notebook(self):
+        """STYLING"""
 
         self.style = ttk.Style(self.root)
+
+        ## configT = {"padding":[40, 1, 5, 0],"background":"white"}
+        ##       
+        ## configN = {"tabmargins":[2,5,2,0],"tabposition":"wn","background":"white"}
+        ##
+        ## configA = {"background":"white"}
+        ##
+        ## mapT = {"background":[("selected","lightgrey")],
+        ##             "expand":[("selected",[1,1,1,0])]}
+        ##        
+        ## settings = {"TNotebook":{"configure":configN},
+        ##             "TNotebook.Tab":{"configure":configT,"map":mapT},
+        ##             "TAutocompleteEntryListbox":{"configure":configA}}
+        ##        
+        ## self.style.theme_create("yummy",parent="alt",settings=settings)
+
+        """aqua,step,clam,alt,default,classic"""
+
+        self.style.theme_use("clam")
+
+        self.style.configure("TNotebook",tabposition="wn")
         
-        configN = {"tabmargins":[2,5,2,0],"tabposition":"wn","background":"white"}
+        """END-OF-STYLING"""
 
-        configT = {"padding":[40, 1, 5, 0],"background":"white"}
-
-        mapT = {"background":[("selected","lightgrey")],
-                    "expand":[("selected",[1,1,1,0])]}
-        
-        settings = {"TNotebook":{"configure":configN},
-                "TNotebook.Tab":{"configure":configT,"map":mapT}}
-        
-        self.style.theme_create("yummy",parent="alt",settings=settings)
-
-        self.style.theme_use("yummy")
-
-        self.frame_notebook = ttk.Notebook(self.root)
-
+        self.frame_notebook = ttk.Notebook(self.root)        
         self.frame0 = self.set_frame_notebook_sheet()
-        
         self.frame0.pack(fill='both',expand=True)
-
         self.frame_notebook.add(self.frame0,text="Instructor's Name",compound=tk.RIGHT)
+        self.frame_notebook.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        
+        self.set_frame_courses()
+        self.frame_courses.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)  
 
     def set_frame_notebook_sheet(self):
 
@@ -163,8 +170,8 @@ class schedule():
         
         self.frame_courses.searchbox.grid(row=1,column=0,columnspan=3,sticky=tk.NSEW)
 
-##        self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
-##        self.frame_courses.listbox.grid(row=2,column=0,columnspan=3,sticky=NSEW)
+        ## self.frame_courses.listbox = Listbox(self.frame_courses,width=40,height=20)
+        ## self.frame_courses.listbox.grid(row=2,column=0,columnspan=3,sticky=NSEW)
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
 
@@ -186,23 +193,17 @@ class schedule():
         self.frame_courses.button_extended.configure(background="white")
         self.frame_courses.button_extended.grid(row=3,column=2,sticky=tk.EW)
 
-##        self.frame_courses.status_text = StringVar()
-
         self.frame_courses.status = tk.Listbox(self.frame_courses,width=40,height=10)
-##        self.frame_courses.status.configure(background="white",justify=LEFT)
-
         self.frame_courses.status.grid(row=4,column=0,columnspan=3,sticky=tk.NSEW)
 
-##        self.frame_courses.status = Label(
-##            self.frame_courses,relief="sunken",anchor=NW,
-##            textvariable=self.frame_courses.status_text,wraplength=200)
-
-##        scroll = Scrollbar(self.frame_courses.status)
-##        scroll.configure(command=self.frame_courses.status.yview)
-        
-##        self.frame_courses.status.configure(yscrollcommand=scroll.set)
-        
-##        scroll.pack(side=RIGHT,fill=Y)
+        ## self.frame_courses.status_text = StringVar()
+        ## self.frame_courses.status = Label(
+        ##      self.frame_courses,relief="sunken",anchor=NW,
+        ##      textvariable=self.frame_courses.status_text,wraplength=200)
+        ## scroll = Scrollbar(self.frame_courses.status)
+        ## scroll.configure(command=self.frame_courses.status.yview)
+        ## self.frame_courses.status.configure(yscrollcommand=scroll.set) 
+        ## scroll.pack(side=RIGHT,fill=Y)
 
     def set_input(self):
 
@@ -273,9 +274,6 @@ class schedule():
         name = np.char.add(name,"-")
         
         self.courses.description = np.char.add(name,self.courses.name_ENG)
-
-##        for entry in self.courses.description:
-##            self.frame_courses.listbox.insert(END,entry)
 
         self.frame_courses.searchbox.content = self.courses.description.tolist()
 
