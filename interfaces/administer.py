@@ -7,6 +7,8 @@ import openpyxl
 from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 
+from PyQt5 import QtWidgets, QtCore, QtGui
+
 import tkinter as tk
 
 from tkinter import ttk
@@ -140,13 +142,13 @@ class schedule():
         frame.button_clear1.configure(background="white")
         frame.button_clear1.grid(row=2,column=3,sticky=tk.EW)
 
-        frame.button_test = tk.Button(frame,text="Test Instructor's Schedule",
+        frame.button_test = tk.Button(frame,text="Test Instructor's schedule",
                                    command=self.test_load)
         
         frame.button_test.configure(background="white")
         frame.button_test.grid(row=3,column=0,columnspan=2,sticky=tk.EW)
 
-        frame.button_print = tk.Button(frame,text="Add Instructor's Schedule to Export",
+        frame.button_print = tk.Button(frame,text="Add Instructor's schedule to Export",
                                    command=self.add_export)
         
         frame.button_print.configure(background="white")
@@ -476,38 +478,127 @@ class schedule():
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.yview(tk.END)
 
-##    def check_resize_mode(self,x,y):
-##        
-##        width = self.frame_notebook.cget('width')
-####        height = self.frame_courses.cget('height')
-##        
-##        mode = 0
-##        
-##        if x > width-10: mode |= HORIZONTAL    
-####        if y < 10: mode |= VERTICAL
-##        
-##        return mode
-##
-##    def start_resize(self,event):
-##
-####        print(event.x)
-##        self.resize_mode = self.check_resize_mode(event.x,event.y)        
-####        print(self.check_resize_mode(self.frame_courses,event.x,event.y))
-##
-##    def resize_frame(self,event):
-##        if self.resize_mode:
-##            if self.resize_mode & HORIZONTAL:
-##                self.frame_notebook.config(width=event.x)
-####            if self.resize_mode & VERTICAL:
-####                self.frame_notebook.config(height=event.y)
-##        else:
-##            cursor = 'sb_h_double_arrow' if self.check_resize_mode(event.x,event.y) else ''
-##            if cursor != self.cursor:
-##                self.frame_notebook.config(cursor=cursor)
-##                self.cursor = cursor
-##
-##    def stop_resize(self,event):
-##        self.resize_mode = 0
+        # def check_resize_mode(self,x,y):
+
+        # width = self.frame_notebook.cget('width')
+        # # height = self.frame_courses.cget('height')
+
+        # mode = 0
+
+        # if x > width-10: mode |= HORIZONTAL    
+        # # if y < 10: mode |= VERTICAL
+
+        # return mode
+
+        # def start_resize(self,event):
+
+        # # print(event.x)
+        # self.resize_mode = self.check_resize_mode(event.x,event.y)        
+        # # print(self.check_resize_mode(self.frame_courses,event.x,event.y))
+
+        # def resize_frame(self,event):
+        # if self.resize_mode:
+        #    if self.resize_mode & HORIZONTAL:
+        #        self.frame_notebook.config(width=event.x)
+        # # if self.resize_mode & VERTICAL:
+        # # self.frame_notebook.config(height=event.y)
+        # else:
+        #    cursor = 'sb_h_double_arrow' if self.check_resize_mode(event.x,event.y) else ''
+        #    if cursor != self.cursor:
+        #        self.frame_notebook.config(cursor=cursor)
+        #        self.cursor = cursor
+
+        # def stop_resize(self,event):
+        # self.resize_mode = 0
+
+class Window(QtWidgets.QMainWindow):
+
+    #itemEdited = QtCore.pyqtSignal(item,column)
+    
+    def __init__(self,filepath):
+        
+        super(Window,self).__init__()
+
+        self.resize(1200,600)
+        
+        filepath = "C:\\Users\\Cavid\\Documents\\bhospy\\interfaces\\sample.csv"
+        
+        self.filepath = filepath
+        self.treeView = DataViewer(parent=self)
+        self.treeView.loadCSV(self.filepath)
+
+        self.treeView.autoColumnWidth()
+
+        # self.fileView = FileViewer(parent=self)
+
+        # print(dir(self.treeView))
+        
+        self.centralwidget = QtWidgets.QWidget(self)
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.verticalLayout.addWidget(self.treeView)
+        # self.verticalLayout.addWidget(self.fileView)
+        self.setCentralWidget(self.centralwidget)
+        
+        self.editedFlag = True
+
+        self.show()   
+
+    def closeEvent(self,event):
+        
+        if self.treeView.editedFlag:
+            choice = QtWidgets.QMessageBox.question(self,'Quit',
+                "Do you want to save changes?",QtWidgets.QMessageBox.Yes | 
+                QtWidgets.QMessageBox.No)
+
+            if choice == QtWidgets.QMessageBox.Yes:
+                self.treeView.writeCSV(self.filepath)
+
+        event.accept()
+
+class FileViewer(QtWidgets.QTreeView):
+
+    fileClicked = QtCore.pyqtSignal(str)
+    
+    def __init__(self,parent):
+        super(FileViewer,self).__init__(parent)
+        self.curDir = QtCore.QDir.rootPath()
+        self.model = QtWidgets.QFileSystemModel()
+        self.model.setRootPath(self.curDir)
+        #print(dir(self.model))
+        self.setModel(self.model)
+        self.setSortingEnabled(True)
+        self.doubleClicked.connect(self.tree_file_open)
+        #print(QtGui.QKeySequence.fromString(str(chara))[0])
+
+    def tree_file_open(self,signal):
+
+        #index = self.currentIndex()
+        filepath = self.model.filePath(signal)
+
+        if os.path.isdir(filepath):
+            self.curDir = filepath
+            self.setRootIndex(self.model.index(self.curDir))
+        elif os.path.isfile(filepath):
+            self.fileClicked.emit(filepath)
+            #self.graphicsView.setImage(filepath)
+            #os.startfile(filepath)
+
+    def keyPressEvent(self,event):
+        if event.key() == QtCore.Qt.Key_Backspace:
+            oldDir = self.curDir
+            self.curDir = os.path.dirname(oldDir)
+            self.setRootIndex(self.model.index(self.curDir))
+            self.scrollTo(self.model.index(oldDir))
+        elif event.key() == QtCore.Qt.Key_Return:
+            self.tree_file_open(self.currentIndex())
+        elif event.key() == QtCore.Qt.Key_Up:
+            if self.indexAbove(self.currentIndex()).isValid():
+                self.setCurrentIndex(self.indexAbove(self.currentIndex()))
+        elif event.key() == QtCore.Qt.Key_Down:
+            if self.indexBelow(self.currentIndex()).isValid():
+                self.setCurrentIndex(self.indexBelow(self.currentIndex()))
+        else:
+            self.keyboardSearch(QtGui.QKeySequence(event.key()).toString())
         
 if __name__ == "__main__":
     
@@ -515,26 +606,26 @@ if __name__ == "__main__":
     
     gui = schedule(window)
                                                                   
-##    window.geometry("1100x500")
+    # window.geometry("1100x500")
 
-##    Grid.rowconfigure(window, 0, weight=1)
-##    Grid.columnconfigure(window, 0, weight=1)
+    # Grid.rowconfigure(window, 0, weight=1)
+    # Grid.columnconfigure(window, 0, weight=1)
 
-##    frame = Frame(window)
-##
-##    Grid.columnconfigure(frame, 0, weight=1)
-##    Grid.columnconfigure(frame, 1, weight=1)
-##
-##    Grid.rowconfigure(frame, 0, weight=1)
-##
-##    listbox1 = Listbox(frame,width=40,height=20)
-##    listbox2 = Listbox(frame,width=80,height=20)
-##
-##    listbox1.grid(row=0,column=0,sticky=N+E+W+S)
-##    listbox2.grid(row=0,column=1,sticky=N+E+W+S)
+    # frame = Frame(window)
 
-##    frame.grid(row=0,column=0,sticky=EW)
+    # Grid.columnconfigure(frame, 0, weight=1)
+    # Grid.columnconfigure(frame, 1, weight=1)
 
-##    frame.pack(expand=1,fill=BOTH)
+    # Grid.rowconfigure(frame, 0, weight=1)
+
+    # listbox1 = Listbox(frame,width=40,height=20)
+    # listbox2 = Listbox(frame,width=80,height=20)
+
+    # listbox1.grid(row=0,column=0,sticky=N+E+W+S)
+    # listbox2.grid(row=0,column=1,sticky=N+E+W+S)
+
+    # frame.grid(row=0,column=0,sticky=EW)
+
+    # frame.pack(expand=1,fill=BOTH)
 
     window.mainloop()

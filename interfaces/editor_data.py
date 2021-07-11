@@ -59,16 +59,13 @@ class database_manager():
         db_file = r"C:\Users\Cavid\Documents\bhospy\instructors.db"
 
         self.conn = sqlite3.connect(db_file)
-
-##        sqlite_table = '''CREATE TABLE SqliteDb_developers (
-##                          id INTEGER PRIMARY KEY,
-##                          name TEXT NOT NULL,
-##                          email text NOT NULL UNIQUE);'''
-        
+        # sqlite_table = '''CREATE TABLE SqliteDb_developers (
+        #                  id INTEGER PRIMARY KEY,
+        #                  name TEXT NOT NULL,
+        #                  email text NOT NULL UNIQUE);'''
         self.cursor = self.conn.cursor()
-
-##        self.cursor.execute(sqlite_table)
-##        self.conn.commit()
+        # self.cursor.execute(sqlite_table)
+        # self.conn.commit()
         
         self.cursor.close()
         self.conn.close()
@@ -234,19 +231,19 @@ class Window(QtWidgets.QMainWindow):
         filepath = "C:\\Users\\Cavid\\Documents\\bhospy\\interfaces\\sample.csv"
         
         self.filepath = filepath
-        self.treeView = DataViewer(parent=self)
+        self.treeView = data_table(parent=self)
         self.treeView.loadCSV(self.filepath)
 
         self.treeView.autoColumnWidth()
 
-##        self.fileView = FileViewer(parent=self)
+        # self.fileView = FileViewer(parent=self)
 
-        #print(dir(self.treeView))
+        # print(dir(self.treeView))
         
         self.centralwidget = QtWidgets.QWidget(self)
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.verticalLayout.addWidget(self.treeView)
-##        self.verticalLayout.addWidget(self.fileView)
+        # self.verticalLayout.addWidget(self.fileView)
         self.setCentralWidget(self.centralwidget)
         
         self.editedFlag = True
@@ -265,10 +262,10 @@ class Window(QtWidgets.QMainWindow):
 
         event.accept()
 
-class DataViewer(QtWidgets.QTreeView):
+class data_table(QtWidgets.QTreeView):
 
     def __init__(self,parent=None):
-        super(DataViewer,self).__init__(parent)
+        super(data_table,self).__init__(parent)
 
         #print(dir(self))
 
@@ -340,52 +337,7 @@ class DataViewer(QtWidgets.QTreeView):
         for columnNumber in range(self.model.columnCount()):
             self.resizeColumnToContents(columnNumber)
 
-class FileViewer(QtWidgets.QTreeView):
-
-    fileClicked = QtCore.pyqtSignal(str)
-    
-    def __init__(self,parent):
-        super(FileViewer,self).__init__(parent)
-        self.curDir = QtCore.QDir.rootPath()
-        self.model = QtWidgets.QFileSystemModel()
-        self.model.setRootPath(self.curDir)
-        #print(dir(self.model))
-        self.setModel(self.model)
-        self.setSortingEnabled(True)
-        self.doubleClicked.connect(self.tree_file_open)
-        #print(QtGui.QKeySequence.fromString(str(chara))[0])
-
-    def tree_file_open(self,signal):
-
-        #index = self.currentIndex()
-        filepath = self.model.filePath(signal)
-
-        if os.path.isdir(filepath):
-            self.curDir = filepath
-            self.setRootIndex(self.model.index(self.curDir))
-        elif os.path.isfile(filepath):
-            self.fileClicked.emit(filepath)
-            #self.graphicsView.setImage(filepath)
-            #os.startfile(filepath)
-
-    def keyPressEvent(self,event):
-        if event.key() == QtCore.Qt.Key_Backspace:
-            oldDir = self.curDir
-            self.curDir = os.path.dirname(oldDir)
-            self.setRootIndex(self.model.index(self.curDir))
-            self.scrollTo(self.model.index(oldDir))
-        elif event.key() == QtCore.Qt.Key_Return:
-            self.tree_file_open(self.currentIndex())
-        elif event.key() == QtCore.Qt.Key_Up:
-            if self.indexAbove(self.currentIndex()).isValid():
-                self.setCurrentIndex(self.indexAbove(self.currentIndex()))
-        elif event.key() == QtCore.Qt.Key_Down:
-            if self.indexBelow(self.currentIndex()).isValid():
-                self.setCurrentIndex(self.indexBelow(self.currentIndex()))
-        else:
-            self.keyboardSearch(QtGui.QKeySequence(event.key()).toString())
-
-class plot_production():
+class data_graph():
 
     """
     The task is about the history matches. When we do changes to input files and run
@@ -424,7 +376,7 @@ class plot_production():
 
         self.frame.configure(background="white")
 
-##        self.fileviewer = FileViewer(self.frame)
+        self.fileviewer = FileViewer(self.frame)
 
         self.listbox = tk.Listbox(self.frame,width=10,height=30)
         self.listbox.grid(row=0,column=0,sticky=tk.NSEW)
@@ -569,49 +521,49 @@ if __name__ == "__main__":
 
     """database editor"""
     
-##    window = tk.Tk()
-##    gui = database_constructor(window)
-##    window.mainloop()
+    # window = tk.Tk()
+    # gui = database_constructor(window)
+    # window.mainloop()
 
     """data plot"""
     
-##    window = tk.Tk()
-##    gui = plot_production(window)
-##    window.mainloop()
+    # window = tk.Tk()
+    # gui = plot_production(window)
+    # window.mainloop()
 
     """input editor"""
 
     app = QtWidgets.QApplication(sys.argv)
-##    window = Window(args.filepath)
+    # window = Window(args.filepath)
     window = Window(os.curdir)
     sys.exit(app.exec_())
 
     """task 0"""
     
-##    inputfile0 = 'C:\\Users\\javid.s\\Desktop\\BHR-076.txt'
-##    inputfile1 = 'C:\\Users\\javid.s\\Desktop\\BHR_VI_SCHEDULE.INC'
-##
-##    outputfile = 'C:\\Users\\javid.s\\Desktop\\BHR_VI_SCHEDULE_V2.INC'
+    # inputfile0 = 'C:\\Users\\javid.s\\Desktop\\BHR-076.txt'
+    # inputfile1 = 'C:\\Users\\javid.s\\Desktop\\BHR_VI_SCHEDULE.INC'
+
+    # outputfile = 'C:\\Users\\javid.s\\Desktop\\BHR_VI_SCHEDULE_V2.INC'
 
     """input reader"""
 
-##    class reservoir: pass
-##    class well: pass
-##    class time: pass
-##
-##    sheets = {
-##        "num_cols": 5,
-##        "dataTypes": "col"
-##        }
-##
-##    setup("sample.csv",sheets,reservoir)
-##
-##    print(reservoir.porosity)
-##    
-##    sheets = {
-##        "names": ["build_up_test","parameters"],
-##        "num_cols": [3,4],
-##        "dataTypes": ["col","row"]
-##        }
-##
-##    readxlsx('sample.xlsx',sheets,time,well)
+    # class reservoir: pass
+    # class well: pass
+    # class time: pass
+
+    # sheets = {
+    #    "num_cols": 5,
+    #    "dataTypes": "col"
+    #    }
+
+    # setup("sample.csv",sheets,reservoir)
+
+    # print(reservoir.porosity)
+
+    # sheets = {
+    #    "names": ["build_up_test","parameters"],
+    #    "num_cols": [3,4],
+    #    "dataTypes": ["col","row"]
+    #    }
+
+    # readxlsx('sample.xlsx',sheets,time,well)
