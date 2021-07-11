@@ -17,19 +17,48 @@ from PyQt5 import QtWidgets
 
 import sqlite3
 
+from sqlite3 import Error
+
 import tkinter as tk
 
 from tkinter import ttk
 from tkinter import filedialog
 
-"""
-data manager - reader
-data manager - writer
-data visualizer - tables
-data visualizer - graphs
-"""
-
 class database_manager():
+
+    def __init__(self,dbpath):
+
+        self.dbpath = dbpath
+
+        self.create_connection()
+
+    def create_connection(self):
+
+        self.conn = None
+
+        try:
+            self.conn = sqlite3.connect(self.dbpath)
+        except Error:
+            print(Error)
+
+    def create_table(self,sqlite_table):
+
+        self.sqlite_table = sqlite_table
+
+        try:
+            self.cursor = self.conn.cursor()
+            self.cursor.execute(self.sqlite_table)
+            self.conn.commit()
+        except Error:
+            print(Error)
+
+    def insert_table(self,sqlite_table_insert,table_row):
+
+        self.sqlite_table_insert = sqlite_table_insert
+        self.cursor.execute(self.sqlite_table_insert,table_row)
+        self.conn.commit()
+
+class database_interface():
 
     def __init__(self,window):
 
@@ -519,7 +548,44 @@ class data_graph():
 
 if __name__ == "__main__":
 
-    """database editor"""
+    """database manager"""
+
+    dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
+
+    DB = database_manager(dbpath)
+
+    instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
+                                        id integer PRIMARY KEY,
+                                        first_name text NOT NULL,
+                                        last_name text NOT NULL,
+                                        patronym text NOT NULL,
+                                        position text NOT NULL,
+                                        status text NOT NULL,
+                                        email text NOT NULL UNIQUE,
+                                        phone integer NOT NULL UNIQUE);"""
+
+    DB.create_table(instructor_table)
+
+    instructor_table_insert = """ INSERT INTO instructors(
+                                        id,
+                                        first_name,
+                                        last_name,
+                                        patronym,
+                                        position,
+                                        status,
+                                        email,
+                                        phone)
+                                        VALUES(?,?,?,?,?,?,?,?)"""
+
+    instructor_7 = (7,"Javid","Shiriyev","Farhad",
+                "Senior Lecturer","Hour Based Teaching",
+                "cavid.shiriyev@bhos.edu.az","+994508353992")
+
+    DB.insert_table(instructor_table_insert,instructor_7)
+    DB.cursor.close()
+    DB.conn.close()
+
+    """database interface"""
     
     # window = tk.Tk()
     # gui = database_constructor(window)
@@ -533,10 +599,10 @@ if __name__ == "__main__":
 
     """input editor"""
 
-    app = QtWidgets.QApplication(sys.argv)
-    # window = Window(args.filepath)
-    window = Window(os.curdir)
-    sys.exit(app.exec_())
+    # app = QtWidgets.QApplication(sys.argv)
+    # # window = Window(args.filepath)
+    # window = Window(os.curdir)
+    # sys.exit(app.exec_())
 
     """task 0"""
     
