@@ -381,8 +381,6 @@ class data_graph():
         self.init_interface()
 
     def init_interface(self):
-
-        self.root.title("BEOC-Subsurface")
         
         self.root.configure(background="white")
 
