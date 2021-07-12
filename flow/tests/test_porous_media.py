@@ -430,6 +430,9 @@ class TestNumericalCalculations(unittest.TestCase):
 
 class TestFormationWithComplexFracture(unittest.TestCase):
 
+    def test_green_theta_function(self):
+        pass
+
     def test_semianalytical_solution(self):
         pass
                        
