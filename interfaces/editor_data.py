@@ -408,13 +408,13 @@ class data_graph():
         self.listbox = tk.Listbox(self.frame,width=10,height=30)
         self.listbox.grid(row=0,column=0,sticky=tk.NSEW)
 
-        self.listbox.bind('<Double-1>',self.get_listentry)
+        self.listbox.bind('<<ListboxSelect>>',self.get_sheet_data)
         
         self.figure = plt.Figure()
         
         self.plot = FigureCanvasTkAgg(self.figure,self.frame)
         self.plot_widget = self.plot.get_tk_widget()
-        self.plot_widget.grid(row=0,column=1,sticky=tk.NSEW) #width=250,height=30
+        self.plot_widget.grid(row=0,column=1,sticky=tk.NSEW)
 
         self.button = tk.Button(self.frame,text="Set Plot Template",command=self.set_figure_template)
         self.button.grid(row=1,column=0)
@@ -445,10 +445,6 @@ class data_graph():
         
         self.status.insert(tk.END,status)
         self.status.see(tk.END)
-
-    def get_listentry(self,event):
-        
-        self.get_sheet_data(event.widget)
 
     def set_figure_template(self):
 
@@ -487,14 +483,11 @@ class data_graph():
 
         self.plot.draw()
 
-    def get_sheet_data(self,item):
-
-        if not item.curselection():
-            return
+    def get_sheet_data(self,event):
         
         class data: pass
                 
-        data.ws = self.wb[self.listbox.get(item.curselection())]
+        data.ws = self.wb[self.listbox.get(self.listbox.curselection())]
         
         data.date = list(data.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
         
