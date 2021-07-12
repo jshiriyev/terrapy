@@ -404,30 +404,26 @@ class data_graph():
         tk.Grid.columnconfigure(self.frame,1,weight=1)
 
         self.frame.configure(background="white")
-
-        self.fileviewer = FileViewer(self.frame)
-
+        
         self.listbox = tk.Listbox(self.frame,width=10,height=30)
         self.listbox.grid(row=0,column=0,sticky=tk.NSEW)
 
         self.listbox.bind('<Double-1>',self.get_listentry)
-
-        self.button = tk.Button(self.frame,text="Plot Graph",command=lambda: self.get_sheet(self.listbox))
-        self.button.grid(row=1,column=0)
-
+        
         self.figure = plt.Figure()
         
         self.plot = FigureCanvasTkAgg(self.figure,self.frame)
-
         self.plot_widget = self.plot.get_tk_widget()
-
         self.plot_widget.grid(row=0,column=1,sticky=tk.NSEW) #width=250,height=30
+
+        self.button = tk.Button(self.frame,text="Set Plot Template",command=self.set_figure_template)
+        self.button.grid(row=1,column=0)
         
         self.status = tk.Listbox(self.frame,width=250,height=5)
         self.status.grid(row=1,column=1,sticky=tk.EW)
 
         self.frame.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
-        
+
     def set_path(self):
 
         self.filepath = filedialog.askopenfilename(
@@ -452,70 +448,9 @@ class data_graph():
 
     def get_listentry(self,event):
         
-        self.get_sheet(event.widget)
+        self.get_sheet_data(event.widget)
 
-    def get_sheet(self,item):
-
-        if not item.curselection():
-            return
-
-        if hasattr(self,"axes"):
-            for axis in self.axes:
-                axis.remove()
-
-        self.template()
-
-        class data: pass
-                
-        data.ws = self.wb[self.listbox.get(item.curselection())]
-        
-        data.date = list(data.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
-        
-        Head = list(data.ws.iter_rows(max_row=1,min_col=2,values_only=True))[0]
-        Body = list(data.ws.iter_cols(min_row=2,min_col=2,values_only=True))
-
-        for i,head in enumerate(Head):
-            string = head.split(":")[1].split(",")[0].strip().replace(" ","_")
-            string = string.replace("(","").replace(")","").replace(".","")
-            setattr(data,string,np.array(Body[i]))
-        
-        try: self.axes[0].plot(data.date,data.Oil_Rate,c='k')
-        except: pass
-        try: self.axes[0].plot(data.date,data.Oil_Rate_H,'--',c='g')
-        except: pass
-        try: self.axes[1].plot(data.date,data.Oil_Total/1000,c='k')
-        except: pass
-        try: self.axes[1].plot(data.date,data.Oil_Total_H/1000,'--',c='g')
-        except: pass
-        
-        try: self.axes[2].plot(data.date,data.Gas_Rate/1000,c='k')
-        except: pass
-        try: self.axes[2].plot(data.date,data.Gas_Rate_H/1000,'--',c='r')
-        except: pass
-        try: self.axes[3].plot(data.date,data.Gas_Total/1000000,c='k')
-        except: pass
-        try: self.axes[3].plot(data.date,data.Gas_Total_H/1000000,'--',c='r')
-        except: pass
-        
-        try: self.axes[4].plot(data.date,data.Water_Rate,c='k')
-        except: pass
-        try: self.axes[4].plot(data.date,data.Water_Rate_H,'--',c='b')
-        except: pass
-        try: self.axes[5].plot(data.date,data.Water_Total/1000,c='k')
-        except: pass
-        try: self.axes[5].plot(data.date,data.Water_Total_H/1000,'--',c='b')
-        except: pass
-        
-        try: self.axes[6].plot(data.date,data.Bottom_Hole_Pressure,c='k')
-        except: self.axes[6].plot(data.date,data.Avg_Pressure,c='k')
-        try: self.axes[6].plot(data.date,data.Bottom_Hole_Pressure_H,'--',c='m')
-        except: pass
-
-        self.figure.set_tight_layout(True)
-        
-        self.plot.draw()
-
-    def template(self):
+    def set_figure_template(self):
 
         self.axes = []
 
@@ -546,12 +481,90 @@ class data_graph():
         self.axes[4].grid()
         self.axes[6].grid()
 
+        self.figure.set_tight_layout(True)
+
+        self.axesPlotFlag = False
+
+        self.plot.draw()
+
+    def get_sheet_data(self,item):
+
+        if not item.curselection():
+            return
+        
+        class data: pass
+                
+        data.ws = self.wb[self.listbox.get(item.curselection())]
+        
+        data.date = list(data.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
+        
+        Head = list(data.ws.iter_rows(max_row=1,min_col=2,values_only=True))[0]
+        Body = list(data.ws.iter_cols(min_row=2,min_col=2,values_only=True))
+
+        for i,head in enumerate(Head):
+            string = head.split(":")[1].split(",")[0].strip().replace(" ","_")
+            string = string.replace("(","").replace(")","").replace(".","")
+            setattr(data,string,np.array(Body[i]))
+        
+        self.set_figure_data(data)
+        
+    def set_figure_data(self,data):
+
+        if self.axesPlotFlag:
+            for line in self.lines:
+                line.remove()
+                
+        self.lines = []
+        
+        try: self.lines.append(self.axes[0].plot(data.date,data.Oil_Rate,c='k')[0])
+        except: pass
+        try: self.lines.append(self.axes[0].plot(data.date,data.Oil_Rate_H,'--',c='g')[0])
+        except: pass
+        try: self.lines.append(self.axes[1].plot(data.date,data.Oil_Total/1000,c='k')[0])
+        except: pass
+        try: self.lines.append(self.axes[1].plot(data.date,data.Oil_Total_H/1000,'--',c='g')[0])
+        except: pass
+        
+        try: self.lines.append(self.axes[2].plot(data.date,data.Gas_Rate/1000,c='k')[0])
+        except: pass
+        try: self.lines.append(self.axes[2].plot(data.date,data.Gas_Rate_H/1000,'--',c='r')[0])
+        except: pass
+        try: self.lines.append(self.axes[3].plot(data.date,data.Gas_Total/1000000,c='k')[0])
+        except: pass
+        try: self.lines.append(self.axes[3].plot(data.date,data.Gas_Total_H/1000000,'--',c='r')[0])
+        except: pass
+        
+        try: self.lines.append(self.axes[4].plot(data.date,data.Water_Rate,c='k')[0])
+        except: pass
+        try: self.lines.append(self.axes[4].plot(data.date,data.Water_Rate_H,'--',c='b')[0])
+        except: pass
+        try: self.lines.append(self.axes[5].plot(data.date,data.Water_Total/1000,c='k')[0])
+        except: pass
+        try: self.lines.append(self.axes[5].plot(data.date,data.Water_Total_H/1000,'--',c='b')[0])
+        except: pass
+        
+        try: self.lines.append(self.axes[6].plot(data.date,data.Bottom_Hole_Pressure,c='k')[0])
+        except: self.lines.append(self.axes[6].plot(data.date,data.Avg_Pressure,c='k')[0])
+        try: self.lines.append(self.axes[6].plot(data.date,data.Bottom_Hole_Pressure_H,'--',c='m')[0])
+        except: pass
+
+        for axis in self.axes:
+            axis.relim()
+            axis.autoscale_view()
+
+        self.figure.set_tight_layout(True)
+
+        self.axesPlotFlag = True
+
+        self.plot.draw()
+
 if __name__ == "__main__":
 
     """database manager"""
 
-    dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
-
+    # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
+    dbpath = ":memory:"
+    
     DB = database_manager(dbpath)
 
     instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
@@ -594,7 +607,7 @@ if __name__ == "__main__":
     """data plot"""
     
     # window = tk.Tk()
-    # gui = plot_production(window)
+    # gui = data_graph(window)
     # window.mainloop()
 
     """input editor"""
