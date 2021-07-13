@@ -394,33 +394,45 @@ class data_graph():
 
         menubar.add_cascade(label="File",menu=fileMenu)
 
-        self.frame = tk.Frame(self.root,width=300,height=200)
+        self.frame_navigator = tk.Frame(self.root,width=300,height=200)
+        self.frame_navigator.configure(background="white")
 
-        tk.Grid.rowconfigure(self.frame,0,weight=1)
+        tk.Grid.rowconfigure(self.frame_navigator,0,weight=1)
+        tk.Grid.rowconfigure(self.frame_navigator,2,weight=1)
+        tk.Grid.columnconfigure(self.frame_navigator,0,weight=1)
 
-        tk.Grid.columnconfigure(self.frame,0,weight=1)
-        tk.Grid.columnconfigure(self.frame,1,weight=1)
-
-        self.frame.configure(background="white")
-        
-        self.listbox = tk.Listbox(self.frame,width=10,height=30)
+        self.listbox = tk.Listbox(self.frame_navigator,width=10,height=30,exportselection=False)
         self.listbox.grid(row=0,column=0,sticky=tk.NSEW)
-
         self.listbox.bind('<<ListboxSelect>>',self.get_sheet_data)
+
+        self.label_template = tk.Label(self.frame_navigator,text="Plot Templates")
+        self.label_template.grid(row=1,column=0,sticky=tk.EW)
+
+        self.listbox_template = tk.Listbox(self.frame_navigator,exportselection=False)
+        self.listbox_template.grid(row=2,column=0,sticky=tk.NSEW)
+        self.listbox_template.insert(tk.END,"Production History Match")
+        self.listbox_template.bind('<<ListboxSelect>>',self.set_figure_template)
+
+        # self.button = tk.Button(self.frame_navigator,text="Set Plot Template",command=self.set_figure_template)
+        # self.button.grid(row=1,column=0,sticky=tk.NSEW)
+
+        self.frame_monitor = tk.Frame(self.root,width=300,height=200)
+        self.frame_monitor.configure(background="white")
+
+        tk.Grid.rowconfigure(self.frame_monitor,0,weight=1)
+        tk.Grid.columnconfigure(self.frame_monitor,0,weight=1)
         
         self.figure = plt.Figure()
         
-        self.plot = FigureCanvasTkAgg(self.figure,self.frame)
+        self.plot = FigureCanvasTkAgg(self.figure,self.frame_monitor)
         self.plot_widget = self.plot.get_tk_widget()
-        self.plot_widget.grid(row=0,column=1,sticky=tk.NSEW)
-
-        self.button = tk.Button(self.frame,text="Set Plot Template",command=self.set_figure_template)
-        self.button.grid(row=1,column=0)
+        self.plot_widget.grid(row=0,column=0,sticky=tk.NSEW)
         
-        self.status = tk.Listbox(self.frame,width=250,height=5)
-        self.status.grid(row=1,column=1,sticky=tk.EW)
+        self.status = tk.Listbox(self.frame_monitor,width=250,height=5)
+        self.status.grid(row=1,column=0,sticky=tk.EW)
 
-        self.frame.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        self.frame_navigator.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        self.frame_monitor.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
     def set_path(self):
 
@@ -431,20 +443,24 @@ class data_graph():
 
         if not self.filepath:
             return
-
-        self.inputfile = self.filepath
         
-        self.wb = openpyxl.load_workbook(self.inputfile)
-
-        status = "Imported \""+self.filepath+"\"."
+        self.wb = openpyxl.load_workbook(self.filepath)
 
         for sheet in self.wb.sheetnames:
             self.listbox.insert(tk.END,sheet)
-        
+
+        status = "Imported \""+self.filepath+"\"."
         self.status.insert(tk.END,status)
         self.status.see(tk.END)
 
-    def set_figure_template(self):
+    def set_figure_template(self,event):
+
+        if not self.listbox_template.curselection():
+            return
+        
+        if hasattr(self,"axes"):
+            for axis in self.axes:
+                self.figure.delaxes(axis)
 
         self.axes = []
 
@@ -477,11 +493,16 @@ class data_graph():
 
         self.figure.set_tight_layout(True)
 
-        self.axesPlotFlag = False
-
         self.plot.draw()
 
+        status = "Production history match template has been selected."
+        self.status.insert(tk.END,status)
+        self.status.see(tk.END)
+
     def get_sheet_data(self,event):
+
+        if not self.listbox.curselection():
+            return
         
         class data: pass
                 
@@ -501,7 +522,13 @@ class data_graph():
         
     def set_figure_data(self,data):
 
-        if self.axesPlotFlag:
+        if not hasattr(self,"axes"):
+            status = "No template has been selected."    
+            self.status.insert(tk.END,status)
+            self.status.see(tk.END)
+            return
+
+        if hasattr(self,"lines"):
             for line in self.lines:
                 line.remove()
                 
@@ -545,8 +572,6 @@ class data_graph():
 
         self.figure.set_tight_layout(True)
 
-        self.axesPlotFlag = True
-
         self.plot.draw()
 
 if __name__ == "__main__":
@@ -556,38 +581,38 @@ if __name__ == "__main__":
     # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
     dbpath = ":memory:"
     
-    DB = database_manager(dbpath)
+    # DB = database_manager(dbpath)
 
-    instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
-                                        id integer PRIMARY KEY,
-                                        first_name text NOT NULL,
-                                        last_name text NOT NULL,
-                                        patronym text NOT NULL,
-                                        position text NOT NULL,
-                                        status text NOT NULL,
-                                        email text NOT NULL UNIQUE,
-                                        phone integer NOT NULL UNIQUE);"""
+    # instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
+    #                                     id integer PRIMARY KEY,
+    #                                     first_name text NOT NULL,
+    #                                     last_name text NOT NULL,
+    #                                     patronym text NOT NULL,
+    #                                     position text NOT NULL,
+    #                                     status text NOT NULL,
+    #                                     email text NOT NULL UNIQUE,
+    #                                     phone integer NOT NULL UNIQUE);"""
 
-    DB.create_table(instructor_table)
+    # DB.create_table(instructor_table)
 
-    instructor_table_insert = """ INSERT INTO instructors(
-                                        id,
-                                        first_name,
-                                        last_name,
-                                        patronym,
-                                        position,
-                                        status,
-                                        email,
-                                        phone)
-                                        VALUES(?,?,?,?,?,?,?,?)"""
+    # instructor_table_insert = """ INSERT INTO instructors(
+    #                                     id,
+    #                                     first_name,
+    #                                     last_name,
+    #                                     patronym,
+    #                                     position,
+    #                                     status,
+    #                                     email,
+    #                                     phone)
+    #                                     VALUES(?,?,?,?,?,?,?,?)"""
 
-    instructor_7 = (7,"Javid","Shiriyev","Farhad",
-                "Senior Lecturer","Hour Based Teaching",
-                "cavid.shiriyev@bhos.edu.az","+994508353992")
+    # instructor_7 = (7,"Javid","Shiriyev","Farhad",
+    #             "Senior Lecturer","Hour Based Teaching",
+    #             "cavid.shiriyev@bhos.edu.az","+994508353992")
 
-    DB.insert_table(instructor_table_insert,instructor_7)
-    DB.cursor.close()
-    DB.conn.close()
+    # DB.insert_table(instructor_table_insert,instructor_7)
+    # DB.cursor.close()
+    # DB.conn.close()
 
     """database interface"""
     
