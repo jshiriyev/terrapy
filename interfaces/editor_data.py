@@ -125,78 +125,104 @@ class datafile_manager():
         else:
             self.read_notype()
 
-##    def read_notype(self,skiplines=0):
-##        
-##        with open(self.path) as notyperead:
-##            self.content = notyperead.readlines()
-##            for linenumber in range(len(self.content)):
-##                if linenumber>=skiplines-1
-##            self.header = self.content[skiplines].split("\n")[0].split("\t")
-##            for linenumber in range(
-##
-##    def todatetime(self,dateformat='%m/%d/%Y',skiplines=1):
-##
-##        self.date = []
-##
-##        for linenumber in range(len(self.content)):
-##            if linenumber>=skiplines:
-##                string = self.content[linenumber].split("\t")[1]
-##                self.date.append(datetime.datetime.strptime(string,dateformat))
-##
-##    def tonumpy(self):
-##
-##        self.content = np.array(self.content)
+        def read_notype(self,skiplines=0):
+
+            with open(self.path) as structuredread:
+
+                self.content = structuredread.readlines()
+                self.body = []
+
+                for linenumber in range(len(self.content)):
+                    if linenumber>=skiplines:
+                        bodyline = self.content[linenumber]
+                        self.body.append(bodyline.split("\n")[0].split("\t"))
+                        numcol = len(self.body)
+
+                self.body = np.array(self.body)
+
+                if skipline==0:
+                    for column_id in range(numcol):
+                        header = "col_"+str(column_id)
+                        setattr(self,header,self.body[:,column_id])
+                
+                elif skipline!=0 and linenumber==skipline-1:
+                    try:
+                        headers = self.content[linenumber]
+                        headers = headers.split("\n")[0].split("\t")
+
+                        for column_id,header in enumerate(headers):
+                            header = header.strip().replace(" ","_")
+                            header = header.replace("(","").replace(")","").replace(".","")
+                            setattr(self,header,self.body[:,column_id])
+                    except:
+                        for column_id in range(numcol):
+                            header = "col_"+str(column_id)
+                            setattr(self,header,self.body[:,column_id])
+                
+
+        def todatetime(self,dateformat='%m/%d/%Y',skiplines=1):
+
+           self.date = []
+
+           for linenumber in range(len(self.content)):
+               if linenumber>=skiplines:
+                   string = self.content[linenumber].split("\t")[1]
+                   self.date.append(datetime.datetime.strptime(string,dateformat))
+
+        def tonumpy(self):
+
+           self.content = np.array(self.content)
 
     def read_csv(self,*args):
 
         with open(self.path,"r") as csvread:
             pass
-##            reader = list(csv.reader(csvfile))
-##            reader = np.array(reader)
-##            num_row, num_col = reader.shape
-##            if sheets['dataTypes']=='col':
-##                tuples = tuple(reader.T)
-##            elif sheets['dataTypes']=='row':
-##                tuples = tuple(reader)
-##            setparent(tuples,*args)
+            # reader = list(csv.reader(csvfile))
+            # reader = np.array(reader)
+            # num_row, num_col = reader.shape
+            # if sheets['dataTypes']=='col':
+            #    tuples = tuple(reader.T)
+            # elif sheets['dataTypes']=='row':
+            #    tuples = tuple(reader)
+            # setparent(tuples,*args)
             
     def read_xlsx(self,sheets,*args):
         
         wb = openpyxl.load_workbook(self.path)
 
-##        all_tuples = ()
-##        
-##        for i,sheetname in enumerate(sheets["names"]):
-##            sheet = wb[sheetname]
-##            if sheets['dataTypes'][i]=='col':
-##                tuples = tuple(sheet.iter_cols(max_col=sheets['num_cols'][i],values_only=True))
-##            elif sheets['dataTypes'][i]=='row':
-##                tuples = tuple(sheet.iter_rows(max_col=sheets['num_cols'][i],values_only=True))
-##            all_tuples = all_tuples+tuples
-##        setparent(all_tuples,*args)
+        # all_tuples = ()
+
+        # for i,sheetname in enumerate(sheets["names"]):
+        #    sheet = wb[sheetname]
+        #    if sheets['dataTypes'][i]=='col':
+        #        tuples = tuple(sheet.iter_cols(max_col=sheets['num_cols'][i],values_only=True))
+        #    elif sheets['dataTypes'][i]=='row':
+        #        tuples = tuple(sheet.iter_rows(max_col=sheets['num_cols'][i],values_only=True))
+        #    all_tuples = all_tuples+tuples
+        # setparent(all_tuples,*args)
         
     def write_notype(self):
             
         with open(self.path,"w") as notypewritten:
             pass
-##            with open(outputfile,"w") as writtenfile:
-##            for i,date in enumerate(rdate):
-##                skiptoline(rewrittenfile,'DATES',writtenfile)
-##                skiptoline(rewrittenfile,rdate[i],writtenfile)
-##                skiptoline(rewrittenfile,'WCONHIST',writtenfile)
-##                while True:
-##                    wline = next(rewrittenfile)
-##                    if wline.split('/')[0].strip().split(' ')[0] == '\'BHR_76\'':
-##                        notypewritten.write(rcopy[i])
-##                        break
-##                    else:
-##                        notypewritten.write(wline)
-##            while True:
-##                try:
-##                    copiedline = next(rewrittenfile)
-##                    writtenfile.write(copiedline)
-##                except:
-##                    break
+            # with open(outputfile,"w") as writtenfile:
+            # for i,date in enumerate(rdate):
+            #    skiptoline(rewrittenfile,'DATES',writtenfile)
+            #    skiptoline(rewrittenfile,rdate[i],writtenfile)
+            #    skiptoline(rewrittenfile,'WCONHIST',writtenfile)
+            #    while True:
+            #        wline = next(rewrittenfile)
+            #        if wline.split('/')[0].strip().split(' ')[0] == '\'BHR_76\'':
+            #            notypewritten.write(rcopy[i])
+            #            break
+            #        else:
+            #            notypewritten.write(wline)
+            # while True:
+            #    try:
+            #        copiedline = next(rewrittenfile)
+            #        writtenfile.write(copiedline)
+            #    except:
+            #        break
 
     def skiptoline(self,file_read,keyword,file_written=None):
     
@@ -222,7 +248,6 @@ class datafile_manager():
         array = np.array(atuple[3:]).astype('float64')
         setattr(self,atuple[1]+'_unit',atuple[2])
         setattr(self,atuple[1],array)
-
 
 class Window(QtWidgets.QMainWindow):
 
