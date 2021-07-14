@@ -1,6 +1,10 @@
 import csv
 import datetime
+
+from dateutil.relativedelta import relativedelta
+
 import os
+import re
 import sys
 
 import matplotlib.pyplot as plt
@@ -101,21 +105,11 @@ class database_interface():
 
 class datafile_manager():
 
-    """
-
-    The task was to get dates of well from the first input file
-    (inputfile0) and modify the production data of input file 2
-    (inputfile1) so that the specified well will have new
-    production data.
-
-    """
-
-    def __init__(self,filepath,*args):
+    def __init__(self,filepath,*args,**kwargs):
 
         self.path = filepath
-
         self.name = self.path.split("\\")[-1]
-        
+
         self.extension = os.path.splitext(self.path)[1]
 
         if self.extension == ".csv":
@@ -123,59 +117,94 @@ class datafile_manager():
         elif self.extension == ".xlsx":
             self.read_xlsx(*args)
         else:
-            self.read_notype()
+            self.read_naked(**kwargs)
 
-        def read_notype(self,skiplines=0):
+    def read_naked(self,skiplines=0,headerline=None):
 
-            with open(self.path) as structuredread:
+        self.skiplines = skiplines
 
-                self.content = structuredread.readlines()
-                self.body = []
+        with open(self.path) as structured_text:
+            self.running = structured_text.readlines()
 
-                for linenumber in range(len(self.content)):
-                    if linenumber>=skiplines:
-                        bodyline = self.content[linenumber]
-                        self.body.append(bodyline.split("\n")[0].split("\t"))
-                        numcol = len(self.body)
+        self.body_rows = []
 
-                self.body = np.array(self.body)
+        for linenumber in range(len(self.running)):
+            if linenumber>=self.skiplines:
+                body_rowline = self.running[linenumber]
+                self.body_rows.append(body_rowline.split("\n")[0].split("\t"))
 
-                if skipline==0:
-                    for column_id in range(numcol):
-                        header = "col_"+str(column_id)
-                        setattr(self,header,self.body[:,column_id])
-                
-                elif skipline!=0 and linenumber==skipline-1:
-                    try:
-                        headers = self.content[linenumber]
-                        headers = headers.split("\n")[0].split("\t")
+        self.body_rows = np.array(self.body_rows)
+        self.num_cols = self.body_rows.shape[1]
 
-                        for column_id,header in enumerate(headers):
-                            header = header.strip().replace(" ","_")
-                            header = header.replace("(","").replace(")","").replace(".","")
-                            setattr(self,header,self.body[:,column_id])
-                    except:
-                        for column_id in range(numcol):
-                            header = "col_"+str(column_id)
-                            setattr(self,header,self.body[:,column_id])
-                
+        if self.skiplines==0:
+            self.header_rows = None
+            self.header = ["col_"+str(column_id) for column_id in range(self.num_cols)]
+            self._set_columns()
+        
+        elif self.skiplines!=0:
+            if headerline is None:
+                linenumber = self.skiplines-1
+            elif headerline < self.skiplines:
+                linenumber = headerline
+            else:
+                linenumber = self.skiplines-1
+            self.header_rows = self.running[:self.skiplines]
+            self.header = self.running[linenumber]
+            self.header = self.header.split("\n")[0].split("\t")
+            self._set_columns()
 
-        def todatetime(self,dateformat='%m/%d/%Y',skiplines=1):
+        # for linenumber,line in enumerate(self.running):
 
-           self.date = []
+        #     if rlinenumber>0:
 
-           for linenumber in range(len(self.content)):
-               if linenumber>=skiplines:
-                   string = self.content[linenumber].split("\t")[1]
-                   self.date.append(datetime.datetime.strptime(string,dateformat))
+        #         alist = rline.split('\t')
 
-        def tonumpy(self):
+        #         wellname = alist[0]
 
-           self.content = np.array(self.content)
+        #         date_list = alist[1].split('-')
+
+        #         if date_list[1]=='01':
+        #             date_newformat = date_list[2]+' JAN '+date_list[0]
+        #         elif date_list[1]=='02':
+        #             date_newformat = date_list[2]+' FEB '+date_list[0]
+        #         elif date_list[1]=='03':
+        #             date_newformat = date_list[2]+' MAR '+date_list[0]
+        #         elif date_list[1]=='04':
+        #             date_newformat = date_list[2]+' APR '+date_list[0]
+        #         elif date_list[1]=='05':
+        #             date_newformat = date_list[2]+' MAY '+date_list[0]
+        #         elif date_list[1]=='06':
+        #             date_newformat = date_list[2]+' JUN '+date_list[0]
+        #         elif date_list[1]=='07':
+        #             date_newformat = date_list[2]+' JUL '+date_list[0]
+        #         elif date_list[1]=='08':
+        #             date_newformat = date_list[2]+' AUG '+date_list[0]
+        #         elif date_list[1]=='09':
+        #             date_newformat = date_list[2]+' SEP '+date_list[0]
+        #         elif date_list[1]=='10':
+        #             date_newformat = date_list[2]+' OCT '+date_list[0]
+        #         elif date_list[1]=='11':
+        #             date_newformat = date_list[2]+' NOV '+date_list[0]
+        #         elif date_list[1]=='12':
+        #             date_newformat = date_list[2]+' DEC '+date_list[0]
+
+        #         rdate = np.append(rdate,date_newformat)
+                   
+        #         days = alist[2]
+        #         condensate = alist[3]
+        #         gas = alist[4]
+        #         water = alist[5]
+
+        #         if rlinenumber+1==len(DFM.content):
+        #             copied_line = '\t\''+wellname+'\'\tSTOP\tGRAT\t'+condensate+'\t'+water+'\t'+gas+' /\n'
+        #         else:
+        #             copied_line = '\t\''+wellname+'\'\tOPEN\tGRAT\t'+condensate+'\t'+water+'\t'+gas+' /\n'
+
+        #         rcopy = np.append(rcopy,copied_line)
 
     def read_csv(self,*args):
 
-        with open(self.path,"r") as csvread:
+        with open(self.path,"r") as csv_text:
             pass
             # reader = list(csv.reader(csvfile))
             # reader = np.array(reader)
@@ -200,35 +229,97 @@ class datafile_manager():
         #        tuples = tuple(sheet.iter_rows(max_col=sheets['num_cols'][i],values_only=True))
         #    all_tuples = all_tuples+tuples
         # setparent(all_tuples,*args)
-        
-    def write_notype(self):
-            
-        with open(self.path,"w") as notypewritten:
-            pass
-            # with open(outputfile,"w") as writtenfile:
-            # for i,date in enumerate(rdate):
-            #    skiptoline(rewrittenfile,'DATES',writtenfile)
-            #    skiptoline(rewrittenfile,rdate[i],writtenfile)
-            #    skiptoline(rewrittenfile,'WCONHIST',writtenfile)
-            #    while True:
-            #        wline = next(rewrittenfile)
-            #        if wline.split('/')[0].strip().split(' ')[0] == '\'BHR_76\'':
-            #            notypewritten.write(rcopy[i])
-            #            break
-            #        else:
-            #            notypewritten.write(wline)
-            # while True:
-            #    try:
-            #        copiedline = next(rewrittenfile)
-            #        writtenfile.write(copiedline)
-            #    except:
-            #        break
 
-    def skiptoline(self,file_read,keyword,file_written=None):
-    
+    def todatetime(self,attr_name="date",date_format='%m/%d/%Y'):
+
+        dates_string = getattr(self,attr_name)
+
+        dates = []
+
+        for date_string in dates_string:
+            dates.append(datetime.datetime.strptime(date_string,date_format))
+
+        setattr(self,attr_name,dates)
+
+    def sortbased(self,attr_name="date"):
+
+        listA = getattr(self,attr_name)
+
+        idx = list(range(len(listA)))
+
+        zipped_lists = zip(listA,idx)
+        sorted_pairs = sorted(zipped_lists)
+
+        tuples = zip(*sorted_pairs)
+
+        listA, idx = [ list(tuple) for tuple in  tuples]
+
+        for header in self.header:
+            self.toarray(header)
+            setattr(self,header,getattr(self,header)[idx])
+
+    def toarray(self,attr_name):
+
+        list_of_string = getattr(self,attr_name)
+
+        try:
+            try:
+                array_of_string = np.array(list_of_string).astype('int')
+            except:
+                array_of_string = np.array(list_of_string).astype('float64')
+        except:
+            array_of_string = np.array(list_of_string)
+
+        setattr(self,attr_name,array_of_string)
+
+    def write_naked(self,outputfile):
+
+        self.outputfile = outputfile
+            
+        with open(self.outputfile,"w") as empty_file:
+
+            for linenumber,row in enumerate(self.running):
+                j = linenumber-self.skiplines
+                cond1 = j>0
+                cond2 = (self.Date[j]-self.Date[j-1]).days>31
+                cond3 = self.Well_Name[j]==self.Well_Name[j-1]
+                if cond1 and cond2 and cond3:
+                    new_row = []
+                    for k,header in enumerate(self.header):
+                        if k==0:
+                            new_row.append(self.Well_Name[j-1])
+                        elif k==1:
+                            new_row.append((self.Date[j-1]+relativedelta(months=1)).strftime("%m/%d/%Y"))
+                        else:
+                            new_row.append(0)
+                    empty_file.write("\t".join(np.array(new_row))+"\n")
+
+                empty_file.write(row)
+
+        # with open(self.outputfile,"w") as writtenfile:
+        #     for i,date in enumerate(rdate):
+        #        skiptoline(rewrittenfile,'DATES',writtenfile)
+        #        skiptoline(rewrittenfile,rdate[i],writtenfile)
+        #        skiptoline(rewrittenfile,'WCONHIST',writtenfile)
+        #        while True:
+        #            wline = next(rewrittenfile)
+        #            if wline.split('/')[0].strip().split(' ')[0] == '\'BHR_76\'':
+        #                notypewritten.write(rcopy[i])
+        #                break
+        #            else:
+        #                notypewritten.write(wline)
+        #     while True:
+        #        try:
+        #            copiedline = next(rewrittenfile)
+        #            writtenfile.write(copiedline)
+        #        except:
+        #            break
+
+    def _skiptoline(self,file_read,keyword,file_written=None):
+
         while True:
             
-            line = next(self)
+            line = next(file_read)
 
             if file_written is not None:
                 file_written.write(line)
@@ -236,18 +327,21 @@ class datafile_manager():
             if line.split('/')[0].strip() == keyword:
                 break
 
-    def setparent(tuples,*args):
-        
-        for i in range(len(tuples)):
-            for arg in args:
-                if tuples[i][0] == arg.__name__:
-                    setchild(tuples[i],arg)
+    def _set_columns(self):
 
-    def setchild(self,atuple):
-        
-        array = np.array(atuple[3:]).astype('float64')
-        setattr(self,atuple[1]+'_unit',atuple[2])
-        setattr(self,atuple[1],array)
+        for column_id,header in enumerate(self.header):
+            try:
+                header = re.sub(r"[^\w]","",header)
+                setattr(self,header,self.body_rows[:,column_id].tolist())
+                self.header[column_id] = header
+            except:
+                setattr(self,header,self.body_rows[:,column_id].tolist())
+
+    def _set_rows(self):
+        pass
+        # array = np.array(atuple[3:]).astype('float64')
+        # setattr(self,atuple[1]+'_unit',atuple[2])
+        # setattr(self,atuple[1],array)
 
 class Window(QtWidgets.QMainWindow):
 
@@ -312,6 +406,7 @@ class data_table(QtWidgets.QTreeView):
         self.model.itemChanged.connect(self.changeFlag)
 
     def changeFlag(self):
+
         self.editedFlag = True
 
     def mouseDoubleClickEvent(self,event):
@@ -328,13 +423,13 @@ class data_table(QtWidgets.QTreeView):
 
     def loadCSV(self,filepath):
 
-        csvcontent = list(csv.reader(open(filepath)))
+        csvrunning = list(csv.reader(open(filepath)))
 
-        #self.treeView.setHeaderLabels(csvcontent[0])
+        #self.treeView.setHeaderLabels(csvrunning[0])
 
-        self.model.setHorizontalHeaderLabels(csvcontent[0])
+        self.model.setHorizontalHeaderLabels(csvrunning[0])
 
-        for line in csvcontent[1:]:
+        for line in csvrunning[1:]:
             items = [
                 QtGui.QStandardItem(text)
                 for text in line
