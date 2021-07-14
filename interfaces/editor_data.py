@@ -113,18 +113,22 @@ class datafile_manager():
         self.extension = os.path.splitext(self.path)[1]
 
         if self.extension == ".csv":
-            self.read_csv(*args)
+            with open(self.path,"r") as csv_text:
+                self.running = list(csv.reader(csv_text))
+            self.read_naked(**kwargs)
         elif self.extension == ".xlsx":
-            self.read_xlsx(*args)
+            self.wb = openpyxl.load_workbook(self.path)
+            # edited_sheetname = re.sub(r"[^\w]","",sheetname)
+            self.running = list(self.wb[sheetname].iter_rows(min_row=0,min_col=0,values_only=True))
+            self.read_naked(**kwargs)
         else:
+            with open(self.path) as structured_text:
+                self.running = structured_text.readlines()
             self.read_naked(**kwargs)
 
     def read_naked(self,skiplines=0,headerline=None):
 
         self.skiplines = skiplines
-
-        with open(self.path) as structured_text:
-            self.running = structured_text.readlines()
 
         self.body_rows = []
 
@@ -154,73 +158,23 @@ class datafile_manager():
             self._set_columns()
 
         # for linenumber,line in enumerate(self.running):
-
         #     if rlinenumber>0:
-
-        #         alist = rline.split('\t')
-
-        #         wellname = alist[0]
-
-        #         date_list = alist[1].split('-')
-
-        #         if date_list[1]=='01':
-        #             date_newformat = date_list[2]+' JAN '+date_list[0]
-        #         elif date_list[1]=='02':
-        #             date_newformat = date_list[2]+' FEB '+date_list[0]
-        #         elif date_list[1]=='03':
-        #             date_newformat = date_list[2]+' MAR '+date_list[0]
-        #         elif date_list[1]=='04':
-        #             date_newformat = date_list[2]+' APR '+date_list[0]
-        #         elif date_list[1]=='05':
-        #             date_newformat = date_list[2]+' MAY '+date_list[0]
-        #         elif date_list[1]=='06':
-        #             date_newformat = date_list[2]+' JUN '+date_list[0]
-        #         elif date_list[1]=='07':
-        #             date_newformat = date_list[2]+' JUL '+date_list[0]
-        #         elif date_list[1]=='08':
-        #             date_newformat = date_list[2]+' AUG '+date_list[0]
-        #         elif date_list[1]=='09':
-        #             date_newformat = date_list[2]+' SEP '+date_list[0]
-        #         elif date_list[1]=='10':
-        #             date_newformat = date_list[2]+' OCT '+date_list[0]
-        #         elif date_list[1]=='11':
-        #             date_newformat = date_list[2]+' NOV '+date_list[0]
-        #         elif date_list[1]=='12':
-        #             date_newformat = date_list[2]+' DEC '+date_list[0]
-
-        #         rdate = np.append(rdate,date_newformat)
-                   
-        #         days = alist[2]
-        #         condensate = alist[3]
-        #         gas = alist[4]
-        #         water = alist[5]
-
         #         if rlinenumber+1==len(DFM.content):
         #             copied_line = '\t\''+wellname+'\'\tSTOP\tGRAT\t'+condensate+'\t'+water+'\t'+gas+' /\n'
         #         else:
         #             copied_line = '\t\''+wellname+'\'\tOPEN\tGRAT\t'+condensate+'\t'+water+'\t'+gas+' /\n'
-
         #         rcopy = np.append(rcopy,copied_line)
 
-    def read_csv(self,*args):
-
-        with open(self.path,"r") as csv_text:
-            pass
-            # reader = list(csv.reader(csvfile))
-            # reader = np.array(reader)
-            # num_row, num_col = reader.shape
-            # if sheets['dataTypes']=='col':
-            #    tuples = tuple(reader.T)
-            # elif sheets['dataTypes']=='row':
-            #    tuples = tuple(reader)
-            # setparent(tuples,*args)
+        # def read_csv(self,*args):
+        # reader = np.array(reader)
+        # num_row, num_col = reader.shape
+        # if sheets['dataTypes']=='col':
+        #    tuples = tuple(reader.T)
+        # elif sheets['dataTypes']=='row':
+        #    tuples = tuple(reader)
+        # setparent(tuples,*args)
             
-    def read_xlsx(self,sheets,*args):
-        
-        wb = openpyxl.load_workbook(self.path)
-
-        # all_tuples = ()
-
+        # def read_xlsx(self,skiplines=0,headerline=None):
         # for i,sheetname in enumerate(sheets["names"]):
         #    sheet = wb[sheetname]
         #    if sheets['dataTypes'][i]=='col':
@@ -282,12 +236,12 @@ class datafile_manager():
                 j = linenumber-self.skiplines
                 cond1 = j>0
                 cond2 = (self.Date[j]-self.Date[j-1]).days>31
-                cond3 = self.Well_Name[j]==self.Well_Name[j-1]
+                cond3 = self.WellName[j]==self.WellName[j-1]
                 if cond1 and cond2 and cond3:
                     new_row = []
                     for k,header in enumerate(self.header):
                         if k==0:
-                            new_row.append(self.Well_Name[j-1])
+                            new_row.append(self.WellName[j-1])
                         elif k==1:
                             new_row.append((self.Date[j-1]+relativedelta(months=1)).strftime("%m/%d/%Y"))
                         else:
