@@ -197,6 +197,8 @@ class datafile_manager():
 
     def sortbased(self,attr_name="date"):
 
+## sort based well name will not work properly because of string comparison of numbers
+
         listA = getattr(self,attr_name)
 
         idx = list(range(len(listA)))
@@ -226,7 +228,7 @@ class datafile_manager():
 
         setattr(self,attr_name,array_of_string)
 
-    def write_naked(self,outputfile):
+    def write_naked(self,outputfile,date_format='%m/%d/%Y'):
 
         self.outputfile = outputfile
             
@@ -243,7 +245,18 @@ class datafile_manager():
                         if k==0:
                             new_row.append(self.WellName[j-1])
                         elif k==1:
-                            new_row.append((self.Date[j-1]+relativedelta(months=1)).strftime("%m/%d/%Y"))
+                            new_row.append((self.Date[j-1]+relativedelta(months=1)).strftime(date_format))
+                        else:
+                            new_row.append(0)
+                    empty_file.write("\t".join(np.array(new_row))+"\n")
+                cond4 = (datetime.datetime(2021,7,1,0,0)-self.Date[j-1]).days<30
+                if cond1 and not cond3 and not cond4:
+                    new_row = []
+                    for k,header in enumerate(self.header):
+                        if k==0:
+                            new_row.append(self.WellName[j-1])
+                        elif k==1:
+                            new_row.append((self.Date[j-1]+relativedelta(months=1)).strftime(date_format))
                         else:
                             new_row.append(0)
                     empty_file.write("\t".join(np.array(new_row))+"\n")
