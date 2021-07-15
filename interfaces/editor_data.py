@@ -268,8 +268,7 @@ class datafile_manager():
                 cond2 = self.WellName[index]==self.WellName[index-1]
                 # if the date corresponds to previous month
                 cond3 = (datetime.datetime.today()-self.Date[index-1]).days<30
-                if index<=0:
-                    continue
+                if index<=0: continue
                 if cond1 and cond2:
                     empty_file.write(create_new_row(idx))
                 if not cond2 and not cond3:
