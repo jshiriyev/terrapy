@@ -126,9 +126,41 @@ class datafile_manager():
                 self.running = structured_text.readlines()
             self.read_naked(**kwargs)
 
-    def read_naked(self,skiplines=0,headerline=None):
+        # def read_csv(self,*args):
+        # reader = np.array(reader)
+        # num_row, num_col = reader.shape
+        # if sheets['dataTypes']=='col':
+        #    tuples = tuple(reader.T)
+        # elif sheets['dataTypes']=='row':
+        #    tuples = tuple(reader)
+        # setparent(tuples,*args)
+            
+        # def read_xlsx(self,skiplines=0,headerline=None):
+        # for i,sheetname in enumerate(sheets["names"]):
+        #    sheet = wb[sheetname]
+        #    if sheets['dataTypes'][i]=='col':
+        #        tuples = tuple(sheet.iter_cols(max_col=sheets['num_cols'][i],values_only=True))
+        #    elif sheets['dataTypes'][i]=='row':
+        #        tuples = tuple(sheet.iter_rows(max_col=sheets['num_cols'][i],values_only=True))
+        #    all_tuples = all_tuples+tuples
+        # setparent(all_tuples,*args)
+
+    def read_naked(self,skiplines=0,headerline=None,structured=True):
 
         self.skiplines = skiplines
+
+        if not structured:
+            return
+
+        def set_columns():
+            
+            for column_id,header in enumerate(self.header):
+                try:
+                    header = re.sub(r"[^\w]","",header)
+                    setattr(self,header,self.body_rows[:,column_id].tolist())
+                    self.header[column_id] = header
+                except:
+                    setattr(self,header,self.body_rows[:,column_id].tolist())
 
         self.body_rows = []
 
@@ -157,33 +189,6 @@ class datafile_manager():
             self.header = self.header.split("\n")[0].split("\t")
             self._set_columns()
 
-        # for linenumber,line in enumerate(self.running):
-        #     if rlinenumber>0:
-        #         if rlinenumber+1==len(DFM.content):
-        #             copied_line = '\t\''+wellname+'\'\tSTOP\tGRAT\t'+condensate+'\t'+water+'\t'+gas+' /\n'
-        #         else:
-        #             copied_line = '\t\''+wellname+'\'\tOPEN\tGRAT\t'+condensate+'\t'+water+'\t'+gas+' /\n'
-        #         rcopy = np.append(rcopy,copied_line)
-
-        # def read_csv(self,*args):
-        # reader = np.array(reader)
-        # num_row, num_col = reader.shape
-        # if sheets['dataTypes']=='col':
-        #    tuples = tuple(reader.T)
-        # elif sheets['dataTypes']=='row':
-        #    tuples = tuple(reader)
-        # setparent(tuples,*args)
-            
-        # def read_xlsx(self,skiplines=0,headerline=None):
-        # for i,sheetname in enumerate(sheets["names"]):
-        #    sheet = wb[sheetname]
-        #    if sheets['dataTypes'][i]=='col':
-        #        tuples = tuple(sheet.iter_cols(max_col=sheets['num_cols'][i],values_only=True))
-        #    elif sheets['dataTypes'][i]=='row':
-        #        tuples = tuple(sheet.iter_rows(max_col=sheets['num_cols'][i],values_only=True))
-        #    all_tuples = all_tuples+tuples
-        # setparent(all_tuples,*args)
-
     def todatetime(self,attr_name="date",date_format='%m/%d/%Y'):
 
         dates_string = getattr(self,attr_name)
@@ -196,8 +201,6 @@ class datafile_manager():
         setattr(self,attr_name,dates)
 
     def sortbased(self,attr_name="date"):
-
-## sort based well name will not work properly because of string comparison of numbers
 
         listA = getattr(self,attr_name)
 
@@ -231,35 +234,46 @@ class datafile_manager():
     def write_naked(self,outputfile,date_format='%m/%d/%Y'):
 
         self.outputfile = outputfile
+
+        def create_new_line(idx):
+            line = []
+            for k,header in enumerate(self.header):
+                if k==0:
+                    line.append(self.WellName[idx-1])
+                elif k==1:
+                    line.append((self.Date[idx-1]+relativedelta(months=1)).strftime(date_format))
+                else:
+                    line.append(0)
+            return "\t".join(np.array(line))+"\n"
+
+        def skiptoline(file_read,keyword,file_written=None):
+
+            while True:
+                
+                line = next(file_read)
+
+                if file_written is not None:
+                    file_written.write(line)
+                
+                if line.split('/')[0].strip() == keyword:
+                    break
             
         with open(self.outputfile,"w") as empty_file:
 
             for linenumber,row in enumerate(self.running):
-                j = linenumber-self.skiplines
-                cond1 = j>0
-                cond2 = (self.Date[j]-self.Date[j-1]).days>31
-                cond3 = self.WellName[j]==self.WellName[j-1]
-                if cond1 and cond2 and cond3:
-                    new_row = []
-                    for k,header in enumerate(self.header):
-                        if k==0:
-                            new_row.append(self.WellName[j-1])
-                        elif k==1:
-                            new_row.append((self.Date[j-1]+relativedelta(months=1)).strftime(date_format))
-                        else:
-                            new_row.append(0)
-                    empty_file.write("\t".join(np.array(new_row))+"\n")
-                cond4 = (datetime.datetime(2021,7,1,0,0)-self.Date[j-1]).days<30
-                if cond1 and not cond3 and not cond4:
-                    new_row = []
-                    for k,header in enumerate(self.header):
-                        if k==0:
-                            new_row.append(self.WellName[j-1])
-                        elif k==1:
-                            new_row.append((self.Date[j-1]+relativedelta(months=1)).strftime(date_format))
-                        else:
-                            new_row.append(0)
-                    empty_file.write("\t".join(np.array(new_row))+"\n")
+                index = linenumber-self.skiplines
+                # if the time gap with previous line is more than a month
+                cond1 = (self.Date[index]-self.Date[index-1]).days>31
+                # if the well name is different compared to previous line
+                cond2 = self.WellName[index]==self.WellName[index-1]
+                # if the date corresponds to previous month
+                cond3 = (datetime.datetime.today()-self.Date[index-1]).days<30
+                if index<=0:
+                    continue
+                if cond1 and cond2:
+                    empty_file.write(create_new_row(idx))
+                if not cond2 and not cond3:
+                    empty_file.write(create_new_row(idx))
 
                 empty_file.write(row)
 
@@ -281,34 +295,6 @@ class datafile_manager():
         #            writtenfile.write(copiedline)
         #        except:
         #            break
-
-    def _skiptoline(self,file_read,keyword,file_written=None):
-
-        while True:
-            
-            line = next(file_read)
-
-            if file_written is not None:
-                file_written.write(line)
-            
-            if line.split('/')[0].strip() == keyword:
-                break
-
-    def _set_columns(self):
-
-        for column_id,header in enumerate(self.header):
-            try:
-                header = re.sub(r"[^\w]","",header)
-                setattr(self,header,self.body_rows[:,column_id].tolist())
-                self.header[column_id] = header
-            except:
-                setattr(self,header,self.body_rows[:,column_id].tolist())
-
-    def _set_rows(self):
-        pass
-        # array = np.array(atuple[3:]).astype('float64')
-        # setattr(self,atuple[1]+'_unit',atuple[2])
-        # setattr(self,atuple[1],array)
 
 class Window(QtWidgets.QMainWindow):
 
@@ -366,7 +352,7 @@ class data_table(QtWidgets.QTreeView):
         self.model = QtGui.QStandardItemModel()
         self.setModel(self.model)
 
-        #self.setColumnWidth(0,800)
+        # self.setColumnWidth(0,800)
 
         self.editedFlag = False
 
@@ -640,10 +626,12 @@ class data_graph():
 
 if __name__ == "__main__":
 
+    pass
+
     """database manager"""
 
     # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
-    dbpath = ":memory:"
+    # dbpath = ":memory:"
     
     # DB = database_manager(dbpath)
 
