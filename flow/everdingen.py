@@ -2,46 +2,124 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
-from scipy.special import j0
-from scipy.special import j1
-from scipy.special import y0
-from scipy.special import y1
+from pycse import odelay
+
+from scipy.sparse import csr_matrix as csr
+
+from scipy.special import j0 as bessel_j0
+from scipy.special import j1 as bessel_j1
+from scipy.special import y0 as bessel_y0
+from scipy.special import y1 as bessel_y1
+
+from scipy.special import jvp as bessel_jvp
+from scipy.special import yvp as bessel_yvp
 
 from scipy.optimize import minimize
 from scipy.optimize import root_scalar
 
-R = 1000
+class everdingen():
 
-def equation(_beta,tol=1e-20):
-    
-    if isinstance(_beta,int):
-        _beta = tol if _beta==0 else _beta
-        print("was int")
-    elif isinstance(_beta,float):
-        _beta = tol if _beta==0.0 else _beta
-        print("was float")
-    elif isinstance(_beta,list):
-        _beta[_beta==0] = tol
-        print("was list")
-    elif isinstance(_beta,np.ndarray):
-        _beta[_beta==0] = tol
-        print("was numpy")
-    elif isinstance(_beta,tuple):
-        return
-    
-    return j1(_beta*R)*y1(_beta)-j1(_beta)*y1(_beta*R)
+    def __init__(self,beta,tol=1e-20):
 
-def objective(_beta):
-    return np.abs(equation(_beta))
+        if isinstance(beta,int):
+            beta = tol if beta==0 else beta
+        elif isinstance(beta,float):
+            beta = tol if beta==0.0 else beta
+        elif isinstance(beta,list):
+            beta[beta==0] = tol
+        elif isinstance(beta,np.ndarray):
+            beta[beta==0] = tol
+        elif isinstance(beta,tuple):
+            return
 
-##res = root_scalar(equation,bracket=[0,10],method="brentq") #bracket=[0,10]
-##print(res.x)
+        self._beta = beta
 
-a = np.linspace(0,0.01,10000)
+    def zeroth(self,R):
+        
+        equation = bessel_j1(self._beta*R)*bessel_y1(self._beta)-\
+                   bessel_j1(self._beta)*bessel_y1(self._beta*R)
 
-y = objective(a)
+        return equation
 
-plt.plot(a,y)
-##plt.scatter(res.root,0)
+    def first_derivative(self,R):
+        
+        """
+        [j1(x)]prime = j0(x)-1/x*j1(x)
+        [y1(x)]prime = y0(x)-1/x*y1(x)
+        """
+
+        j1_beta_prime = bessel_jvp(1,self._beta)
+        y1_beta_prime = bessel_yvp(1,self._beta)
+
+        j1_beta_R_prime = R*bessel_jvp(1,self._beta*R)
+        y1_beta_R_prime = R*bessel_yvp(1,self._beta*R)
+
+        ##j1_beta_prime = bessel_j0(self._beta)-\
+        ##                1/self._beta*bessel_j1(self._beta)
+        ##
+        ##y1_beta_prime = bessel_y0(self._beta)-\
+        ##                1/self._beta*bessel_y1(self._beta)
+        ##
+        ##j1_beta_R_prime = R*bessel_j0(self._beta*R)-\
+        ##                  1/self._beta*bessel_j1(self._beta*R)
+        ##
+        ##y1_beta_R_prime = R*bessel_y0(self._beta*R)-\
+        ##                  1/self._beta*bessel_y1(self._beta*R)
+
+        derivative = j1_beta_R_prime*bessel_y1(self._beta)+\
+                     bessel_j1(self._beta*R)*y1_beta_prime-\
+                     j1_beta_prime*bessel_y1(self._beta*R)-\
+                     bessel_j1(self._beta)*y1_beta_R_prime
+
+        return derivative
+
+    def first_derivative_numerical(self,R):
+        
+        num = self._beta.shape[0]
+
+        idx = list(range(num))
+
+        shape = (num,num)
+
+        Amatrix = csr(shape)
+
+        Amatrix += csr((np.ones(beta.shape[0]-1),(idx[:-1],idx[1:])),shape=shape)
+        Amatrix -= csr((np.ones(beta.shape[0]-1),(idx[1:],idx[:-1])),shape=shape)
+
+        Amatrix += csr((np.array([-1,1]),(np.array([0,num-1]),np.array([0,num-1]))),shape=shape)
+
+        dy = Amatrix*self.zeroth(R)
+        dx = Amatrix*self._beta
+
+        print(dy[0])
+        print(dx[0])
+
+        return dy/dx
+        
+
+beta = np.linspace(1e-5,10,500)
+
+P = everdingen(beta)
+
+R = 5
+
+y000 = P.zeroth(R)
+y1_a = P.first_derivative(R)
+y1_n = P.first_derivative_numerical(R)
+
+
+
+plt.plot(beta,y000,label="zeroth order")
+plt.plot(beta,y1_a,label="first order")
+plt.scatter(beta,y1_n,label="first order, numerical")
+plt.axhline(y=0,xmin=0,xmax=beta[-1],color='r')
+
+##plt.ylim([-10,10])
+
+plt.legend()
 
 plt.show()
+
+
+
+
