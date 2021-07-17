@@ -15,6 +15,7 @@ from scipy.special import y1 as bessel_y1
 from scipy.special import jvp as bessel_jvp
 from scipy.special import yvp as bessel_yvp
 
+from scipy.optimize import fsolve
 from scipy.optimize import minimize
 from scipy.optimize import root_scalar
 
@@ -93,7 +94,7 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
     x0 = xspan[0]  # initial point
 
     X = [x0]
-    sol = [y0]
+    sol = np.array([y0])
     TE, YE, IE = [], [], []  # to store where events occur
 
     # initial value of events
@@ -108,8 +109,11 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
 
         f2 = odeint(func, f1, [x1, x2], **kwargs)
 
+##        print(type(f2[-1, :]))
+##        print(f2[-1, :])
+
         X += [x2]
-        sol += [f2[-1, :]]
+        sol = np.append(sol,f2[-1, :])
 
         # check event functions. At each step we compute the event
         # functions, and check if they have changed sign since the
@@ -136,8 +140,6 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
                     sol = tempsol[-1, :]
                     val, isterminal, direction = event(sol, x)
                     return val
-
-                from scipy.optimize import fsolve
 
                 # this should be the value of x that makes the event zero
                 xZ, = fsolve(objective, xLt, **fsolve_args)
@@ -173,6 +175,7 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
                                 np.array(IE))
 
     # at the end, return what we have
+##    print(sol)
     return (np.array(X),
             np.array(sol),
             np.array(TE),
