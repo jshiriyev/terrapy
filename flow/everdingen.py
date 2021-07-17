@@ -19,8 +19,6 @@ from scipy.optimize import fsolve
 from scipy.optimize import minimize
 from scipy.optimize import root_scalar
 
-
-
 ##class everdingen():
 ##
 ##    def __init__(self,endpoint,N):
@@ -39,7 +37,7 @@ from scipy.optimize import root_scalar
 ####        elif isinstance(beta,tuple):
 ####            return
 
-def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
+def odelay(func, y0, xspan, events, TOLERANCE=1e-7,
            fsolve_args=None, **kwargs):
     """Solve an ODE with events.
 
@@ -93,7 +91,7 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
 
     x0 = xspan[0]  # initial point
 
-    X = [x0]
+    X = np.array([x0])
     sol = np.array([y0])
     TE, YE, IE = [], [], []  # to store where events occur
 
@@ -101,6 +99,8 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
     e = np.zeros((len(events), len(xspan)))
     for i, event in enumerate(events):
         e[i, 0], isterminal, direction = event(y0, x0)
+
+    
 
     # now we step through the integration
     for i, x1 in enumerate(xspan[0:-1]):
@@ -111,8 +111,8 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
 
 ##        print(type(f2[-1, :]))
 ##        print(f2[-1, :])
-
-        X += [x2]
+        
+        X = np.append(X,x2)
         sol = np.append(sol,f2[-1, :])
 
         # check event functions. At each step we compute the event
@@ -135,7 +135,8 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
                 # we need to find a value of x that makes the event zero
                 def objective(x):
                     # evaluate ode from xLT to x
-                    txspan = [xLt, x]
+                    txspan = [xLt, x[0]]
+##                    print(x)
                     tempsol = odeint(func, fLt, txspan, **kwargs)
                     sol = tempsol[-1, :]
                     val, isterminal, direction = event(sol, x)
@@ -143,6 +144,7 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
 
                 # this should be the value of x that makes the event zero
                 xZ, = fsolve(objective, xLt, **fsolve_args)
+                
 
                 # now evaluate solution at this point, so we can
                 # record the function values here.
@@ -175,7 +177,7 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-6,
                                 np.array(IE))
 
     # at the end, return what we have
-##    print(sol)
+    
     return (np.array(X),
             np.array(sol),
             np.array(TE),
