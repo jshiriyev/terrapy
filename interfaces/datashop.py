@@ -15,95 +15,15 @@ import numpy as np
 
 import openpyxl
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-
 import sqlite3
-
-from sqlite3 import Error
+from sqlite3 import Error as sqlError
 
 import tkinter as tk
 
 from tkinter import ttk
 from tkinter import filedialog
 
-class database_manager():
-
-    def __init__(self,dbpath):
-
-        self.dbpath = dbpath
-
-        self.create_connection()
-
-    def create_connection(self):
-
-        self.conn = None
-
-        try:
-            self.conn = sqlite3.connect(self.dbpath)
-        except Error:
-            print(Error)
-
-    def create_table(self,sqlite_table):
-
-        self.sqlite_table = sqlite_table
-
-        try:
-            self.cursor = self.conn.cursor()
-            self.cursor.execute(self.sqlite_table)
-            self.conn.commit()
-        except Error:
-            print(Error)
-
-    def insert_table(self,sqlite_table_insert,table_row):
-
-        self.sqlite_table_insert = sqlite_table_insert
-        self.cursor.execute(self.sqlite_table_insert,table_row)
-        self.conn.commit()
-
-class database_interface():
-
-    def __init__(self,window):
-
-        self.root = window
-
-        self.init_interface()
-
-    def init_interface(self):
-
-        self.label_firstname = tk.Label(self.root,text="First Name")
-        self.label_firstname.grid(row=0,column=0)
-
-        self.label_lastname = tk.Label(self.root,text="Last Name")
-        self.label_lastname.grid(row=1,column=0)
-
-        self.entry_firstname = tk.Entry(self.root)
-        self.entry_firstname.grid(row=0,column=1)
-
-        self.entry_lastname = tk.Entry(self.root)
-        self.entry_lastname.grid(row=1,column=1)
-
-        self.button_enter = tk.Button(self.root,text="Enter",command=self.save_to_database)
-        self.button_enter.grid(row=2,column=1)
-
-    def save_to_database(self):
-
-        db_file = r"C:\Users\Cavid\Documents\bhospy\instructors.db"
-
-        self.conn = sqlite3.connect(db_file)
-        # sqlite_table = '''CREATE TABLE SqliteDb_developers (
-        #                  id INTEGER PRIMARY KEY,
-        #                  name TEXT NOT NULL,
-        #                  email text NOT NULL UNIQUE);'''
-        self.cursor = self.conn.cursor()
-        # self.cursor.execute(sqlite_table)
-        # self.conn.commit()
-        
-        self.cursor.close()
-        self.conn.close()
-
-class datafile_manager():
+class data_manager():
 
     def __init__(self,filepath,*args,**kwargs):
 
@@ -112,19 +32,26 @@ class datafile_manager():
 
         self.extension = os.path.splitext(self.path)[1]
 
-        if self.extension == ".csv":
+        if self.extension == ".db":
+            self.conn = None
+            try:
+                self.conn = sqlite3.connect(self.path)
+            except Error:
+                print(Error)
+        elif self.extension == ".csv":
             with open(self.path,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            self.read_naked(**kwargs)
+            # print(self.running)
+            # self.set_column(**kwargs)
         elif self.extension == ".xlsx":
             self.wb = openpyxl.load_workbook(self.path)
             # edited_sheetname = re.sub(r"[^\w]","",sheetname)
-            self.running = list(self.wb[sheetname].iter_rows(min_row=0,min_col=0,values_only=True))
-            self.read_naked(**kwargs)
+            self.running = list(self.wb[sheetname].iter_rows(values_only=True))
+            self.set_column()
         else:
             with open(self.path) as structured_text:
                 self.running = structured_text.readlines()
-            self.read_naked(**kwargs)
+            self.read_lines(**kwargs)
 
         # def read_csv(self,*args):
         # reader = np.array(reader)
@@ -145,22 +72,37 @@ class datafile_manager():
         #    all_tuples = all_tuples+tuples
         # setparent(all_tuples,*args)
 
-    def read_naked(self,skiplines=0,headerline=None,structured=True):
+    # def read_list(self,skiplines=1,headerline=None):
+
+    #     self.skiplines = skiplines
+
+    #     if self.skiplines==0:
+    #         self.header_rows = None
+    #         self.header = ["col_"+str(column_id) for column_id in range(self.num_cols)]
+    #         self.body_rows = self.running
+    #         self.num_cols = len(self.running[0])
+    #         self.set_columns()
+        
+    #     elif self.skiplines!=0:
+    #         if headerline is None:
+    #             linenumber = self.skiplines-1
+    #         elif headerline < self.skiplines:
+    #             linenumber = headerline
+    #         else:
+    #             linenumber = self.skiplines-1
+    #         self.header_rows = self.running[:self.skiplines]
+    #         self.header = self.running[linenumber]
+    #         self.header = self.header.split("\n")[0].split("\t")
+    #         self.body_rows = self.running[self.skiplines:]
+    #         self.num_cols = len(self.running[0])
+    #         self.set_columns()
+
+    def read_lines(self,skiplines=0,headerline=None,structured=True):
 
         self.skiplines = skiplines
 
         if not structured:
             return
-
-        def set_columns():
-            
-            for column_id,header in enumerate(self.header):
-                try:
-                    header = re.sub(r"[^\w]","",header)
-                    setattr(self,header,self.body_rows[:,column_id].tolist())
-                    self.header[column_id] = header
-                except:
-                    setattr(self,header,self.body_rows[:,column_id].tolist())
 
         self.body_rows = []
 
@@ -175,7 +117,7 @@ class datafile_manager():
         if self.skiplines==0:
             self.header_rows = None
             self.header = ["col_"+str(column_id) for column_id in range(self.num_cols)]
-            self._set_columns()
+            self.set_columns()
         
         elif self.skiplines!=0:
             if headerline is None:
@@ -187,7 +129,17 @@ class datafile_manager():
             self.header_rows = self.running[:self.skiplines]
             self.header = self.running[linenumber]
             self.header = self.header.split("\n")[0].split("\t")
-            self._set_columns()
+            self.set_columns()
+
+    def set_columns():
+            
+        for column_id,header in enumerate(self.header):
+            try:
+                header = re.sub(r"[^\w]","",header)
+                setattr(self,header,self.body_rows[:,column_id].tolist())
+                self.header[column_id] = header
+            except:
+                setattr(self,header,self.body_rows[:,column_id].tolist())
 
     def todatetime(self,attr_name="date",date_format='%m/%d/%Y'):
 
@@ -231,7 +183,61 @@ class datafile_manager():
 
         setattr(self,attr_name,array_of_string)
 
-    def write_naked(self,outputfile,date_format='%m/%d/%Y'):
+    def db_create_table(self,sqlite_table):
+
+        # instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
+        #                                     id integer PRIMARY KEY,
+        #                                     first_name text NOT NULL,
+        #                                     last_name text NOT NULL,
+        #                                     patronym text NOT NULL,
+        #                                     position text NOT NULL,
+        #                                     status text NOT NULL,
+        #                                     email text NOT NULL UNIQUE,
+        #                                     phone integer NOT NULL UNIQUE);"""
+
+        self.sqlite_table = sqlite_table
+
+        try:
+            self.cursor = self.conn.cursor()
+            self.cursor.execute(self.sqlite_table)
+            self.conn.commit()
+        except Error:
+            print(Error)
+
+    def db_insert_table(self,sqlite_table_insert,table_row):
+
+        # instructor_table_insert = """ INSERT INTO instructors(
+        #                                     id,
+        #                                     first_name,
+        #                                     last_name,
+        #                                     patronym,
+        #                                     position,
+        #                                     status,
+        #                                     email,
+        #                                     phone)
+        #                                     VALUES(?,?,?,?,?,?,?,?)"""
+
+        self.sqlite_table_insert = sqlite_table_insert
+        self.cursor.execute(self.sqlite_table_insert,table_row)
+        self.conn.commit()
+
+        """database manager"""
+
+        # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
+        
+        # DB = database_manager(dbpath)
+
+        # DB.create_table(instructor_table)
+
+        # instructor = (7,"Javid","Shiriyev","Farhad",
+        #             "Senior Lecturer","Hour Based Teaching",
+        #             "cavid.shiriyev@bhos.edu.az","+994508353992")
+
+        # DB.insert_table(instructor_table_insert,instructor)
+        # DB.cursor.close()
+        # DB.conn.close()
+
+    def df_write(self,outputfile,date_format='%m/%d/%Y'):
 
         self.outputfile = outputfile
 
@@ -295,37 +301,138 @@ class datafile_manager():
         #        except:
         #            break
 
-class Window(QtWidgets.QMainWindow):
+class data_table():
 
-    #itemEdited = QtCore.pyqtSignal(item,column)
-    
-    def __init__(self,filepath):
+    def __init__(self,window):
+
+        self.root = window
+
+        self.init_interface()
+
+        # self.resize(1200,600)
         
-        super(Window,self).__init__()
-
-        self.resize(1200,600)
+        # filepath = "C:\\Users\\Cavid\\Documents\\bhospy\\interfaces\\sample.csv"
         
-        filepath = "C:\\Users\\Cavid\\Documents\\bhospy\\interfaces\\sample.csv"
+        # self.filepath = filepath
+        # self.treeView = data_table(parent=self)
+        # self.treeView.loadCSV(self.filepath)
+
+        # self.treeView.autoColumnWidth()
+
+        # # self.fileView = FileViewer(parent=self)
+
+        # # print(dir(self.treeView))
         
-        self.filepath = filepath
-        self.treeView = data_table(parent=self)
-        self.treeView.loadCSV(self.filepath)
-
-        self.treeView.autoColumnWidth()
-
-        # self.fileView = FileViewer(parent=self)
-
-        # print(dir(self.treeView))
+        # self.centralwidget = QtWidgets.QWidget(self)
+        # self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
+        # self.verticalLayout.addWidget(self.treeView)
+        # # self.verticalLayout.addWidget(self.fileView)
+        # self.setCentralWidget(self.centralwidget)
         
-        self.centralwidget = QtWidgets.QWidget(self)
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout.addWidget(self.treeView)
-        # self.verticalLayout.addWidget(self.fileView)
-        self.setCentralWidget(self.centralwidget)
-        
-        self.editedFlag = True
+        # self.editedFlag = True
 
-        self.show()   
+        # self.show()
+
+    def init_interface(self):
+
+        menubar = tk.Menu(self.root)
+        
+        self.root.config(menu=menubar)
+
+        fileMenu = tk.Menu(menubar,tearoff="Off")
+
+        fileMenu.add_command(label="Open",command=self.set_path)
+
+        menubar.add_cascade(label="File",menu=fileMenu)
+
+        self.tree = ttk.Treeview(self.root)
+        self.tree.pack(expand=1,fill=tk.BOTH)
+
+        # self.label_firstname = tk.Label(self.root,text="First Name")
+        # self.label_firstname.grid(row=0,column=0)
+
+        # self.label_lastname = tk.Label(self.root,text="Last Name")
+        # self.label_lastname.grid(row=1,column=0)
+
+        # self.entry_firstname = tk.Entry(self.root)
+        # self.entry_firstname.grid(row=0,column=1)
+
+        # self.entry_lastname = tk.Entry(self.root)
+        # self.entry_lastname.grid(row=1,column=1)
+
+        # self.button_enter = tk.Button(self.root,text="Enter",command=self.save_to_database)
+        # self.button_enter.grid(row=2,column=1)
+
+    def set_path(self):
+
+        self.filepath = filedialog.askopenfilename(
+            title = "Select a File",
+            initialdir = os.getcwd(),
+            filetypes = (("Databases","*.db"),
+                         ("CSV Files","*.csv"),
+                         ("Excel Files","*.xl*"),
+                         ("All Files","*")))
+
+        if not self.filepath:
+            return
+
+        self.dm = data_manager(self.filepath)
+
+        self.set_tree_view()
+        
+        # self.wb = openpyxl.load_workbook(self.filepath)
+
+        # for sheet in self.wb.sheetnames:
+        #     self.listbox.insert(tk.END,sheet)
+
+        # status = "Imported \""+self.filepath+"\"."
+        # self.status.insert(tk.END,status)
+        # self.status.see(tk.END)
+
+    def set_tree_view(self):
+
+        # self.tree['columns'] = ("Name","Position","Email")
+        
+        # self.tree.column("Name",anchor=tk.W,width=120)
+        # self.tree.column("Position",anchor=tk.W,width=80)
+        # self.tree.column("Email",anchor=tk.W,width=150)
+
+        # self.tree.heading("#0",text="Label")
+        # self.tree.heading("Name",text="Name",anchor=tk.CENTER)
+        # self.tree.heading("Position",text="Position",anchor=tk.W)
+        # self.tree.heading("Email",text="Email",anchor=tk.W)
+
+        self.tree.column("#0",width=0,stretch=tk.NO)
+
+        for idx,row in enumerate(self.dm.running):
+            if idx==0:
+                self.tree["columns"] = tuple(row)
+                for idy,head in enumerate(row):
+                    self.tree.column(head,anchor=tk.W,width=50,stretch=tk.NO)
+                    self.tree.heading(head,text=head,anchor=tk.W)
+            else:
+                self.tree.insert(parent="",index="end",iid=idx,values=tuple(row))
+
+        # self.tree.insert(parent="",index="end",iid=0,text="parent",values=("","Javid Shiriyev","cavid","cavid"))
+        # self.tree.insert(parent="",index="end",iid=1,text="parent",values=("","elmri","elmri","elmri"))
+        # self.tree.insert(parent="",index="end",iid=2,text="child",values=("","ferhad","ferhad","ferhad"))
+        # self.tree.move(2,0,0)
+
+    def save_to_database(self):
+
+        db_file = r"C:\Users\Cavid\Documents\bhospy\instructors.db"
+
+        self.conn = sqlite3.connect(db_file)
+        # sqlite_table = '''CREATE TABLE SqliteDb_developers (
+        #                  id INTEGER PRIMARY KEY,
+        #                  name TEXT NOT NULL,
+        #                  email text NOT NULL UNIQUE);'''
+        self.cursor = self.conn.cursor()
+        # self.cursor.execute(sqlite_table)
+        # self.conn.commit()
+        
+        self.cursor.close()
+        self.conn.close()
 
     def closeEvent(self,event):
         
@@ -338,28 +445,6 @@ class Window(QtWidgets.QMainWindow):
                 self.treeView.writeCSV(self.filepath)
 
         event.accept()
-
-class data_table(QtWidgets.QTreeView):
-
-    def __init__(self,parent=None):
-        super(data_table,self).__init__(parent)
-
-        #print(dir(self))
-
-        self.setSortingEnabled(True)
-
-        self.model = QtGui.QStandardItemModel()
-        self.setModel(self.model)
-
-        # self.setColumnWidth(0,800)
-
-        self.editedFlag = False
-
-        self.model.itemChanged.connect(self.changeFlag)
-
-    def changeFlag(self):
-
-        self.editedFlag = True
 
     def mouseDoubleClickEvent(self,event):
 
@@ -625,91 +710,14 @@ class data_graph():
 
 if __name__ == "__main__":
 
-    pass
-
-    """database manager"""
-
-    # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
-    # dbpath = ":memory:"
+    """data table interface"""
     
-    # DB = database_manager(dbpath)
+    window = tk.Tk()
+    gui = data_table(window)
+    window.mainloop()
 
-    # instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
-    #                                     id integer PRIMARY KEY,
-    #                                     first_name text NOT NULL,
-    #                                     last_name text NOT NULL,
-    #                                     patronym text NOT NULL,
-    #                                     position text NOT NULL,
-    #                                     status text NOT NULL,
-    #                                     email text NOT NULL UNIQUE,
-    #                                     phone integer NOT NULL UNIQUE);"""
-
-    # DB.create_table(instructor_table)
-
-    # instructor_table_insert = """ INSERT INTO instructors(
-    #                                     id,
-    #                                     first_name,
-    #                                     last_name,
-    #                                     patronym,
-    #                                     position,
-    #                                     status,
-    #                                     email,
-    #                                     phone)
-    #                                     VALUES(?,?,?,?,?,?,?,?)"""
-
-    # instructor_7 = (7,"Javid","Shiriyev","Farhad",
-    #             "Senior Lecturer","Hour Based Teaching",
-    #             "cavid.shiriyev@bhos.edu.az","+994508353992")
-
-    # DB.insert_table(instructor_table_insert,instructor_7)
-    # DB.cursor.close()
-    # DB.conn.close()
-
-    """database interface"""
-    
-    # window = tk.Tk()
-    # gui = database_constructor(window)
-    # window.mainloop()
-
-    """data plot"""
+    """data plot interface"""
     
     # window = tk.Tk()
     # gui = data_graph(window)
     # window.mainloop()
-
-    """input editor"""
-
-    # app = QtWidgets.QApplication(sys.argv)
-    # # window = Window(args.filepath)
-    # window = Window(os.curdir)
-    # sys.exit(app.exec_())
-
-    """task 0"""
-    
-    # inputfile0 = 'C:\\Users\\javid.s\\Desktop\\BHR-076.txt'
-    # inputfile1 = 'C:\\Users\\javid.s\\Desktop\\BHR_VI_SCHEDULE.INC'
-
-    # outputfile = 'C:\\Users\\javid.s\\Desktop\\BHR_VI_SCHEDULE_V2.INC'
-
-    """input reader"""
-
-    # class reservoir: pass
-    # class well: pass
-    # class time: pass
-
-    # sheets = {
-    #    "num_cols": 5,
-    #    "dataTypes": "col"
-    #    }
-
-    # setup("sample.csv",sheets,reservoir)
-
-    # print(reservoir.porosity)
-
-    # sheets = {
-    #    "names": ["build_up_test","parameters"],
-    #    "num_cols": [3,4],
-    #    "dataTypes": ["col","row"]
-    #    }
-
-    # readxlsx('sample.xlsx',sheets,time,well)
