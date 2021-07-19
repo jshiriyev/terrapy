@@ -25,7 +25,10 @@ from tkinter import filedialog
 
 class data_manager():
 
-    def __init__(self,filepath,*args,**kwargs):
+    def __init__(self,filepath=None,*args,**kwargs):
+
+        if filepath is None:
+            return
 
         self.path = filepath
         self.name = self.path.split("\\")[-1]
@@ -41,8 +44,7 @@ class data_manager():
         elif self.extension == ".csv":
             with open(self.path,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            # print(self.running)
-            # self.set_column(**kwargs)
+            self.read_lines(skiplines=1,type="list")
         elif self.extension == ".xlsx":
             self.wb = openpyxl.load_workbook(self.path)
             # edited_sheetname = re.sub(r"[^\w]","",sheetname)
@@ -72,51 +74,30 @@ class data_manager():
         #    all_tuples = all_tuples+tuples
         # setparent(all_tuples,*args)
 
-    # def read_list(self,skiplines=1,headerline=None):
+    def read_lines(self,skiplines=0,headerline=None,type="list"):
 
-    #     self.skiplines = skiplines
-
-    #     if self.skiplines==0:
-    #         self.header_rows = None
-    #         self.header = ["col_"+str(column_id) for column_id in range(self.num_cols)]
-    #         self.body_rows = self.running
-    #         self.num_cols = len(self.running[0])
-    #         self.set_columns()
-        
-    #     elif self.skiplines!=0:
-    #         if headerline is None:
-    #             linenumber = self.skiplines-1
-    #         elif headerline < self.skiplines:
-    #             linenumber = headerline
-    #         else:
-    #             linenumber = self.skiplines-1
-    #         self.header_rows = self.running[:self.skiplines]
-    #         self.header = self.running[linenumber]
-    #         self.header = self.header.split("\n")[0].split("\t")
-    #         self.body_rows = self.running[self.skiplines:]
-    #         self.num_cols = len(self.running[0])
-    #         self.set_columns()
-
-    def read_lines(self,skiplines=0,headerline=None,structured=True):
+        """
+        type can be list of list: will add every list
+        type can be list of constant string: will modify and add every line
+        type can be list of variable string: will be looking for keywords and add when found
+        """
 
         self.skiplines = skiplines
 
-        if not structured:
-            return
-
-        self.body_rows = []
-
-        for linenumber in range(len(self.running)):
-            if linenumber>=self.skiplines:
-                body_rowline = self.running[linenumber]
-                self.body_rows.append(body_rowline.split("\n")[0].split("\t"))
+        if type=="list":
+            self.body_rows = self.running[self.skiplines:]
+        elif type=="constant string":
+            self.body_rows = []
+            for linenumber,line in enumerate(self.running):
+                if linenumber<self.skiplines: continue
+                self.body_rows.append(line.split("\n")[0].split("\t"))
 
         self.body_rows = np.array(self.body_rows)
         self.num_cols = self.body_rows.shape[1]
 
         if self.skiplines==0:
             self.header_rows = None
-            self.header = ["col_"+str(column_id) for column_id in range(self.num_cols)]
+            self.headers = ["col_"+str(column_id) for column_id in range(self.num_cols)]
             self.set_columns()
         
         elif self.skiplines!=0:
@@ -127,17 +108,18 @@ class data_manager():
             else:
                 linenumber = self.skiplines-1
             self.header_rows = self.running[:self.skiplines]
-            self.header = self.running[linenumber]
-            self.header = self.header.split("\n")[0].split("\t")
+            self.headers = self.running[linenumber]
+            if type == "constant string":
+                self.headers = self.headers.split("\n")[0].split("\t")
+            for idx,header in enumerate(self.headers):
+                self.headers[idx] = re.sub(r"[^\w]","",header)
             self.set_columns()
 
-    def set_columns():
+    def set_columns(self):
             
-        for column_id,header in enumerate(self.header):
+        for column_id,header in enumerate(self.headers):
             try:
-                header = re.sub(r"[^\w]","",header)
                 setattr(self,header,self.body_rows[:,column_id].tolist())
-                self.header[column_id] = header
             except:
                 setattr(self,header,self.body_rows[:,column_id].tolist())
 
@@ -182,6 +164,14 @@ class data_manager():
             array_of_string = np.array(list_of_string)
 
         setattr(self,attr_name,array_of_string)
+
+    def set_fullName(self):
+
+        self.full_name = list(" ".join((first,last)) for first,last in zip(self.first,self.last))
+
+        # self.fullName = []
+        # for first,last in zip(self.first,self.last):
+        #     self.fullName.append(" ".join((first,last)))
 
     def db_create_table(self,sqlite_table):
 
@@ -306,12 +296,13 @@ class data_table():
     def __init__(self,window):
 
         self.root = window
+        self.root.configure(background="white")
+
+        self.root.geometry("500x500")
 
         self.init_interface()
 
         # self.resize(1200,600)
-        
-        # filepath = "C:\\Users\\Cavid\\Documents\\bhospy\\interfaces\\sample.csv"
         
         # self.filepath = filepath
         # self.treeView = data_table(parent=self)
@@ -320,18 +311,8 @@ class data_table():
         # self.treeView.autoColumnWidth()
 
         # # self.fileView = FileViewer(parent=self)
-
-        # # print(dir(self.treeView))
-        
-        # self.centralwidget = QtWidgets.QWidget(self)
-        # self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
-        # self.verticalLayout.addWidget(self.treeView)
-        # # self.verticalLayout.addWidget(self.fileView)
-        # self.setCentralWidget(self.centralwidget)
         
         # self.editedFlag = True
-
-        # self.show()
 
     def init_interface(self):
 
@@ -345,8 +326,150 @@ class data_table():
 
         menubar.add_cascade(label="File",menu=fileMenu)
 
-        self.tree = ttk.Treeview(self.root)
-        self.tree.pack(expand=1,fill=tk.BOTH)
+        columns = ("#1","#2","#3")
+        headers = ("Full Name","Position","Email")
+
+        self.tree = ttk.Treeview(self.root,columns=columns,show="headings")
+
+        self.tree.column(columns[0],anchor=tk.W,width=100)
+        self.tree.column(columns[1],anchor=tk.W,width=100)
+        self.tree.column(columns[2],anchor=tk.W)
+
+        self.tree.heading(columns[0],text=headers[0],anchor=tk.W)
+        self.tree.heading(columns[1],text=headers[1],anchor=tk.W)
+        self.tree.heading(columns[2],text=headers[2],anchor=tk.W)
+
+        self.tree.columns = columns
+        self.tree.headers = headers
+
+        self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+        self.frame = tk.Frame(self.root,width=50)
+        self.frame.configure(background="white")
+        self.frame.pack(side=tk.TOP)
+
+        self.button_Add = tk.Button(self.frame,text="Add Item",width=50,command=self.addItem)
+        self.button_Add.pack(side=tk.TOP,ipadx=5,padx=10,pady=(5,1))
+
+        self.button_EditItem = tk.Button(self.frame,text="Edit Item",width=50,command=self.editItem)
+        self.button_EditItem.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,1))
+
+        self.button_Delete = tk.Button(self.frame,text="Delete Item",width=50,command=self.deleteItem)
+        self.button_Delete.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,10))
+
+        self.button_MoveUp = tk.Button(self.frame,text="Move Up",width=50,command=self.moveUp)
+        self.button_MoveUp.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
+
+        self.button_MoveDown = tk.Button(self.frame,text="Move Down",width=50,command=self.moveDown)
+        self.button_MoveDown.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,10))
+
+        self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=self.saveChanges)
+        self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
+
+    def set_path(self):
+
+        self.filepath = filedialog.askopenfilename(
+            title = "Select a File",
+            initialdir = os.getcwd(),
+            filetypes = (("Databases","*.db"),
+                         ("CSV Files","*.csv"),
+                         ("Excel Files","*.xl*"),
+                         ("All Files","*")))
+
+        if not self.filepath:
+            return
+
+        self.data = data_manager(self.filepath)
+
+        self.data.set_fullName()
+
+        self.set_tree_view()
+        
+        # self.wb = openpyxl.load_workbook(self.filepath)
+
+        # for sheet in self.wb.sheetnames:
+        #     self.listbox.insert(tk.END,sheet)
+
+        # status = "Imported \""+self.filepath+"\"."
+        # self.status.insert(tk.END,status)
+        # self.status.see(tk.END)
+
+    def set_tree_view(self):
+
+        # self.tree.column("#0",width=0,stretch=tk.NO)
+
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        for idx, _ in enumerate(self.data.body_rows):
+            values = (self.data.full_name[idx],self.data.position[idx],self.data.email[idx])
+            self.tree.insert(parent="",index="end",iid=idx,values=values)
+
+        # self.tree.move(2,0,0)
+
+    def addItem(self):
+
+        self.topAddItem = tk.Toplevel()
+
+        if hasattr(self,"data"):
+            headers = self.data.headers
+        else:
+            headers = self.tree.headers
+
+        for idx,header in enumerate(headers):
+            label = "label_"+str(idx)
+            entry = "entry_"+str(idx)
+            pady = (30,5) if idx==0 else (5,5)
+            setattr(self.topAddItem,label,tk.Label(self.topAddItem,text=header,font="Helvetica 11",width=10,anchor=tk.E))
+            setattr(self.topAddItem,entry,tk.Entry(self.topAddItem,width=30,font="Helvetica 11"))
+            getattr(self.topAddItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
+            getattr(self.topAddItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
+
+        self.topAddItem.button = tk.Button(self.topAddItem,text="Add Item",command=self.addItemEnterClicked)
+        self.topAddItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
+
+        self.topAddItem.bind('<Return>',self.addItemEnterClicked)
+
+        self.topAddItem.mainloop()
+
+        # for idx in self.tree.selection():
+        #     print(self.tree.item(idx,'values'))
+
+    def addItemEnterClicked(self,event=None):
+
+        if event is not None:
+            if event.widget!=self.topAddItem.button:
+                return
+
+        if hasattr(self,"data"):
+            headers = self.data.headers
+        else:
+            headers = self.tree.headers
+        
+        row = data_manager()
+
+        # self.fullName = list(" ".join((first,last)) for first,last in zip(self.first,self.last))
+
+        for idx,header in enumerate(headers):
+            header = header.replace(" ","_").lower()
+            entry = "entry_"+str(idx)
+            value = getattr(self.topAddItem,entry).get()
+            setattr(row,header,[value])
+
+        if hasattr(self,"data"):
+            row.set_fullName()
+
+        values = []
+        for header in self.tree.headers:
+            header = header.replace(" ","_").lower()
+            values.append(getattr(row,header)[0])
+
+        self.tree.insert(parent="",index="end",values=values)
+
+        self.topAddItem.destroy()
+
+    def editItem(self):
+        print("I edit Row Item on TOP window")
 
         # self.label_firstname = tk.Label(self.root,text="First Name")
         # self.label_firstname.grid(row=0,column=0)
@@ -363,66 +486,21 @@ class data_table():
         # self.button_enter = tk.Button(self.root,text="Enter",command=self.save_to_database)
         # self.button_enter.grid(row=2,column=1)
 
-    def set_path(self):
+    def deleteItem(self):
+        print("I delete Row")
 
-        self.filepath = filedialog.askopenfilename(
-            title = "Select a File",
-            initialdir = os.getcwd(),
-            filetypes = (("Databases","*.db"),
-                         ("CSV Files","*.csv"),
-                         ("Excel Files","*.xl*"),
-                         ("All Files","*")))
+    def moveUp(self):
+        print("I move Row up")
 
-        if not self.filepath:
-            return
+    def moveDown(self):
+        print("I move Row down")
 
-        self.dm = data_manager(self.filepath)
-
-        self.set_tree_view()
-        
-        # self.wb = openpyxl.load_workbook(self.filepath)
-
-        # for sheet in self.wb.sheetnames:
-        #     self.listbox.insert(tk.END,sheet)
-
-        # status = "Imported \""+self.filepath+"\"."
-        # self.status.insert(tk.END,status)
-        # self.status.see(tk.END)
-
-    def set_tree_view(self):
-
-        # self.tree['columns'] = ("Name","Position","Email")
-        
-        # self.tree.column("Name",anchor=tk.W,width=120)
-        # self.tree.column("Position",anchor=tk.W,width=80)
-        # self.tree.column("Email",anchor=tk.W,width=150)
-
-        # self.tree.heading("#0",text="Label")
-        # self.tree.heading("Name",text="Name",anchor=tk.CENTER)
-        # self.tree.heading("Position",text="Position",anchor=tk.W)
-        # self.tree.heading("Email",text="Email",anchor=tk.W)
-
-        self.tree.column("#0",width=0,stretch=tk.NO)
-
-        for idx,row in enumerate(self.dm.running):
-            if idx==0:
-                self.tree["columns"] = tuple(row)
-                for idy,head in enumerate(row):
-                    self.tree.column(head,anchor=tk.W,width=50,stretch=tk.NO)
-                    self.tree.heading(head,text=head,anchor=tk.W)
-            else:
-                self.tree.insert(parent="",index="end",iid=idx,values=tuple(row))
-
-        # self.tree.insert(parent="",index="end",iid=0,text="parent",values=("","Javid Shiriyev","cavid","cavid"))
-        # self.tree.insert(parent="",index="end",iid=1,text="parent",values=("","elmri","elmri","elmri"))
-        # self.tree.insert(parent="",index="end",iid=2,text="child",values=("","ferhad","ferhad","ferhad"))
-        # self.tree.move(2,0,0)
+    def saveChanges(self):
+        print("I save changes")
 
     def save_to_database(self):
 
-        db_file = r"C:\Users\Cavid\Documents\bhospy\instructors.db"
-
-        self.conn = sqlite3.connect(db_file)
+        self.conn = sqlite3.connect(self.path)
         # sqlite_table = '''CREATE TABLE SqliteDb_developers (
         #                  id INTEGER PRIMARY KEY,
         #                  name TEXT NOT NULL,
@@ -511,12 +589,11 @@ class data_graph():
     def __init__(self,window):
 
         self.root = window
+        self.root.configure(background="white")
 
         self.init_interface()
 
     def init_interface(self):
-        
-        self.root.configure(background="white")
 
         menubar = tk.Menu(self.root)
         
