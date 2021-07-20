@@ -57,26 +57,25 @@ class schedule():
 
         self.style = ttk.Style(self.root)
 
-        ## configT = {"padding":[40, 1, 5, 0],"background":"white"}
-        ##       
-        ## configN = {"tabmargins":[2,5,2,0],"tabposition":"wn","background":"white"}
-        ##
-        ## configA = {"background":"white"}
-        ##
-        ## mapT = {"background":[("selected","lightgrey")],
-        ##             "expand":[("selected",[1,1,1,0])]}
-        ##        
-        ## settings = {"TNotebook":{"configure":configN},
-        ##             "TNotebook.Tab":{"configure":configT,"map":mapT},
-        ##             "TAutocompleteEntryListbox":{"configure":configA}}
-        ##        
-        ## self.style.theme_create("yummy",parent="alt",settings=settings)
+        # self.style.theme_create("yummy",parent="alt",settings=settings)
 
-        """aqua,step,clam,alt,default,classic"""
+        # aqua,step,clam,alt,default,classic
 
         self.style.theme_use("clam")
 
-        self.style.configure("TNotebook",tabposition="wn")
+        self.style.configure("TNotebook",
+                             tabposition="wn",
+                             background="lightgrey") # tabmargins=[2,5,2,0],
+
+        self.style.configure("TNotebook.Tab",
+                             background="lightgrey",
+                             width=20,
+                             anchor=tk.E) # padding=[40, 1, 5, 0],
+
+        self.style.configure("AutocompleteEntryListbox",background="white")
+
+        self.style.map("TNotebook.Tab",
+                       background=[("selected","silver")]) #expand=[("selected",[1,1,1,0])]
         
         """END-OF-STYLING"""
 

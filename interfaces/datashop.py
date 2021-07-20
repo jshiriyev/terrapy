@@ -329,7 +329,7 @@ class data_table():
         columns = ("#1","#2","#3")
         headers = ("Full Name","Position","Email")
 
-        self.tree = ttk.Treeview(self.root,columns=columns,show="headings")
+        self.tree = ttk.Treeview(self.root,columns=columns,show="headings",selectmode="browse")
 
         self.tree.column(columns[0],anchor=tk.W,width=100)
         self.tree.column(columns[1],anchor=tk.W,width=100)
@@ -341,6 +341,12 @@ class data_table():
 
         self.tree.columns = columns
         self.tree.headers = headers
+
+        for header in self.tree.headers:
+            header = header.replace(" ","_").lower()
+            setattr(self.tree,header,[])
+
+        self.tree.deleted = []
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
@@ -367,7 +373,7 @@ class data_table():
         self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
     def set_path(self):
-
+        
         self.filepath = filedialog.askopenfilename(
             title = "Select a File",
             initialdir = os.getcwd(),
@@ -405,7 +411,11 @@ class data_table():
             values = (self.data.full_name[idx],self.data.position[idx],self.data.email[idx])
             self.tree.insert(parent="",index="end",iid=idx,values=values)
 
-        # self.tree.move(2,0,0)
+        for header in self.tree.headers:
+            header = header.replace(" ","_").lower()
+            setattr(self.tree,header,getattr(self.data,header))
+
+        self.tree.deleted = []
 
     def addItem(self):
 
@@ -441,6 +451,10 @@ class data_table():
             if event.widget!=self.topAddItem.button:
                 return
 
+        header = self.tree.headers[0].replace(" ","_").lower()
+
+        iid = len(getattr(self.tree,header))
+
         if hasattr(self,"data"):
             headers = self.data.headers
         else:
@@ -448,13 +462,13 @@ class data_table():
         
         row = data_manager()
 
-        # self.fullName = list(" ".join((first,last)) for first,last in zip(self.first,self.last))
-
         for idx,header in enumerate(headers):
             header = header.replace(" ","_").lower()
             entry = "entry_"+str(idx)
             value = getattr(self.topAddItem,entry).get()
             setattr(row,header,[value])
+            if hasattr(self,"data"):
+                getattr(self.data,header).append(value)
 
         if hasattr(self,"data"):
             row.set_fullName()
@@ -462,41 +476,116 @@ class data_table():
         values = []
         for header in self.tree.headers:
             header = header.replace(" ","_").lower()
-            values.append(getattr(row,header)[0])
+            value = getattr(row,header)[0]
+            getattr(self.tree,header).append(value)
+            values.append(value)
 
-        self.tree.insert(parent="",index="end",values=values)
+        self.tree.insert(parent="",index="end",iid=iid,values=values)
 
         self.topAddItem.destroy()
 
     def editItem(self):
-        print("I edit Row Item on TOP window")
 
-        # self.label_firstname = tk.Label(self.root,text="First Name")
-        # self.label_firstname.grid(row=0,column=0)
+        if not self.tree.selection():
+            return
+        else:
+            item = int(self.tree.selection()[0])
 
-        # self.label_lastname = tk.Label(self.root,text="Last Name")
-        # self.label_lastname.grid(row=1,column=0)
+        # print(item)
+        # print(self.tree.index(item))
 
-        # self.entry_firstname = tk.Entry(self.root)
-        # self.entry_firstname.grid(row=0,column=1)
+        self.topEditItem = tk.Toplevel()
 
-        # self.entry_lastname = tk.Entry(self.root)
-        # self.entry_lastname.grid(row=1,column=1)
+        if hasattr(self,"data"):
+            headers = self.data.headers
+        else:
+            headers = self.tree.headers
 
-        # self.button_enter = tk.Button(self.root,text="Enter",command=self.save_to_database)
-        # self.button_enter.grid(row=2,column=1)
+        for idx,header in enumerate(headers):
+            label = "label_"+str(idx)
+            entry = "entry_"+str(idx)
+            pady = (30,5) if idx==0 else (5,5)
+            setattr(self.topEditItem,label,tk.Label(self.topEditItem,text=header,font="Helvetica 11",width=10,anchor=tk.E))
+            setattr(self.topEditItem,entry,tk.Entry(self.topEditItem,width=30,font="Helvetica 11"))
+            getattr(self.topEditItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
+            getattr(self.topEditItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
+            if hasattr(self,"data"):
+                entry_text = getattr(self.data,header)[item]
+            else:
+                entry_text = getattr(self.tree,header)[item]
+            getattr(self.topEditItem,entry).insert(0,entry_text)
+
+        self.topEditItem.button = tk.Button(self.topEditItem,text="Save Item Edit",command=lambda: self.editItemEnterClicked(item))
+        self.topEditItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
+
+        # self.topEditItem.bind('<Return>',self.editItemEnterClicked)
+
+        self.topEditItem.mainloop()
+
+    def editItemEnterClicked(self,item,event=None):
+        
+        if hasattr(self,"data"):
+            headers = self.data.headers
+        else:
+            headers = self.tree.headers
+        
+        row = data_manager()
+
+        for idx,header in enumerate(headers):
+            header = header.replace(" ","_").lower()
+            entry = "entry_"+str(idx)
+            value = getattr(self.topEditItem,entry).get()
+            setattr(row,header,[value])
+            if hasattr(self,"data"):
+                getattr(self.data,header)[item] = value
+
+        if hasattr(self,"data"):
+            row.set_fullName()
+
+        values = []
+        for header in self.tree.headers:
+            header = header.replace(" ","_").lower()
+            value = getattr(row,header)[0]
+            getattr(self.tree,header)[item] = value
+            values.append(value)
+
+        self.tree.item(item,values=values)
+
+        self.topEditItem.destroy()
 
     def deleteItem(self):
-        print("I delete Row")
+
+        for item in self.tree.selection():
+            index = int(item)
+            self.tree.delete(index)
+            self.tree.deleted.append(index)
 
     def moveUp(self):
-        print("I move Row up")
+
+        if not self.tree.selection():
+            return
+        else:
+            item = self.tree.selection()[0]
+
+        self.tree.move(item,self.tree.parent(item),self.tree.index(item)-1)
 
     def moveDown(self):
-        print("I move Row down")
+
+        if not self.tree.selection():
+            return
+        else:
+            item = self.tree.selection()[0]
+
+        self.tree.move(item,self.tree.parent(item),self.tree.index(item)+1)
 
     def saveChanges(self):
-        print("I save changes")
+        
+        print(len(self.tree.full_name))
+        print(self.tree.full_name)
+        # if hasattr(self,"data"):
+        #     print(len(self.data.full_name))
+        #     print(self.data.full_name)
+        print(self.tree.deleted)
 
     def save_to_database(self):
 
