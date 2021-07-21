@@ -96,23 +96,31 @@ class data_manager():
         self.num_cols = self.body_rows.shape[1]
 
         if self.skiplines==0:
+
             self.header_rows = None
             self.headers = ["col_"+str(column_id) for column_id in range(self.num_cols)]
+
             self.set_columns()
         
         elif self.skiplines!=0:
+
             if headerline is None:
                 linenumber = self.skiplines-1
             elif headerline < self.skiplines:
                 linenumber = headerline
             else:
                 linenumber = self.skiplines-1
+
             self.header_rows = self.running[:self.skiplines]
             self.headers = self.running[linenumber]
+
             if type == "constant string":
                 self.headers = self.headers.split("\n")[0].split("\t")
+
             for idx,header in enumerate(self.headers):
+                header = header.replace(" ","_")
                 self.headers[idx] = re.sub(r"[^\w]","",header)
+
             self.set_columns()
 
     def set_columns(self):
@@ -300,21 +308,9 @@ class data_table():
 
         self.root.geometry("500x500")
 
-        self.init_interface()
+        self.initialize(("Full Name","Position","Email"))
 
-        # self.resize(1200,600)
-        
-        # self.filepath = filepath
-        # self.treeView = data_table(parent=self)
-        # self.treeView.loadCSV(self.filepath)
-
-        # self.treeView.autoColumnWidth()
-
-        # # self.fileView = FileViewer(parent=self)
-        
-        # self.editedFlag = True
-
-    def init_interface(self):
+    def initialize(self,headers):
 
         menubar = tk.Menu(self.root)
         
@@ -326,8 +322,10 @@ class data_table():
 
         menubar.add_cascade(label="File",menu=fileMenu)
 
-        columns = ("#1","#2","#3")
-        headers = ("Full Name","Position","Email")
+        columns = []
+
+        for idx, _ in enumerate(headers,start=1):
+            columns.append("#"+str(idx))
 
         self.tree = ttk.Treeview(self.root,columns=columns,show="headings",selectmode="browse")
 
@@ -340,12 +338,15 @@ class data_table():
         self.tree.heading(columns[2],text=headers[2],anchor=tk.W)
 
         self.tree.columns = columns
-        self.tree.headers = headers
 
-        for header in self.tree.headers:
+        self.tree.headers = []
+
+        for idx,header in enumerate(headers):
             header = header.replace(" ","_").lower()
+            self.tree.headers.append(header)
             setattr(self.tree,header,[])
 
+        self.tree.added = []
         self.tree.deleted = []
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
@@ -412,7 +413,6 @@ class data_table():
             self.tree.insert(parent="",index="end",iid=idx,values=values)
 
         for header in self.tree.headers:
-            header = header.replace(" ","_").lower()
             setattr(self.tree,header,getattr(self.data,header))
 
         self.tree.deleted = []
@@ -451,9 +451,7 @@ class data_table():
             if event.widget!=self.topAddItem.button:
                 return
 
-        header = self.tree.headers[0].replace(" ","_").lower()
-
-        iid = len(getattr(self.tree,header))
+        iid = len(getattr(self.tree,self.tree.headers[0]))
 
         if hasattr(self,"data"):
             headers = self.data.headers
@@ -463,7 +461,6 @@ class data_table():
         row = data_manager()
 
         for idx,header in enumerate(headers):
-            header = header.replace(" ","_").lower()
             entry = "entry_"+str(idx)
             value = getattr(self.topAddItem,entry).get()
             setattr(row,header,[value])
@@ -474,8 +471,8 @@ class data_table():
             row.set_fullName()
 
         values = []
+
         for header in self.tree.headers:
-            header = header.replace(" ","_").lower()
             value = getattr(row,header)[0]
             getattr(self.tree,header).append(value)
             values.append(value)
@@ -509,7 +506,6 @@ class data_table():
             setattr(self.topEditItem,entry,tk.Entry(self.topEditItem,width=30,font="Helvetica 11"))
             getattr(self.topEditItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topEditItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
-            header = header.replace(" ","_").lower()
             if hasattr(self,"data"):
                 entry_text = getattr(self.data,header)[item]
             else:
@@ -533,7 +529,6 @@ class data_table():
         row = data_manager()
 
         for idx,header in enumerate(headers):
-            header = header.replace(" ","_").lower()
             entry = "entry_"+str(idx)
             value = getattr(self.topEditItem,entry).get()
             setattr(row,header,[value])
@@ -544,8 +539,8 @@ class data_table():
             row.set_fullName()
 
         values = []
+
         for header in self.tree.headers:
-            header = header.replace(" ","_").lower()
             value = getattr(row,header)[0]
             getattr(self.tree,header)[item] = value
             values.append(value)
