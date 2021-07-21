@@ -373,7 +373,7 @@ class data_table():
         self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
     def set_path(self):
-        
+
         self.filepath = filedialog.askopenfilename(
             title = "Select a File",
             initialdir = os.getcwd(),
@@ -509,6 +509,7 @@ class data_table():
             setattr(self.topEditItem,entry,tk.Entry(self.topEditItem,width=30,font="Helvetica 11"))
             getattr(self.topEditItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topEditItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
+            header = header.replace(" ","_").lower()
             if hasattr(self,"data"):
                 entry_text = getattr(self.data,header)[item]
             else:
@@ -587,19 +588,17 @@ class data_table():
         #     print(self.data.full_name)
         print(self.tree.deleted)
 
-    def save_to_database(self):
-
-        self.conn = sqlite3.connect(self.path)
-        # sqlite_table = '''CREATE TABLE SqliteDb_developers (
-        #                  id INTEGER PRIMARY KEY,
-        #                  name TEXT NOT NULL,
-        #                  email text NOT NULL UNIQUE);'''
-        self.cursor = self.conn.cursor()
-        # self.cursor.execute(sqlite_table)
-        # self.conn.commit()
-        
-        self.cursor.close()
-        self.conn.close()
+        # save_to_database:
+        # self.conn = sqlite3.connect(self.path)
+        # # sqlite_table = '''CREATE TABLE SqliteDb_developers (
+        # #                  id INTEGER PRIMARY KEY,
+        # #                  name TEXT NOT NULL,
+        # #                  email text NOT NULL UNIQUE);'''
+        # self.cursor = self.conn.cursor()
+        # # self.cursor.execute(sqlite_table)
+        # # self.conn.commit()
+        # self.cursor.close()
+        # self.conn.close()
 
     def closeEvent(self,event):
         
@@ -624,43 +623,6 @@ class data_table():
 
         if index.row()>-1 and index.column()>-1:
             self.edit(index)
-
-    def loadCSV(self,filepath):
-
-        csvrunning = list(csv.reader(open(filepath)))
-
-        #self.treeView.setHeaderLabels(csvrunning[0])
-
-        self.model.setHorizontalHeaderLabels(csvrunning[0])
-
-        for line in csvrunning[1:]:
-            items = [
-                QtGui.QStandardItem(text)
-                for text in line
-                ]
-            self.model.appendRow(items)
-
-    def writeCSV(self,filepath):
-
-        with open(filepath,"w") as fileOutput:
-            writer = csv.writer(fileOutput)
-
-            headers = [
-                self.model.horizontalHeaderItem(columnNumber).text()
-                for columnNumber in range(self.model.columnCount())
-            ]
-
-            writer.writerow(headers)
-
-            for rowNumber in range(self.model.rowCount()):
-                fields = [
-                    self.model.data(
-                        self.model.index(rowNumber,columnNumber),
-                        QtCore.Qt.DisplayRole
-                    )
-                    for columnNumber in range(self.model.columnCount())
-                ]
-                writer.writerow(fields)
 
     def autoColumnWidth(self):
         
