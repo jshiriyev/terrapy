@@ -184,101 +184,95 @@ def odelay(func, y0, xspan, events, TOLERANCE=1e-7,
             np.array(YE),
             np.array(IE))
 
-def root_function(beta):
+def root_function(beta,RR):
+
+    """
+    This is the function that outputs values of root function 
+    defined in Everdingen solution. At singularity point of \beta = 0,
+    it outputs its value at limit.
+    """
+
+    res = np.empty(beta.shape)
+
+    res[beta==0] = -RR/np.pi+1/(np.pi*RR)
+
+    J1B = bessel_j1(beta[beta>0])
+    Y1B = bessel_y1(beta[beta>0])
+    
+    J1BR = bessel_j1(beta[beta>0]*RR)
+    Y1BR = bessel_y1(beta[beta>0]*RR)
+    
+    res[beta>0] = J1BR*Y1B-J1B*Y1BR
+
+    return res
+    
+def root_function_first_derivative(beta,RR):
 
     J1B = bessel_j1(beta)
     Y1B = bessel_y1(beta)
     
-    J1BR = bessel_j1(beta*R)
-    Y1BR = bessel_y1(beta*R)
-
-    return J1BR*Y1B-J1B*Y1BR
-    
-def root_function_first_derivative(root_function,beta):
-
-    J1B = bessel_j1(beta)
-    Y1B = bessel_y1(beta)
-    
-    J1BR = bessel_j1(beta*R)
-    Y1BR = bessel_y1(beta*R)
+    J1BR = bessel_j1(beta*RR)
+    Y1BR = bessel_y1(beta*RR)
 
     J1B_prime = bessel_jvp(1,beta)
     Y1B_prime = bessel_yvp(1,beta)
 
-    J1BR_prime = R*bessel_jvp(1,beta*R)
-    Y1BR_prime = R*bessel_yvp(1,beta*R)
+    J1BR_prime = RR*bessel_jvp(1,beta*RR)
+    Y1BR_prime = RR*bessel_yvp(1,beta*RR)
 
     return J1BR_prime*Y1B+J1BR*Y1B_prime-J1B_prime*Y1BR-J1B*Y1BR_prime
 
-def e1(root_function,x):
-    "event function to find zeros of f"
-    isterminal = False
-    value = root_function
-    direction = 0
-    return value, isterminal, direction
+# def e1(root_function,x):
+#     "event function to find zeros of f"
+#     isterminal = False
+#     value = root_function
+#     direction = 0
+#     return value, isterminal, direction
 
-##    def root_function_first_derivative_numerical(self,R):
-##        
-##        num = self.beta.shape[0]
-##
-##        idx = list(range(num))
-##        
-##        idx_diag_ends = np.array([0,num-1])
-##
-##        Amatrix = csr((num,num))
-##
-##        Amatrix += csr((np.ones(num-1),(idx[:-1],idx[1:])),shape=(num,num))
-##        Amatrix -= csr((np.ones(num-1),(idx[1:],idx[:-1])),shape=(num,num))
-##        Amatrix += csr((np.array([-1,1]),(idx_diag_ends,idx_diag_ends)),shape=(num,num))
-##
-##        y_prime = Amatrix*self.root_function(R)
-##        x_prime = Amatrix*self.beta
-##
-##        return y_prime/x_prime
+def root_function_first_derivative_numerical(beta,RR):
+   
+    num = beta.shape[0]
+
+    idx = list(range(num))
+
+    idx_diag_ends = np.array([0,num-1])
+
+    Amatrix = csr((num,num))
+
+    Amatrix += csr((np.ones(num-1),(idx[:-1],idx[1:])),shape=(num,num))
+    Amatrix -= csr((np.ones(num-1),(idx[1:],idx[:-1])),shape=(num,num))
+    Amatrix += csr((np.array([-1,1]),(idx_diag_ends,idx_diag_ends)),shape=(num,num))
+
+    y_prime = Amatrix*root_function(beta,RR)
+    x_prime = Amatrix*beta
+
+    return y_prime/x_prime
 
 if __name__ == "__main__":
-    
-##    beta = np.linspace(0,10,500)
 
-##    beta = 0
+    beta = np.linspace(0,2,100000)
 
-##    P = everdingen(10,1000)
-##
     R = 10
-##
-##    f0 = P.root_function(R)
-##    f1A = P.root_function_first_derivative(R)
-##    f1N = P.root_function_first_derivative_numerical(R)
-##
-    ##def f(x):
-    ##    "function we want roots for"
-    ##    return x * jn(1, x) - Bi * jn(0, x)
-    ##
-    ##def fprime(f, x):
-    ##    "df/dx"
-    ##    return x * jn(0, x) - Bi * (-jn(1, x))
-    ##
-    ##def e1(f, x):
-    ##    "event function to find zeros of f"
-    ##    isterminal = False
-    ##    value = f
-    ##    direction = 0
-    ##    return value, isterminal, direction
-    ##
-    f0 = root_function(1e-20)
-    beta = np.linspace(0.01,10,999)
-    ##
-    x, fsol, XE, FE, IE = odelay(root_function_first_derivative,f0,beta, events=[e1])
-    ##
-    ##plt.plot(x, fsol, '.-', label='Numerical solution')
-    ##plt.plot(xspan, f(xspan), '--', label='Analytical function')
-    
-    plt.plot(beta,root_function(beta),label="zeroth order")
-    
-    plt.axhline(y=0,xmin=0,xmax=beta[-1],color='r')
-    plt.plot(XE,FE,'ro',label='roots')
 
-    ##plt.ylim([-10,10])
+    # P = everdingen(10,1000)
+
+    # f0 = P.root_function(R)
+    # f1A = P.root_function_first_derivative(R)
+    # f1N = P.root_function_first_derivative_numerical(R)
+
+    # f0 = root_function(1e-20)
+
+    # x, fsol, XE, FE, IE = odelay(root_function_first_derivative,f0,beta, events=[e1])
+
+    plt.plot(beta,root_function(beta,R),label="root function")
+    # plt.plot(beta,root_function_first_derivative_numerical(beta,R),label="root function derivative")
+    
+    plt.axhline(y=0,xmin=0,xmax=beta[-1],color='k')
+    # plt.plot(XE,FE,'ro',label='roots')
+    # plt.plot(x, fsol, '.-', label='Numerical solution')
+    # plt.plot(xspan, f(xspan), '--', label='Analytical function')
+
+    # plt.ylim([-10,10])
 
     plt.legend()
 
