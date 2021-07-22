@@ -2,319 +2,216 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
-##from pycse import odelay
-from scipy.integrate import odeint
-
 from scipy.sparse import csr_matrix as csr
 
-##from scipy.special import j0 as bessel_j0
+from scipy.special import j0 as bessel_j0
 from scipy.special import j1 as bessel_j1
-##from scipy.special import y0 as bessel_y0
+from scipy.special import y0 as bessel_y0
 from scipy.special import y1 as bessel_y1
 
 from scipy.special import jvp as bessel_jvp
 from scipy.special import yvp as bessel_yvp
 
-from scipy.optimize import fsolve
-from scipy.optimize import minimize
 from scipy.optimize import root_scalar
 
-# class everdingen():
+def toarray(x):
 
-#    def __init__(self,RR,tt,num_of_terms):
+    if isinstance(x,int) or isinstance(x,float):
+        x = np.array([x])
+    elif isinstance(x,list) or isinstance(x,tuple):
+        x = np.array(x)
 
-##        if isinstance(beta,int):
-##            beta = tol if beta==0 else beta
-##        elif isinstance(beta,float):
-##            beta = tol if beta==0.0 else beta
-##        elif isinstance(beta,list):
-##            beta[beta==0] = tol
-##        elif isinstance(beta,np.ndarray):
-##            beta[beta==0] = tol
-##        elif isinstance(beta,tuple):
-##            return
+    return x
 
-    # def odelay(func, y0, xspan, events, TOLERANCE=1e-7,
-    #            fsolve_args=None, **kwargs):
-    #     """Solve an ODE with events.
+class everdingen():
 
-    #     Parameters
-    #     ----------
-    #     func : y' = func(Y, x)
-    #         func takes an independent variable x, and the Y value(s),
-    #         and returns y'.
+    def __init__(self,RR,rr,tt,num_of_terms=2):
 
-    #     y0 : The initial conditions at xspan[0].
+        self.RR = RR
 
-    #     xspan : array to integrate the solution at.
-    #         The initial condition is at xspan[0].
+        self.rr = toarray(rr)
+        self.tt = toarray(tt)
 
-    #     events : list of callable functions with signature event(Y, x).
-    #         These functions return zero when an event has happened.
+        self.num = num_of_terms
 
-    #         [value, isterminal, direction] = event(Y, x)
+        self.find_roots()
 
-    #         value is the value of the event function. When value = 0, an event
-    #         is triggered
+    def find_roots(self):
 
-    #         isterminal = True if the integration is to terminate at a zero of
-    #         this event function, otherwise, False.
+        roots = np.empty(self.num)
 
-    #         direction = 0 if all zeros are to be located (the default), +1
-    #         if only zeros where the event function is increasing, and -1 if
-    #         only zeros where the event function is decreasing.
+        for idx in range(self.num):
 
-    #     TOLERANCE : float
-    #         Used to identify when an event has occurred.
+            lower_bound = ((2*idx+1)*np.pi)/(2*self.RR-2)
+            upper_bound = ((2*idx+3)*np.pi)/(2*self.RR-2)
 
-    #     fsolve_args : a dictionary of options for fsolve
+            bracket = (lower_bound,upper_bound)
 
-    #     kwargs : Additional keyword options you want to send to odeint.
+            solver = root_scalar(self.root_function,method="brentq",bracket=bracket)
 
-    #     Returns
-    #     -------
-    #     [x, y, te, ye, ie]
-    #         x is the independent variable array
-    #         y is the solution
-    #         te is an array of independent variable values where events occurred
-    #         ye is an array of the solution at the points where events occurred
-    #         ie is an array of indices indicating which event function occurred.
-    #     """
-    #     if 'full_output' in kwargs:
-    #         raise Exception('full_output not supported as an option')
+            roots[idx] = solver.root
 
-    #     if fsolve_args is None:
-    #         fsolve_args = {}
+        self.beta_n = roots
 
-    #     x0 = xspan[0]  # initial point
+    def root_function(self,beta):
 
-    #     X = np.array([x0])
-    #     sol = np.array([y0])
-    #     TE, YE, IE = [], [], []  # to store where events occur
+        """
+        This is the function that outputs values of root function 
+        defined in Everdingen solution. At singularity point of \beta = 0,
+        it outputs its value at limit.
+        """
 
-    #     # initial value of events
-    #     e = np.zeros((len(events), len(xspan)))
-    #     for i, event in enumerate(events):
-    #         e[i, 0], isterminal, direction = event(y0, x0)
+        beta = toarray(beta)
 
+        res = np.empty(beta.shape)
+
+        res[beta==0] = -self.RR/np.pi+1/(np.pi*self.RR)
+
+        J1B = bessel_j1(beta[beta>0])
+        Y1B = bessel_y1(beta[beta>0])
         
-
-    #     # now we step through the integration
-    #     for i, x1 in enumerate(xspan[0:-1]):
-    #         x2 = xspan[i + 1]
-    #         f1 = sol[i]
-
-    #         f2 = odeint(func, f1, [x1, x2], **kwargs)
-
-    # ##        print(type(f2[-1, :]))
-    # ##        print(f2[-1, :])
-            
-    #         X = np.append(X,x2)
-    #         sol = np.append(sol,f2[-1, :])
-
-    #         # check event functions. At each step we compute the event
-    #         # functions, and check if they have changed sign since the
-    #         # last step. If they changed sign, it implies a zero was
-    #         # crossed.
-    #         for j, event in enumerate(events):
-    #             e[j, i + 1], isterminal, direction = event(sol[i + 1], X[i + 1])
-
-    #             if ((e[j, i + 1] * e[j, i] < 0) or      # sign change in
-    #                                                     # event means zero
-    #                                                     # crossing
-    #                 np.abs(e[j, i + 1]) < TOLERANCE or  # this point is
-    #                                                     # practically 0
-    #                 np.abs(e[j, i]) < TOLERANCE):
-
-    #                 xLt = X[-1]       # Last point
-    #                 fLt = sol[-1]
-
-    #                 # we need to find a value of x that makes the event zero
-    #                 def objective(x):
-    #                     # evaluate ode from xLT to x
-    #                     txspan = [xLt, x[0]]
-    # ##                    print(x)
-    #                     tempsol = odeint(func, fLt, txspan, **kwargs)
-    #                     sol = tempsol[-1, :]
-    #                     val, isterminal, direction = event(sol, x)
-    #                     return val
-
-    #                 # this should be the value of x that makes the event zero
-    #                 xZ, = fsolve(objective, xLt, **fsolve_args)
-                    
-
-    #                 # now evaluate solution at this point, so we can
-    #                 # record the function values here.
-    #                 txspan = [xLt, xZ]
-    #                 tempsol = odeint(func, fLt, txspan, **kwargs)
-    #                 fZ = tempsol[-1, :]
-
-    #                 vZ, isterminal, direction = event(fZ, xZ)
-
-    #                 COLLECTEVENT = False
-    #                 if direction == 0:
-    #                     COLLECTEVENT = True
-    #                 elif (e[j, i + 1] > e[j, i]) and direction == 1:
-    #                     COLLECTEVENT = True
-    #                 elif (e[j, i + 1] < e[j, i]) and direction == -1:
-    #                     COLLECTEVENT = True
-
-    #                 if COLLECTEVENT:
-    #                     TE.append(xZ)
-    #                     YE.append(fZ)
-    #                     IE.append(j)
-
-    #                     if isterminal:
-    #                         X[-1] = xZ
-    #                         sol[-1] = fZ
-    #                         return (np.array(X),
-    #                                 np.array(sol),
-    #                                 np.array(TE),
-    #                                 np.array(YE),
-    #                                 np.array(IE))
-
-    #     # at the end, return what we have
+        J1BR = bessel_j1(beta[beta>0]*self.RR)
+        Y1BR = bessel_y1(beta[beta>0]*self.RR)
         
-    #     return (np.array(X),
-    #             np.array(sol),
-    #             np.array(TE),
-    #             np.array(YE),
-    #             np.array(IE))
+        res[beta>0] = J1BR*Y1B-J1B*Y1BR
 
-def root_function(beta,RR):
+        return res
 
-    """
-    This is the function that outputs values of root function 
-    defined in Everdingen solution. At singularity point of \beta = 0,
-    it outputs its value at limit.
-    """
+    def root_function_first_derivative(self,beta):
 
-    if type(beta)==int or type(beta)==float:
-        beta = np.array([beta])
-    elif type(beta)==list or type(beta)==tuple:
-        beta = np.array(beta)
+        """
+        it needs a treshold value of beta and two functions to calculate analytical values,
+        one close to singularity \beta=0, the other at larger values of \betta
+        """
 
-    res = np.empty(beta.shape)
+        J1B = bessel_j1(beta)
+        Y1B = bessel_y1(beta)
+        
+        J1BR = bessel_j1(beta*self.RR)
+        Y1BR = bessel_y1(beta*self.RR)
 
-    res[beta==0] = -RR/np.pi+1/(np.pi*RR)
+        J1B_prime = bessel_jvp(1,beta)
+        Y1B_prime = bessel_yvp(1,beta)
 
-    J1B = bessel_j1(beta[beta>0])
-    Y1B = bessel_y1(beta[beta>0])
-    
-    J1BR = bessel_j1(beta[beta>0]*RR)
-    Y1BR = bessel_y1(beta[beta>0]*RR)
-    
-    res[beta>0] = J1BR*Y1B-J1B*Y1BR
+        J1BR_prime = self.RR*bessel_jvp(1,beta*self.RR)
+        Y1BR_prime = self.RR*bessel_yvp(1,beta*self.RR)
 
-    return res
+        return J1BR_prime*Y1B+J1BR*Y1B_prime-J1B_prime*Y1BR-J1B*Y1BR_prime
 
-def find_roots(RR,num_of_terms=1):
+    def root_function_first_derivative_numerical(self,beta):
+       
+        num = beta.shape[0]
 
-    roots = np.empty(num_of_terms)
+        idx = list(range(num))
 
-    for idx in range(num_of_terms):
+        idx_diag_ends = np.array([0,num-1])
 
-        lower_bound = ((2*idx+1)*np.pi)/(2*R-2)
-        upper_bound = ((2*idx+3)*np.pi)/(2*R-2)
+        Amatrix = csr((num,num))
 
-        bracket = (lower_bound,upper_bound)
+        Amatrix += csr((np.ones(num-1),(idx[:-1],idx[1:])),shape=(num,num))
+        Amatrix -= csr((np.ones(num-1),(idx[1:],idx[:-1])),shape=(num,num))
+        Amatrix += csr((np.array([-1,1]),(idx_diag_ends,idx_diag_ends)),shape=(num,num))
 
-        solver = root_scalar(root_function,args=(RR,),method="brentq",bracket=bracket)
+        y_prime = Amatrix*root_function(beta,self.RR)
+        x_prime = Amatrix*beta
 
-        roots[idx] = solver.root
+        return y_prime/x_prime
 
-    return roots
+    def solve(self):
 
-    
-def root_function_first_derivative(beta,RR):
+        dist = self.rr.reshape((-1,1,1))
+        time = self.tt.reshape((1,-1,1))
+        beta = self.beta_n.reshape((1,1,-1))
 
-    """
-    it needs a treshold value of beta and two functions to calculate analytical values,
-    one close to singularity \beta=0, the other at larger values of \betta
-    """
+        term1 = 2/(self.RR**2-1)*((dist[:,:,0]**2)/4.+time[:,:,0])
+        term2 = self.RR**2/(self.RR**2-1)*np.log(dist[:,:,0])
+        term3 = 3*self.RR**4-4*self.RR**4*np.log(self.RR)-2*self.RR**2-1
+        term4 = 4*(self.RR**2-1)**2
 
-    J1B = bessel_j1(beta)
-    Y1B = bessel_y1(beta)
-    
-    J1BR = bessel_j1(beta*RR)
-    Y1BR = bessel_y1(beta*RR)
+        term5 = (bessel_j1(beta*self.RR))**2*np.exp(-(beta**2)*time)
+        term6 = bessel_j1(beta)*bessel_y0(beta*dist)-bessel_y1(beta)*bessel_j0(beta*dist)
+        term7 = beta*((bessel_j1(beta*self.RR))**2-(bessel_j1(beta))**2)
 
-    J1B_prime = bessel_jvp(1,beta)
-    Y1B_prime = bessel_yvp(1,beta)
+        term8 = term5*term6/term7
 
-    J1BR_prime = RR*bessel_jvp(1,beta*RR)
-    Y1BR_prime = RR*bessel_yvp(1,beta*RR)
-
-    return J1BR_prime*Y1B+J1BR*Y1B_prime-J1B_prime*Y1BR-J1B*Y1BR_prime
-    
-# def e1(root_function,x):
-#     "event function to find zeros of f"
-#     isterminal = False
-#     value = root_function
-#     direction = 0
-#     return value, isterminal, direction
-
-def root_function_first_derivative_numerical(beta,RR):
-   
-    num = beta.shape[0]
-
-    idx = list(range(num))
-
-    idx_diag_ends = np.array([0,num-1])
-
-    Amatrix = csr((num,num))
-
-    Amatrix += csr((np.ones(num-1),(idx[:-1],idx[1:])),shape=(num,num))
-    Amatrix -= csr((np.ones(num-1),(idx[1:],idx[:-1])),shape=(num,num))
-    Amatrix += csr((np.array([-1,1]),(idx_diag_ends,idx_diag_ends)),shape=(num,num))
-
-    y_prime = Amatrix*root_function(beta,RR)
-    x_prime = Amatrix*beta
-
-    return y_prime/x_prime
+        self.PP = term1-term2-term3/term4+np.pi*term8.sum(axis=2)
 
 if __name__ == "__main__":
 
     # beta = np.logspace(-4,3,10000)
+    # u = 1e-2
+    # print(bessel_y0(u))
+    # print(2/np.pi*(np.log(u)-0.11593))
+    # beta = np.linspace(0,100,100000)
 
-    beta = np.linspace(0,100,100000)
+    # tt = np.linspace(8,40)
+    # tt = [0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.35,0.4,0.45,0.5,0.55,0.6]
+    # tt = np.linspace(0.22,0.5,15)
+    # tt = np.linspace(0.4,0.6,11)
+    # tt = np.linspace(1,2,11)
+    # tt = np.linspace(1e-2,50,9)
 
-    R = 2.5
+    tt = [1e-2,1e-1,0.5,3,5,7,9,11,16]
 
-    roots = find_roots(R,num_of_terms=2)
+    # print(tt)
 
-    print(roots)
+    sol = everdingen(RR=10,rr=np.linspace(1,10,10000),tt=tt,num_of_terms=100) #np.linspace(1,10)
 
-    # P = everdingen(10,1000)
+    sol.solve()
 
-    # f0 = P.root_function(R)
-    # f1A = P.root_function_first_derivative(R)
-    # f1N = P.root_function_first_derivative_numerical(R)
+    # print(sol.beta_n)
+    # print(sol.PP[0,:])
 
-    # f0 = root_function(1e-20)
+    plt.plot(sol.rr,sol.PP[:,0])
+    plt.plot(sol.rr,sol.PP[:,1])
+    plt.plot(sol.rr,sol.PP[:,2])
+    plt.plot(sol.rr,sol.PP[:,3])
+    plt.plot(sol.rr,sol.PP[:,4])
+    plt.plot(sol.rr,sol.PP[:,5])
+    plt.plot(sol.rr,sol.PP[:,6])
+    plt.plot(sol.rr,sol.PP[:,7])
+    plt.plot(sol.rr,sol.PP[:,8])
 
-    # x, fsol, XE, FE, IE = odelay(root_function_first_derivative,f0,beta, events=[e1])
+    plt.gca().invert_yaxis()
 
-    # print(C[0]+D[0])
+    plt.show()
 
-    # plt.plot(beta,root_function(beta,R),label="root function")
-    # plt.plot(beta,root_function_first_derivative_numerical(beta,R),label="root function derivative")
+    # J0B = bessel_j0(sol.beta_n)
+    # Y0B = bessel_y0(sol.beta_n)
 
-    plt.plot(beta,root_function(beta,R),label="J1BR*Y1B-J1B*Y1BR")
-    plt.plot(roots,np.zeros(roots.shape),'.')
-    # plt.semilogy(beta,np.abs(B),label="J1BR*Y1B_prime")
-    # plt.semilogy(beta,np.abs(C),label="J1B_prime*Y1BR")
-    # plt.semilogy(beta,np.abs(D),label="J1B*Y1BR_prime")
+    # J1B = bessel_j1(sol.beta_n)
+    # Y1B = bessel_y1(sol.beta_n)
 
-    # plt.axhline(y=0,xmin=beta[0],xmax=beta[-1],color='k')
-    # plt.axhline(y=0,xmin=np.log10(beta[0]),xmax=np.log10(beta[-1]),color='k')
+    # print(np.pi*sol.beta_n*(J1B*Y0B-Y1B*J0B))
 
-    # plt.plot(XE,FE,'ro',label='roots')
-    # plt.plot(x, fsol, '.-', label='Numerical solution')
-    # plt.plot(xspan, f(xspan), '--', label='Analytical function')
+    # print(sol.beta_n)
 
-    # plt.ylim([-10,10])
+    # # P = everdingen(10,1000)
 
-    # plt.legend()
+    # # f0 = P.root_function(R)
+    # # f1A = P.root_function_first_derivative(R)
+    # # f1N = P.root_function_first_derivative_numerical(R)
+
+    # # f0 = root_function(1e-20)
+
+    # # x, fsol, XE, FE, IE = odelay(root_function_first_derivative,f0,beta, events=[e1])
+
+    # # print(C[0]+D[0])
+
+    # # plt.plot(beta,root_function(beta,R),label="root function")
+    # # plt.plot(beta,root_function_first_derivative_numerical(beta,R),label="root function derivative")
+
+    # plt.plot(beta,sol.root_function(beta),label="J1BR*Y1B-J1B*Y1BR")
+    # plt.plot(sol.beta_n,np.zeros(sol.beta_n.shape),'.')
+    # # plt.semilogy(beta,np.abs(B),label="J1BR*Y1B_prime")
+    # # plt.semilogy(beta,np.abs(C),label="J1B_prime*Y1BR")
+    # # plt.semilogy(beta,np.abs(D),label="J1B*Y1BR_prime")
+
+    # # plt.axhline(y=0,xmin=beta[0],xmax=beta[-1],color='k')
+    # # plt.axhline(y=0,xmin=np.log10(beta[0]),xmax=np.log10(beta[-1]),color='k')
+
+    # # plt.ylim([-10,10])
+
+    # # plt.legend()
 
     plt.show()
