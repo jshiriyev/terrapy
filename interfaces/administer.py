@@ -16,15 +16,18 @@ from tkinter import filedialog
 
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
+from datashop import data_manager
+from datashop import data_table
+
 class schedule():
 
     def __init__(self,window):
 
         self.root = window
 
-        self.init_interface()
+        self.initialize()
 
-    def init_interface(self):
+    def initialize(self):
 
         self.root.title("BHOS-PE Administration")
         self.root.configure(background="white")
@@ -35,16 +38,16 @@ class schedule():
         fileMenu = tk.Menu(menubar,tearoff="Off")
         fileMenu.add_command(label="Open")
         fileMenu.add_command(label="Save")
-        fileMenu.add_command(label="Save As")
+        fileMenu.add_command(label="Save As ...")
         fileMenu.add_separator()
-        fileMenu.add_command(label="Import",command=self.import_inputs)
-        fileMenu.add_command(label="Export",command=self.export_schedule)
+        fileMenu.add_command(label="Import ...",command=self.import_inputs)
+        fileMenu.add_command(label="Export ...",command=self.export_schedule)
         fileMenu.add_separator()
         fileMenu.add_command(label="Exit",command=self.root.destroy)
 
         editMenu = tk.Menu(menubar,tearoff="Off")
-        editMenu.add_command(label="Instructors")
-        editMenu.add_command(label="Courses")
+        editMenu.add_command(label="Instructors",command=self.edit_instructors)
+        editMenu.add_command(label="Courses",command=self.edit_courses)
 
         helpMenu = tk.Menu(menubar,tearoff="Off")
         helpMenu.add_command(label="Info")
@@ -65,10 +68,10 @@ class schedule():
 
         self.style.configure("TNotebook",
                              tabposition="wn",
-                             background="lightgrey") # tabmargins=[2,5,2,0],
+                             background="white") # tabmargins=[2,5,2,0],
 
         self.style.configure("TNotebook.Tab",
-                             background="lightgrey",
+                             background="silver",
                              width=20,
                              anchor=tk.E) # padding=[40, 1, 5, 0],
 
@@ -102,11 +105,11 @@ class schedule():
         frame.configure(background="white")
 
         frame.label0 = tk.Label(frame,text="Fall Semester")
-        frame.label0.configure(background="white")
+        frame.label0.configure(background="silver")
         frame.label0.grid(row=0,column=0,columnspan=2,sticky=tk.EW)
 
         frame.label1 = tk.Label(frame,text="Spring Semester")
-        frame.label1.configure(background="white")
+        frame.label1.configure(background="silver")
         frame.label1.grid(row=0,column=2,columnspan=2,sticky=tk.EW)
 
         frame.listbox0 = tk.Listbox(frame,width=40,height=20)
@@ -510,94 +513,21 @@ class schedule():
         # def stop_resize(self,event):
         # self.resize_mode = 0
 
-class Window(QtWidgets.QMainWindow):
+    def edit_instructors(self):
 
-    #itemEdited = QtCore.pyqtSignal(item,column)
-    
-    def __init__(self,filepath):
-        
-        super(Window,self).__init__()
+        self.topEditInstructors = tk.Toplevel()
 
-        self.resize(1200,600)
-        
-        filepath = "C:\\Users\\Cavid\\Documents\\bhospy\\interfaces\\sample.csv"
-        
-        self.filepath = filepath
-        self.treeView = DataViewer(parent=self)
-        self.treeView.loadCSV(self.filepath)
+        self.table_instructors = data_table(self.topEditInstructors,("Full Name","Position","Email"))
 
-        self.treeView.autoColumnWidth()
+        self.topEditInstructors.mainloop()
 
-        # self.fileView = FileViewer(parent=self)
+    def edit_courses(self):
 
-        # print(dir(self.treeView))
-        
-        self.centralwidget = QtWidgets.QWidget(self)
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout.addWidget(self.treeView)
-        # self.verticalLayout.addWidget(self.fileView)
-        self.setCentralWidget(self.centralwidget)
-        
-        self.editedFlag = True
+        self.topEditCourses = tk.Toplevel()
 
-        self.show()   
+        self.table_courses = data_table(self.topEditCourses,("Code","Name","Department","Semester Offered"))
 
-    def closeEvent(self,event):
-        
-        if self.treeView.editedFlag:
-            choice = QtWidgets.QMessageBox.question(self,'Quit',
-                "Do you want to save changes?",QtWidgets.QMessageBox.Yes | 
-                QtWidgets.QMessageBox.No)
-
-            if choice == QtWidgets.QMessageBox.Yes:
-                self.treeView.writeCSV(self.filepath)
-
-        event.accept()
-
-class FileViewer(QtWidgets.QTreeView):
-
-    fileClicked = QtCore.pyqtSignal(str)
-    
-    def __init__(self,parent):
-        super(FileViewer,self).__init__(parent)
-        self.curDir = QtCore.QDir.rootPath()
-        self.model = QtWidgets.QFileSystemModel()
-        self.model.setRootPath(self.curDir)
-        #print(dir(self.model))
-        self.setModel(self.model)
-        self.setSortingEnabled(True)
-        self.doubleClicked.connect(self.tree_file_open)
-        #print(QtGui.QKeySequence.fromString(str(chara))[0])
-
-    def tree_file_open(self,signal):
-
-        #index = self.currentIndex()
-        filepath = self.model.filePath(signal)
-
-        if os.path.isdir(filepath):
-            self.curDir = filepath
-            self.setRootIndex(self.model.index(self.curDir))
-        elif os.path.isfile(filepath):
-            self.fileClicked.emit(filepath)
-            #self.graphicsView.setImage(filepath)
-            #os.startfile(filepath)
-
-    def keyPressEvent(self,event):
-        if event.key() == QtCore.Qt.Key_Backspace:
-            oldDir = self.curDir
-            self.curDir = os.path.dirname(oldDir)
-            self.setRootIndex(self.model.index(self.curDir))
-            self.scrollTo(self.model.index(oldDir))
-        elif event.key() == QtCore.Qt.Key_Return:
-            self.tree_file_open(self.currentIndex())
-        elif event.key() == QtCore.Qt.Key_Up:
-            if self.indexAbove(self.currentIndex()).isValid():
-                self.setCurrentIndex(self.indexAbove(self.currentIndex()))
-        elif event.key() == QtCore.Qt.Key_Down:
-            if self.indexBelow(self.currentIndex()).isValid():
-                self.setCurrentIndex(self.indexBelow(self.currentIndex()))
-        else:
-            self.keyboardSearch(QtGui.QKeySequence(event.key()).toString())
+        self.topEditCourses.mainloop()
         
 if __name__ == "__main__":
     

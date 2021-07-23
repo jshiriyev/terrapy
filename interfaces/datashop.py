@@ -301,55 +301,40 @@ class data_manager():
 
 class data_table():
 
-    def __init__(self,window):
+    def __init__(self,window,headers):
 
         self.root = window
-        self.root.configure(background="white")
 
-        self.root.geometry("500x500")
+        self.headers_explicit = headers
 
-        self.initialize(("Full Name","Position","Email"))
+        self.headers = []
+        self.columns = []
 
-    def initialize(self,headers):
-
-        menubar = tk.Menu(self.root)
-        
-        self.root.config(menu=menubar)
-
-        fileMenu = tk.Menu(menubar,tearoff="Off")
-
-        fileMenu.add_command(label="Open",command=self.set_path)
-
-        menubar.add_cascade(label="File",menu=fileMenu)
-
-        columns = []
-
-        for idx, _ in enumerate(headers,start=1):
-            columns.append("#"+str(idx))
-
-        self.tree = ttk.Treeview(self.root,columns=columns,show="headings",selectmode="browse")
-
-        self.tree.column(columns[0],anchor=tk.W,width=100)
-        self.tree.column(columns[1],anchor=tk.W,width=100)
-        self.tree.column(columns[2],anchor=tk.W)
-
-        self.tree.heading(columns[0],text=headers[0],anchor=tk.W)
-        self.tree.heading(columns[1],text=headers[1],anchor=tk.W)
-        self.tree.heading(columns[2],text=headers[2],anchor=tk.W)
-
-        self.tree.columns = columns
-
-        self.tree.headers = []
-
-        for idx,header in enumerate(headers):
+        for idx,header in enumerate(self.headers_explicit,start=1):
             header = header.replace(" ","_").lower()
-            self.tree.headers.append(header)
-            setattr(self.tree,header,[])
+            self.headers.append(header)
+            self.columns.append("#"+str(idx))
 
-        self.tree.added = []
-        self.tree.deleted = []
+        self.initialize()
+
+    def initialize(self):
+
+        self.tree = ttk.Treeview(self.root,columns=self.columns,show="headings",selectmode="browse")
+
+        for idx,(column,header) in enumerate(zip(self.columns,self.headers_explicit),start=1):
+            if idx<len(self.headers):
+                self.tree.column(column,anchor=tk.W,width=100)
+            elif idx==len(self.headers):
+                self.tree.column(column,anchor=tk.W)
+            self.tree.heading(column,text=header,anchor=tk.W)
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+        for header in self.headers:
+            setattr(self,header,[])
+
+        self.added = []
+        self.deleted = []
 
         self.frame = tk.Frame(self.root,width=50)
         self.frame.configure(background="white")
@@ -412,10 +397,10 @@ class data_table():
             values = (self.data.full_name[idx],self.data.position[idx],self.data.email[idx])
             self.tree.insert(parent="",index="end",iid=idx,values=values)
 
-        for header in self.tree.headers:
-            setattr(self.tree,header,getattr(self.data,header))
+        for header in self.headers:
+            setattr(self,header,getattr(self.data,header))
 
-        self.tree.deleted = []
+        self.deleted = []
 
     def addItem(self):
 
@@ -424,13 +409,13 @@ class data_table():
         if hasattr(self,"data"):
             headers = self.data.headers
         else:
-            headers = self.tree.headers
+            headers = self.headers_explicit
 
         for idx,header in enumerate(headers):
             label = "label_"+str(idx)
             entry = "entry_"+str(idx)
             pady = (30,5) if idx==0 else (5,5)
-            setattr(self.topAddItem,label,tk.Label(self.topAddItem,text=header,font="Helvetica 11",width=10,anchor=tk.E))
+            setattr(self.topAddItem,label,tk.Label(self.topAddItem,text=header,font="Helvetica 11",width=20,anchor=tk.E))
             setattr(self.topAddItem,entry,tk.Entry(self.topAddItem,width=30,font="Helvetica 11"))
             getattr(self.topAddItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topAddItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
@@ -451,12 +436,12 @@ class data_table():
             if event.widget!=self.topAddItem.button:
                 return
 
-        iid = len(getattr(self.tree,self.tree.headers[0]))
+        iid = len(getattr(self,self.headers[0]))
 
         if hasattr(self,"data"):
             headers = self.data.headers
         else:
-            headers = self.tree.headers
+            headers = self.headers
         
         row = data_manager()
 
@@ -472,9 +457,9 @@ class data_table():
 
         values = []
 
-        for header in self.tree.headers:
+        for header in self.headers:
             value = getattr(row,header)[0]
-            getattr(self.tree,header).append(value)
+            getattr(self,header).append(value)
             values.append(value)
 
         self.tree.insert(parent="",index="end",iid=iid,values=values)
@@ -496,20 +481,20 @@ class data_table():
         if hasattr(self,"data"):
             headers = self.data.headers
         else:
-            headers = self.tree.headers
+            headers = self.headers
 
         for idx,header in enumerate(headers):
             label = "label_"+str(idx)
             entry = "entry_"+str(idx)
             pady = (30,5) if idx==0 else (5,5)
-            setattr(self.topEditItem,label,tk.Label(self.topEditItem,text=header,font="Helvetica 11",width=10,anchor=tk.E))
+            setattr(self.topEditItem,label,tk.Label(self.topEditItem,text=self.headers_explicit[idx],font="Helvetica 11",width=20,anchor=tk.E))
             setattr(self.topEditItem,entry,tk.Entry(self.topEditItem,width=30,font="Helvetica 11"))
             getattr(self.topEditItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topEditItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
             if hasattr(self,"data"):
                 entry_text = getattr(self.data,header)[item]
             else:
-                entry_text = getattr(self.tree,header)[item]
+                entry_text = getattr(self,header)[item]
             getattr(self.topEditItem,entry).insert(0,entry_text)
 
         self.topEditItem.button = tk.Button(self.topEditItem,text="Save Item Edit",command=lambda: self.editItemEnterClicked(item))
@@ -524,7 +509,7 @@ class data_table():
         if hasattr(self,"data"):
             headers = self.data.headers
         else:
-            headers = self.tree.headers
+            headers = self.headers
         
         row = data_manager()
 
@@ -540,9 +525,9 @@ class data_table():
 
         values = []
 
-        for header in self.tree.headers:
+        for header in self.headers:
             value = getattr(row,header)[0]
-            getattr(self.tree,header)[item] = value
+            getattr(self,header)[item] = value
             values.append(value)
 
         self.tree.item(item,values=values)
@@ -554,7 +539,7 @@ class data_table():
         for item in self.tree.selection():
             index = int(item)
             self.tree.delete(index)
-            self.tree.deleted.append(index)
+            self.deleted.append(index)
 
     def moveUp(self):
 
@@ -576,12 +561,12 @@ class data_table():
 
     def saveChanges(self):
         
-        print(len(self.tree.full_name))
-        print(self.tree.full_name)
+        print(len(self.full_name))
+        print(self.full_name)
         # if hasattr(self,"data"):
         #     print(len(self.data.full_name))
         #     print(self.data.full_name)
-        print(self.tree.deleted)
+        print(self.deleted)
 
         # save_to_database:
         # self.conn = sqlite3.connect(self.path)
@@ -836,7 +821,23 @@ if __name__ == "__main__":
     """data table interface"""
     
     window = tk.Tk()
-    gui = data_table(window)
+
+    window.configure(background="white")
+
+    window.geometry("500x500")
+
+    menubar = tk.Menu(window)
+    
+    window.config(menu=menubar)
+
+    gui = data_table(window,("Full Name","Position","Email"))
+
+    fileMenu = tk.Menu(menubar,tearoff="Off")
+
+    fileMenu.add_command(label="Open",command=gui.set_path)
+
+    menubar.add_cascade(label="File",menu=fileMenu)
+    
     window.mainloop()
 
     """data plot interface"""
