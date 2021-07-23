@@ -27,80 +27,53 @@ class data_manager():
 
     def __init__(self,filepath=None,*args,**kwargs):
 
-        if filepath is None:
-            return
+        if filepath is None: return
 
-        self.path = filepath
-        self.name = self.path.split("\\")[-1]
+        self.filepath = filepath
+        self.filename = self.filepath.split("\\")[-1]
 
-        self.extension = os.path.splitext(self.path)[1]
+        self.extension = os.path.splitext(self.filepath)[1]
 
         if self.extension == ".db":
             self.conn = None
             try:
-                self.conn = sqlite3.connect(self.path)
+                self.conn = sqlite3.connect(self.filepath)
             except Error:
                 print(Error)
         elif self.extension == ".csv":
-            with open(self.path,"r") as csv_text:
+            with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            self.read_lines(skiplines=1,type="list")
+            self.read_lines(skiplines=1)
         elif self.extension == ".xlsx":
-            self.wb = openpyxl.load_workbook(self.path)
+            self.wb = openpyxl.load_workbook(self.filepath)
             # edited_sheetname = re.sub(r"[^\w]","",sheetname)
-            self.running = list(self.wb[sheetname].iter_rows(values_only=True))
-            self.set_column()
+            sheetname = kwargs["sheetname"]
+            lines = self.wb[sheetname].iter_rows(values_only=True)
+            self.running = [list(line) for line in lines]
+            self.read_lines(skiplines=1)
         else:
-            with open(self.path) as structured_text:
-                self.running = structured_text.readlines()
-            self.read_lines(**kwargs)
+            with open(self.filepath,"r") as structured_text:
+                self.running = [line.split("\n")[0].split("\t") for line in structured_text.readlines()]
+            self.read_lines(skiplines=1,**kwargs)
 
-        # def read_csv(self,*args):
-        # reader = np.array(reader)
-        # num_row, num_col = reader.shape
-        # if sheets['dataTypes']=='col':
-        #    tuples = tuple(reader.T)
-        # elif sheets['dataTypes']=='row':
-        #    tuples = tuple(reader)
-        # setparent(tuples,*args)
-            
-        # def read_xlsx(self,skiplines=0,headerline=None):
-        # for i,sheetname in enumerate(sheets["names"]):
-        #    sheet = wb[sheetname]
-        #    if sheets['dataTypes'][i]=='col':
-        #        tuples = tuple(sheet.iter_cols(max_col=sheets['num_cols'][i],values_only=True))
-        #    elif sheets['dataTypes'][i]=='row':
-        #        tuples = tuple(sheet.iter_rows(max_col=sheets['num_cols'][i],values_only=True))
-        #    all_tuples = all_tuples+tuples
-        # setparent(all_tuples,*args)
-
-    def read_lines(self,skiplines=0,headerline=None,type="list"):
+    def read_lines(self,skiplines=0,headerline=None,type="structured"):
 
         """
-        type can be list of list: will add every list
-        type can be list of constant string: will modify and add every line
-        type can be list of variable string: will be looking for keywords and add when found
+        type can be structured
+        type can be unstructured
         """
 
         self.skiplines = skiplines
 
-        if type=="list":
-            self.body_rows = self.running[self.skiplines:]
-        elif type=="constant string":
-            self.body_rows = []
-            for linenumber,line in enumerate(self.running):
-                if linenumber<self.skiplines: continue
-                self.body_rows.append(line.split("\n")[0].split("\t"))
-
+        self.body_rows = self.running[self.skiplines:]
         self.body_rows = np.array(self.body_rows)
+
         self.num_cols = self.body_rows.shape[1]
 
         if self.skiplines==0:
 
             self.header_rows = None
             self.headers = ["col_"+str(column_id) for column_id in range(self.num_cols)]
-
-            self.set_columns()
         
         elif self.skiplines!=0:
 
@@ -114,22 +87,14 @@ class data_manager():
             self.header_rows = self.running[:self.skiplines]
             self.headers = self.running[linenumber]
 
-            if type == "constant string":
-                self.headers = self.headers.split("\n")[0].split("\t")
-
             for idx,header in enumerate(self.headers):
-                header = header.replace(" ","_")
-                self.headers[idx] = re.sub(r"[^\w]","",header)
-
-            self.set_columns()
-
-    def set_columns(self):
+                header = header.replace(" ","_").lower()
+                header = re.sub(r"[^\w]","",header)
+                header = "_"+header if header[0].isnumeric() else header
+                self.headers[idx] = header
             
         for column_id,header in enumerate(self.headers):
-            try:
-                setattr(self,header,self.body_rows[:,column_id].tolist())
-            except:
-                setattr(self,header,self.body_rows[:,column_id].tolist())
+            setattr(self,header,self.body_rows[:,column_id].tolist())
 
     def todatetime(self,attr_name="date",date_format='%m/%d/%Y'):
 
@@ -175,11 +140,7 @@ class data_manager():
 
     def set_fullName(self):
 
-        self.full_name = list(" ".join((first,last)) for first,last in zip(self.first,self.last))
-
-        # self.fullName = []
-        # for first,last in zip(self.first,self.last):
-        #     self.fullName.append(" ".join((first,last)))
+        self.full_name = list(" ".join((first,last)) for first,last in zip(self.first_name,self.last_name))
 
     def db_create_table(self,sqlite_table):
 
@@ -308,12 +269,14 @@ class data_table():
         self.headers_explicit = headers
 
         self.headers = []
-        self.columns = []
 
-        for idx,header in enumerate(self.headers_explicit,start=1):
+        for header in self.headers_explicit:
             header = header.replace(" ","_").lower()
+            header = re.sub(r"[^\w]","",header)
+            header = "_"+header if header[0].isnumeric() else header
             self.headers.append(header)
-            self.columns.append("#"+str(idx))
+        
+        self.columns = ["#"+str(idx+1) for idx in range(len(self.headers))]
 
         self.initialize()
 
@@ -322,7 +285,7 @@ class data_table():
         self.tree = ttk.Treeview(self.root,columns=self.columns,show="headings",selectmode="browse")
 
         for idx,(column,header) in enumerate(zip(self.columns,self.headers_explicit),start=1):
-            if idx<len(self.headers):
+            if idx<len(self.headers) :
                 self.tree.column(column,anchor=tk.W,width=100)
             elif idx==len(self.headers):
                 self.tree.column(column,anchor=tk.W)
@@ -368,8 +331,7 @@ class data_table():
                          ("Excel Files","*.xl*"),
                          ("All Files","*")))
 
-        if not self.filepath:
-            return
+        if not self.filepath: return
 
         self.data = data_manager(self.filepath)
 
@@ -569,7 +531,7 @@ class data_table():
         print(self.deleted)
 
         # save_to_database:
-        # self.conn = sqlite3.connect(self.path)
+        # self.conn = sqlite3.connect(self.filepath)
         # # sqlite_table = '''CREATE TABLE SqliteDb_developers (
         # #                  id INTEGER PRIMARY KEY,
         # #                  name TEXT NOT NULL,
@@ -611,30 +573,13 @@ class data_table():
 
 class data_graph():
 
-    """
-    The task is about the history matches. When we do changes to input files and run
-    it, we want to compare two sets of production-history data. It is kinda
-    having set point between each runs that allow us to select best path to follow.
-    """
-
     def __init__(self,window):
 
         self.root = window
-        self.root.configure(background="white")
 
-        self.init_interface()
+        self.initialize()
 
-    def init_interface(self):
-
-        menubar = tk.Menu(self.root)
-        
-        self.root.config(menu=menubar)
-
-        fileMenu = tk.Menu(menubar,tearoff="Off")
-
-        fileMenu.add_command(label="Open",command=self.set_path)
-
-        menubar.add_cascade(label="File",menu=fileMenu)
+    def initialize(self):
 
         self.frame_navigator = tk.Frame(self.root,width=300,height=200)
         self.frame_navigator.configure(background="white")
@@ -683,8 +628,7 @@ class data_graph():
             initialdir = os.getcwd(),
             filetypes = (("Excel files","*.xl*"),("All files","*.*")))
 
-        if not self.filepath:
-            return
+        if not self.filepath: return
         
         self.wb = openpyxl.load_workbook(self.filepath)
 
@@ -697,8 +641,7 @@ class data_graph():
 
     def set_figure_template(self,event):
 
-        if not self.listbox_template.curselection():
-            return
+        if not self.listbox_template.curselection(): return
         
         if hasattr(self,"axes"):
             for axis in self.axes:
@@ -743,8 +686,7 @@ class data_graph():
 
     def get_sheet_data(self,event):
 
-        if not self.listbox.curselection():
-            return
+        if not self.listbox.curselection(): return
         
         class data: pass
                 
@@ -818,30 +760,23 @@ class data_graph():
 
 if __name__ == "__main__":
 
-    """data table interface"""
-    
-    window = tk.Tk()
-
-    window.configure(background="white")
-
-    window.geometry("500x500")
-
-    menubar = tk.Menu(window)
-    
-    window.config(menu=menubar)
-
-    gui = data_table(window,("Full Name","Position","Email"))
-
-    fileMenu = tk.Menu(menubar,tearoff="Off")
-
-    fileMenu.add_command(label="Open",command=gui.set_path)
-
-    menubar.add_cascade(label="File",menu=fileMenu)
-    
-    window.mainloop()
-
-    """data plot interface"""
+    data = data_manager("courses.xlsx",sheetname="courses")
     
     # window = tk.Tk()
-    # gui = data_graph(window)
+    # window.configure(background="white")
+
+    # # window.geometry("500x500")
+
+    # menubar = tk.Menu(window)
+
+    # window.config(menu=menubar)
+
+    # gui = data_table(window,("Full Name","Position","Email"))
+    # # gui = data_graph(window)
+
+    # fileMenu = tk.Menu(menubar,tearoff="Off")
+    # fileMenu.add_command(label="Open",command=gui.set_path)
+
+    # menubar.add_cascade(label="File",menu=fileMenu)
+
     # window.mainloop()
