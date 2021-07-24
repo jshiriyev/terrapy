@@ -25,7 +25,7 @@ from tkinter import filedialog
 
 class data_manager():
 
-    def __init__(self,filepath=None,*args,**kwargs):
+    def __init__(self,filepath=None,**kwargs):
 
         if filepath is None: return
 
@@ -43,27 +43,39 @@ class data_manager():
         elif self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            self.read_lines(skiplines=1)
+            self.read_lines(**kwargs)
         elif self.extension == ".xlsx":
             self.wb = openpyxl.load_workbook(self.filepath)
-            # edited_sheetname = re.sub(r"[^\w]","",sheetname)
             sheetname = kwargs["sheetname"]
             lines = self.wb[sheetname].iter_rows(values_only=True)
             self.running = [list(line) for line in lines]
-            self.read_lines(skiplines=1)
+            self.read_lines(**kwargs)
         else:
             with open(self.filepath,"r") as structured_text:
                 self.running = [line.split("\n")[0].split("\t") for line in structured_text.readlines()]
-            self.read_lines(skiplines=1,**kwargs)
+            self.read_lines(**kwargs)
 
-    def read_lines(self,skiplines=0,headerline=None,type="structured"):
+    def read_lines(self,**kwargs):
+
+        try:
+            self.skiplines = kwargs["skiplines"]
+        except:
+            self.skiplines = 0
+
+        try:
+            headerline = kwargs["headerline"]
+        except:
+            headerline = None
+
+        try:
+            datatype = kwargs["type"]
+        except:
+            datatype = "structured"
 
         """
-        type can be structured
-        type can be unstructured
+        datatype can be structured
+        datatype can be unstructured
         """
-
-        self.skiplines = skiplines
 
         self.body_rows = self.running[self.skiplines:]
         self.body_rows = np.array(self.body_rows)
@@ -72,7 +84,8 @@ class data_manager():
 
         if self.skiplines==0:
 
-            self.header_rows = None
+            self.headers_rows = None
+            self.headers_explicit = ["col #"+str(column_id) for column_id in range(self.num_cols)]
             self.headers = ["col_"+str(column_id) for column_id in range(self.num_cols)]
         
         elif self.skiplines!=0:
@@ -84,14 +97,16 @@ class data_manager():
             else:
                 linenumber = self.skiplines-1
 
-            self.header_rows = self.running[:self.skiplines]
-            self.headers = self.running[linenumber]
+            self.headers_rows = self.running[:self.skiplines]
+            self.headers_explicit = self.running[linenumber]
 
-            for idx,header in enumerate(self.headers):
+            self.headers = []
+
+            for header in self.headers_explicit:
                 header = header.replace(" ","_").lower()
                 header = re.sub(r"[^\w]","",header)
                 header = "_"+header if header[0].isnumeric() else header
-                self.headers[idx] = header
+                self.headers.append(header)
             
         for column_id,header in enumerate(self.headers):
             setattr(self,header,self.body_rows[:,column_id].tolist())
@@ -120,7 +135,7 @@ class data_manager():
 
         listA, idx = [ list(tuple) for tuple in  tuples]
 
-        for header in self.header:
+        for header in self.headers:
             self.toarray(header)
             setattr(self,header,getattr(self,header)[idx])
 
@@ -138,9 +153,16 @@ class data_manager():
 
         setattr(self,attr_name,array_of_string)
 
-    def set_fullName(self):
+    def get_description(self,*args,deliminator="_"):
 
-        self.full_name = list(" ".join((first,last)) for first,last in zip(self.first_name,self.last_name))
+        items = []
+
+        for arg in args:
+            items.append(getattr(self,arg))
+
+        items = np.array(items,'U25')
+
+        return [deliminator.join(row) for row in items.T]
 
     def db_create_table(self,sqlite_table):
 
@@ -260,27 +282,17 @@ class data_manager():
         #        except:
         #            break
 
-class data_table():
+class data_table(data_manager):
 
-    def __init__(self,window,headers):
+    def __init__(self,filepath=None,**kwargs):
+
+        super().__init__(filepath,**kwargs)
+
+    def draw_table(self,window):
 
         self.root = window
 
-        self.headers_explicit = headers
-
-        self.headers = []
-
-        for header in self.headers_explicit:
-            header = header.replace(" ","_").lower()
-            header = re.sub(r"[^\w]","",header)
-            header = "_"+header if header[0].isnumeric() else header
-            self.headers.append(header)
-        
-        self.columns = ["#"+str(idx+1) for idx in range(len(self.headers))]
-
-        self.initialize()
-
-    def initialize(self):
+        self.columns = ["#"+str(idx) for idx,_ in enumerate(self.headers,start=1)]
 
         self.tree = ttk.Treeview(self.root,columns=self.columns,show="headings",selectmode="browse")
 
@@ -292,9 +304,6 @@ class data_table():
             self.tree.heading(column,text=header,anchor=tk.W)
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
-
-        for header in self.headers:
-            setattr(self,header,[])
 
         self.added = []
         self.deleted = []
@@ -321,63 +330,23 @@ class data_table():
         self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=self.saveChanges)
         self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
-    def set_path(self):
-
-        self.filepath = filedialog.askopenfilename(
-            title = "Select a File",
-            initialdir = os.getcwd(),
-            filetypes = (("Databases","*.db"),
-                         ("CSV Files","*.csv"),
-                         ("Excel Files","*.xl*"),
-                         ("All Files","*")))
-
-        if not self.filepath: return
-
-        self.data = data_manager(self.filepath)
-
-        self.data.set_fullName()
-
-        self.set_tree_view()
-        
-        # self.wb = openpyxl.load_workbook(self.filepath)
-
-        # for sheet in self.wb.sheetnames:
-        #     self.listbox.insert(tk.END,sheet)
-
-        # status = "Imported \""+self.filepath+"\"."
-        # self.status.insert(tk.END,status)
-        # self.status.see(tk.END)
-
-    def set_tree_view(self):
-
         # self.tree.column("#0",width=0,stretch=tk.NO)
 
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        # for item in self.tree.get_children():
+        #     self.tree.delete(item)
 
-        for idx, _ in enumerate(self.data.body_rows):
-            values = (self.data.full_name[idx],self.data.position[idx],self.data.email[idx])
-            self.tree.insert(parent="",index="end",iid=idx,values=values)
-
-        for header in self.headers:
-            setattr(self,header,getattr(self.data,header))
-
-        self.deleted = []
+        for idx,values in enumerate(self.body_rows):
+            self.tree.insert(parent="",index="end",iid=idx,values=tuple(values))
 
     def addItem(self):
 
         self.topAddItem = tk.Toplevel()
 
-        if hasattr(self,"data"):
-            headers = self.data.headers
-        else:
-            headers = self.headers_explicit
-
-        for idx,header in enumerate(headers):
+        for idx,(header,explicit) in enumerate(zip(self.headers,self.headers_explicit)):
             label = "label_"+str(idx)
             entry = "entry_"+str(idx)
             pady = (30,5) if idx==0 else (5,5)
-            setattr(self.topAddItem,label,tk.Label(self.topAddItem,text=header,font="Helvetica 11",width=20,anchor=tk.E))
+            setattr(self.topAddItem,label,tk.Label(self.topAddItem,text=explicit,font="Helvetica 11",width=20,anchor=tk.E))
             setattr(self.topAddItem,entry,tk.Entry(self.topAddItem,width=30,font="Helvetica 11"))
             getattr(self.topAddItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topAddItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
@@ -435,29 +404,17 @@ class data_table():
         else:
             item = int(self.tree.selection()[0])
 
-        # print(item)
-        # print(self.tree.index(item))
-
         self.topEditItem = tk.Toplevel()
 
-        if hasattr(self,"data"):
-            headers = self.data.headers
-        else:
-            headers = self.headers
-
-        for idx,header in enumerate(headers):
+        for idx,(header,explicit) in enumerate(zip(self.headers,self.headers_explicit)):
             label = "label_"+str(idx)
             entry = "entry_"+str(idx)
             pady = (30,5) if idx==0 else (5,5)
-            setattr(self.topEditItem,label,tk.Label(self.topEditItem,text=self.headers_explicit[idx],font="Helvetica 11",width=20,anchor=tk.E))
+            setattr(self.topEditItem,label,tk.Label(self.topEditItem,text=explicit,font="Helvetica 11",width=20,anchor=tk.E))
             setattr(self.topEditItem,entry,tk.Entry(self.topEditItem,width=30,font="Helvetica 11"))
             getattr(self.topEditItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topEditItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
-            if hasattr(self,"data"):
-                entry_text = getattr(self.data,header)[item]
-            else:
-                entry_text = getattr(self,header)[item]
-            getattr(self.topEditItem,entry).insert(0,entry_text)
+            getattr(self.topEditItem,entry).insert(0,getattr(self,header)[item])
 
         self.topEditItem.button = tk.Button(self.topEditItem,text="Save Item Edit",command=lambda: self.editItemEnterClicked(item))
         self.topEditItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
@@ -468,22 +425,13 @@ class data_table():
 
     def editItemEnterClicked(self,item,event=None):
         
-        if hasattr(self,"data"):
-            headers = self.data.headers
-        else:
-            headers = self.headers
-        
         row = data_manager()
 
-        for idx,header in enumerate(headers):
+        for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topEditItem,entry).get()
             setattr(row,header,[value])
-            if hasattr(self,"data"):
-                getattr(self.data,header)[item] = value
-
-        if hasattr(self,"data"):
-            row.set_fullName()
+            getattr(self.header)[item] = value
 
         values = []
 
@@ -523,8 +471,8 @@ class data_table():
 
     def saveChanges(self):
         
-        print(len(self.full_name))
-        print(self.full_name)
+        print(len(self.first_name))
+        print(self.first_name)
         # if hasattr(self,"data"):
         #     print(len(self.data.full_name))
         #     print(self.data.full_name)
@@ -542,44 +490,20 @@ class data_table():
         # self.cursor.close()
         # self.conn.close()
 
-    def closeEvent(self,event):
-        
-        if self.treeView.editedFlag:
-            choice = QtWidgets.QMessageBox.question(self,'Quit',
-                "Do you want to save changes?",QtWidgets.QMessageBox.Yes | 
-                QtWidgets.QMessageBox.No)
-
-            if choice == QtWidgets.QMessageBox.Yes:
-                self.treeView.writeCSV(self.filepath)
-
-        event.accept()
-
-    def mouseDoubleClickEvent(self,event):
-
-        index = self.indexAt(event.pos())
-        #print(index.row(),index.column())
-
-        #item = self.model.item(index.row(),index.column())
-        #print(item.data(QtCore.Qt.DisplayRole))
-        #item.setEditable(True)
-
-        if index.row()>-1 and index.column()>-1:
-            self.edit(index)
-
     def autoColumnWidth(self):
         
         for columnNumber in range(self.model.columnCount()):
             self.resizeColumnToContents(columnNumber)
 
-class data_graph():
+class data_graph(data_manager):
 
-    def __init__(self,window):
+    def __init__(self,filepath=None,**kwargs):
+
+        super().__init__(filepath,**kwargs)
+
+    def draw_graph(self,window):
 
         self.root = window
-
-        self.initialize()
-
-    def initialize(self):
 
         self.frame_navigator = tk.Frame(self.root,width=300,height=200)
         self.frame_navigator.configure(background="white")
@@ -598,9 +522,9 @@ class data_graph():
         self.listbox_template = tk.Listbox(self.frame_navigator,exportselection=False)
         self.listbox_template.grid(row=2,column=0,sticky=tk.NSEW)
         self.listbox_template.insert(tk.END,"Production History Match")
-        self.listbox_template.bind('<<ListboxSelect>>',self.set_figure_template)
+        self.listbox_template.bind('<<ListboxSelect>>',self.set_template)
 
-        # self.button = tk.Button(self.frame_navigator,text="Set Plot Template",command=self.set_figure_template)
+        # self.button = tk.Button(self.frame_navigator,text="Set Plot Template",command=self.set_template)
         # self.button.grid(row=1,column=0,sticky=tk.NSEW)
 
         self.frame_monitor = tk.Frame(self.root,width=300,height=200)
@@ -621,25 +545,7 @@ class data_graph():
         self.frame_navigator.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
         self.frame_monitor.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
-    def set_path(self):
-
-        self.filepath = filedialog.askopenfilename(
-            title = "Select a File",
-            initialdir = os.getcwd(),
-            filetypes = (("Excel files","*.xl*"),("All files","*.*")))
-
-        if not self.filepath: return
-        
-        self.wb = openpyxl.load_workbook(self.filepath)
-
-        for sheet in self.wb.sheetnames:
-            self.listbox.insert(tk.END,sheet)
-
-        status = "Imported \""+self.filepath+"\"."
-        self.status.insert(tk.END,status)
-        self.status.see(tk.END)
-
-    def set_figure_template(self,event):
+    def set_template(self,event):
 
         if not self.listbox_template.curselection(): return
         
@@ -683,28 +589,10 @@ class data_graph():
         status = "Production history match template has been selected."
         self.status.insert(tk.END,status)
         self.status.see(tk.END)
-
-    def get_sheet_data(self,event):
+        
+    def set_lines(self,event):
 
         if not self.listbox.curselection(): return
-        
-        class data: pass
-                
-        data.ws = self.wb[self.listbox.get(self.listbox.curselection())]
-        
-        data.date = list(data.ws.iter_cols(min_row=2,max_col=1,values_only=True))[0]
-        
-        Head = list(data.ws.iter_rows(max_row=1,min_col=2,values_only=True))[0]
-        Body = list(data.ws.iter_cols(min_row=2,min_col=2,values_only=True))
-
-        for i,head in enumerate(Head):
-            string = head.split(":")[1].split(",")[0].strip().replace(" ","_")
-            string = string.replace("(","").replace(")","").replace(".","")
-            setattr(data,string,np.array(Body[i]))
-        
-        self.set_figure_data(data)
-        
-    def set_figure_data(self,data):
 
         if not hasattr(self,"axes"):
             status = "No template has been selected."    
@@ -760,23 +648,11 @@ class data_graph():
 
 if __name__ == "__main__":
 
-    data = data_manager("courses.xlsx",sheetname="courses")
+    # data = data_manager("courses.xlsx",sheetname="courses")
     
-    # window = tk.Tk()
-    # window.configure(background="white")
+    window = tk.Tk()
 
-    # # window.geometry("500x500")
+    gui = data_table("instructors.csv",skiplines=1)
+    gui.draw_table(window)
 
-    # menubar = tk.Menu(window)
-
-    # window.config(menu=menubar)
-
-    # gui = data_table(window,("Full Name","Position","Email"))
-    # # gui = data_graph(window)
-
-    # fileMenu = tk.Menu(menubar,tearoff="Off")
-    # fileMenu.add_command(label="Open",command=gui.set_path)
-
-    # menubar.add_cascade(label="File",menu=fileMenu)
-
-    # window.mainloop()
+    window.mainloop()

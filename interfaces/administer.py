@@ -16,7 +16,6 @@ from tkinter import filedialog
 
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
-from datashop import data_manager
 from datashop import data_table
 
 class schedule():
@@ -24,15 +23,11 @@ class schedule():
     def __init__(self,window):
 
         self.root = window
-
-        self.initialize()
-
-    def initialize(self):
-
         self.root.title("BHOS-PE Administration")
         self.root.configure(background="white")
 
         menubar = tk.Menu(self.root)
+
         self.root.config(menu=menubar)
 
         fileMenu = tk.Menu(menubar,tearoff="Off")
@@ -40,7 +35,7 @@ class schedule():
         fileMenu.add_command(label="Save")
         fileMenu.add_command(label="Save As ...")
         fileMenu.add_separator()
-        fileMenu.add_command(label="Import ...",command=self.import_inputs)
+        fileMenu.add_command(label="Import ...",command=self.import_objects)
         fileMenu.add_command(label="Export ...",command=self.export_schedule)
         fileMenu.add_separator()
         fileMenu.add_command(label="Exit",command=self.root.destroy)
@@ -56,8 +51,17 @@ class schedule():
         menubar.add_cascade(label="Edit",menu=editMenu)
         menubar.add_cascade(label="Help",menu=helpMenu)
 
-        """STYLING"""
+        self.frame_notebook = ttk.Notebook(self.root)        
+        self.frame0 = self.set_frame_notebook_sheet()
+        self.frame0.pack(fill='both',expand=True)
+        self.frame_notebook.add(self.frame0,text="Instructor's Name",compound=tk.RIGHT)
+        self.frame_notebook.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        
+        self.set_frame_courses()
 
+        self.frame_courses.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+        """STYLING"""
         self.style = ttk.Style(self.root)
 
         # self.style.theme_create("yummy",parent="alt",settings=settings)
@@ -71,7 +75,7 @@ class schedule():
                              background="white") # tabmargins=[2,5,2,0],
 
         self.style.configure("TNotebook.Tab",
-                             background="silver",
+                             background="white",
                              width=20,
                              anchor=tk.E) # padding=[40, 1, 5, 0],
 
@@ -79,17 +83,7 @@ class schedule():
 
         self.style.map("TNotebook.Tab",
                        background=[("selected","silver")]) #expand=[("selected",[1,1,1,0])]
-        
-        """END-OF-STYLING"""
-
-        self.frame_notebook = ttk.Notebook(self.root)        
-        self.frame0 = self.set_frame_notebook_sheet()
-        self.frame0.pack(fill='both',expand=True)
-        self.frame_notebook.add(self.frame0,text="Instructor's Name",compound=tk.RIGHT)
-        self.frame_notebook.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
-        
-        self.set_frame_courses()
-        self.frame_courses.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)  
+        """END-OF-STYLING"""  
 
     def set_frame_notebook_sheet(self):
 
@@ -209,50 +203,68 @@ class schedule():
         ## self.frame_courses.status.configure(yscrollcommand=scroll.set) 
         ## scroll.pack(side=RIGHT,fill=Y)
 
-    def set_input(self):
+    def import_objects(self):
 
-        wb = openpyxl.load_workbook(self.filepath)
+        self.topImport = tk.Toplevel()
 
-        class teachers: pass
-        class courses: pass
-        class hours: pass
+        self.topImport.resizable(0,0)
 
-        sheet_teachers = wb["instructors"]
-        sheet_lectures = wb["lectures"]
+        control_variable = tk.StringVar(self.topImport)
+        control_variable.set("Select an Object")
 
-        teachers.tuple = tuple(sheet_teachers.iter_cols(min_row=1,max_row=18,
-                                     min_col=1,max_col=4,values_only=True))
+        self.topImportOptions = ("Instructors", "Courses")
 
-        courses.tuple = tuple(sheet_lectures.iter_cols(min_row=2,max_row=47,
-                                     min_col=2,max_col=6,values_only=True))
+        self.topImportOptionMenu = ttk.Combobox(self.topImport,state="readonly",textvariable=control_variable)
+        self.topImportOptionMenu['values'] = self.topImportOptions
+        self.topImportOptionMenu['width'] = 40 
         
-        hours.tuple = tuple(sheet_lectures.iter_rows(min_row=2,max_row=47,
-                                     min_col=7,max_col=22,values_only=True))
+        self.topImportOptionMenu.pack()
 
-        self.teachers = teachers
-        self.courses = courses
-        self.hours = hours
+        self.topImportButton = ttk.Button(self.topImport,text="Submit",command=lambda: self.set_import_path(control_variable.get()))
+        self.topImportButton.config(width=40)
 
-        self.set_teachers()
-        self.set_courses()
-        self.set_hours()
+        self.topImportButton.pack()
+
+        self.topImport.mainloop()
+
+    def set_import_path(self,object_name):
+
+        self.topImport.destroy()
+
+        if not any([object_name==option for option in self.topImportOptions]): return
+
+        filepath = filedialog.askopenfilename(
+            title = "Select a File",
+            initialdir = os.getcwd(),
+            filetypes = (("Databases","*.db"),
+                         ("CSV Files","*.csv"),
+                         ("Excel Files","*.xl*"),
+                         ("All Files","*")))
+
+        if not filepath: return
+
+        if object_name=="Instructors":
+            self.instructors = data_table(filepath,skiplines=1)
+            self.instructors.full_name = self.instructors.get_description("first_name","last_name",deliminator=" ")
+            self.set_notebook()
+        elif object_name=="Courses":
+            self.courses = data_table(filepath,sheetname="courses",skiplines=1)
+            self.courses.description = self.courses.get_description("code","name_eng",deliminator="-")
+            self.set_courses()
+
+        status = "Imported \""+filepath+"\"."
         
-    def set_teachers(self):
+        self.frame_courses.status.insert(tk.END,status)
+        self.frame_courses.status.see(tk.END)
         
-        for i in range(len(self.teachers.tuple)):
-            
-            header = self.teachers.tuple[i][0]
-            body = np.array(self.teachers.tuple[i][1:])
-            
-            setattr(self.teachers,header,body)
+    def set_notebook(self):
 
-        name = np.char.add(self.teachers.first," ")
+        for tabid in self.frame_notebook.tabs():
+            self.frame_notebook.forget(tabid)
 
-        self.teachers.fullname = np.char.add(name,self.teachers.last)
+        for idx,name in enumerate(self.instructors.full_name):
 
-        for i,name in enumerate(self.teachers.fullname):
-
-            framename = "frame"+str(i)
+            framename = "frame"+str(idx)
 
             frame = self.set_frame_notebook_sheet()
 
@@ -263,61 +275,18 @@ class schedule():
             self.frame_notebook.add(getattr(self,framename),text=name,compound=tk.RIGHT)
 
     def set_courses(self):
-        
-        for i in range(len(self.courses.tuple)):
-            
-            header = self.courses.tuple[i][0]
-            body = np.array(self.courses.tuple[i][1:])
-            
-            setattr(self.courses,header,body)
-
-        name = np.char.add(self.courses.code,"-")
-        
-        name = np.char.add(name,self.courses.semester_number.astype(str))
-
-        name = np.char.add(name,"-")
-        
-        self.courses.description = np.char.add(name,self.courses.name_ENG)
-
-        self.frame_courses.searchbox.content = self.courses.description.tolist()
-
-        self.frame_courses.searchbox.content.sort()
-
-        self.frame_courses.searchbox.configure(
-            completevalues=self.frame_courses.searchbox.content,allow_other_values=True)
-
-    def set_hours(self):
-
-        self.hours.definition = self.hours.tuple[0]
-
-        self.hours.nparray = np.array(self.hours.tuple[1:])
-        
-        self.hours.total = self.hours.nparray.sum(axis=1)
-
-    def import_inputs(self):
-
-        self.filepath = filedialog.askopenfilename(
-            title = "Select a File",
-            initialdir = os.getcwd(),
-            filetypes = (("Excel files","*.xl*"),("All files","*.*")))
-
-        if not self.filepath:
-            return
-
-        for tabid in self.frame_notebook.tabs():
-            self.frame_notebook.forget(tabid)
 
         self.frame_courses.searchbox.content = []
 
         self.frame_courses.searchbox.configure(
             completevalues=self.frame_courses.searchbox.content,allow_other_values=False)
-        
-        self.set_input()
 
-        status = "Imported \""+self.filepath+"\"."
-        
-        self.frame_courses.status.insert(tk.END,status)
-        self.frame_courses.status.see(tk.END)
+        self.frame_courses.searchbox.content = self.courses.description
+
+        self.frame_courses.searchbox.content.sort()
+
+        self.frame_courses.searchbox.configure(
+            completevalues=self.frame_courses.searchbox.content,allow_other_values=True)
 
     def drop_course(self,frombox,tobox,moveall=False):
 
@@ -431,7 +400,7 @@ class schedule():
         if not hasattr(self,"wb"):
             self.wb = openpyxl.Workbook()
 
-        ws = self.wb.create_sheet(self.teachers.fullname[idx])
+        ws = self.wb.create_sheet(self.instructors.fullname[idx])
 
         names = list(np.array(["code","name"]))
         hours = list(self.hours.definition)
@@ -454,7 +423,7 @@ class schedule():
 
             ws.append(list(np.array([code,name]))+list(hour_row))
 
-        status = "Saved " + self.teachers.fullname[idx] + "'s schedule to export"
+        status = "Saved " + self.instructors.fullname[idx] + "'s schedule to export"
         
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.yview(tk.END)
@@ -517,7 +486,7 @@ class schedule():
 
         self.topEditInstructors = tk.Toplevel()
 
-        self.table_instructors = data_table(self.topEditInstructors,("Full Name","Position","Email"))
+        self.instructors.draw_table(self.topEditInstructors)
 
         self.topEditInstructors.mainloop()
 
@@ -525,7 +494,7 @@ class schedule():
 
         self.topEditCourses = tk.Toplevel()
 
-        self.table_courses = data_table(self.topEditCourses,("Code","Name","Department","Semester Offered"))
+        self.courses.draw_table(self.topEditCourses)
 
         self.topEditCourses.mainloop()
         
