@@ -471,6 +471,8 @@ class data_table(data_manager):
             for idx,header in enumerate(self.headers):
                 getattr(self,header).append(self.tree.item(child)["values"][idx])
 
+        self.root.destroy()
+
         # save_to_database:
         # self.conn = sqlite3.connect(self.filepath)
         # # sqlite_table = '''CREATE TABLE SqliteDb_developers (

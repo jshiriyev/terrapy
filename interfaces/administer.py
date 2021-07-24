@@ -492,7 +492,7 @@ class schedule():
 
         self.topEditInstructors.mainloop()
 
-        self.set_notebook()
+        # self.set_notebook()
 
     def edit_courses(self):
 
@@ -502,7 +502,7 @@ class schedule():
 
         self.topEditCourses.mainloop()
 
-        self.set_courses()
+        # self.set_courses()
         
 if __name__ == "__main__":
     
