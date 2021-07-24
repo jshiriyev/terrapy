@@ -368,23 +368,16 @@ class data_table(data_manager):
                 return
 
         iid = len(getattr(self,self.headers[0]))
-
-        if hasattr(self,"data"):
-            headers = self.data.headers
-        else:
-            headers = self.headers
         
         row = data_manager()
 
-        for idx,header in enumerate(headers):
+        for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topAddItem,entry).get()
             setattr(row,header,[value])
-            if hasattr(self,"data"):
-                getattr(self.data,header).append(value)
+            getattr(self,header).append(value)
 
-        if hasattr(self,"data"):
-            row.set_fullName()
+        row.set_full_name()
 
         values = []
 
@@ -470,13 +463,13 @@ class data_table(data_manager):
         self.tree.move(item,self.tree.parent(item),self.tree.index(item)+1)
 
     def saveChanges(self):
-        
-        print(len(self.first_name))
-        print(self.first_name)
-        # if hasattr(self,"data"):
-        #     print(len(self.data.full_name))
-        #     print(self.data.full_name)
-        print(self.deleted)
+
+        for header in self.headers:
+            setattr(self,header,[])
+
+        for child in self.tree.get_children():
+            for idx,header in enumerate(self.headers):
+                getattr(self,header).append(self.tree.item(child)["values"][idx])
 
         # save_to_database:
         # self.conn = sqlite3.connect(self.filepath)

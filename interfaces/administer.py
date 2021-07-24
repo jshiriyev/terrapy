@@ -245,11 +245,9 @@ class schedule():
 
         if object_name=="Instructors":
             self.instructors = data_table(filepath,skiplines=1)
-            self.instructors.full_name = self.instructors.get_description("first_name","last_name",deliminator=" ")
             self.set_notebook()
         elif object_name=="Courses":
             self.courses = data_table(filepath,sheetname="courses",skiplines=1)
-            self.courses.description = self.courses.get_description("code","name_eng",deliminator="-")
             self.set_courses()
 
         status = "Imported \""+filepath+"\"."
@@ -261,6 +259,8 @@ class schedule():
 
         for tabid in self.frame_notebook.tabs():
             self.frame_notebook.forget(tabid)
+
+        self.instructors.full_name = self.instructors.get_description("first_name","last_name",deliminator=" ")
 
         for idx,name in enumerate(self.instructors.full_name):
 
@@ -275,6 +275,8 @@ class schedule():
             self.frame_notebook.add(getattr(self,framename),text=name,compound=tk.RIGHT)
 
     def set_courses(self):
+
+        self.courses.description = self.courses.get_description("code","name_eng",deliminator="-")
 
         self.frame_courses.searchbox.content = []
 
@@ -490,6 +492,8 @@ class schedule():
 
         self.topEditInstructors.mainloop()
 
+        self.set_notebook()
+
     def edit_courses(self):
 
         self.topEditCourses = tk.Toplevel()
@@ -497,6 +501,8 @@ class schedule():
         self.courses.draw_table(self.topEditCourses)
 
         self.topEditCourses.mainloop()
+
+        self.set_courses()
         
 if __name__ == "__main__":
     
