@@ -25,14 +25,34 @@ from tkinter import filedialog
 
 class data_manager():
 
-    def __init__(self,filepath=None,**kwargs):
+    def __init__(self,
+                 filepath=None,
+                 headers_explicit=None,
+                 skiplines=0,
+                 headerline=None,
+                 datatype="structured",
+                 **kwargs):
 
-        if filepath is None: return
+        if filepath is None:
+            if headers_explicit is not None:
+                self.running = [headers_explicit]
+                # self.running.append([""]*len(headers_explicit))
+                self.skiplines = 1
+                self.headerline = None
+                self.datatype = "structured"
+                self.read_lines()
+            return
 
         self.filepath = filepath
         self.filename = self.filepath.split("\\")[-1]
 
         self.extension = os.path.splitext(self.filepath)[1]
+
+        self.skiplines = skiplines
+
+        self.headerline = headerline
+
+        self.datatype = datatype    #datatype can be structured and unstructured
 
         if self.extension == ".db":
             self.conn = None
@@ -43,73 +63,53 @@ class data_manager():
         elif self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            self.read_lines(**kwargs)
+            self.read_lines()
         elif self.extension == ".xlsx":
             self.wb = openpyxl.load_workbook(self.filepath)
             sheetname = kwargs["sheetname"]
-            lines = self.wb[sheetname].iter_rows(values_only=True)
+            lines = self.wb[sheetname].iter_rows(min_row=kwargs["min_row"],
+                max_row=kwargs["max_row"],min_col=kwargs["min_col"],max_col=kwargs["max_col"],values_only=True)
             self.running = [list(line) for line in lines]
-            self.read_lines(**kwargs)
-        else:
+            self.read_lines()
+        elif self.datatype == "structured":
             with open(self.filepath,"r") as structured_text:
                 self.running = [line.split("\n")[0].split("\t") for line in structured_text.readlines()]
-            self.read_lines(**kwargs)
+            self.read_lines()
 
-    def read_lines(self,**kwargs):
+    def read_lines(self):
 
-        try:
-            self.skiplines = kwargs["skiplines"]
-        except:
-            self.skiplines = 0
-
-        try:
-            headerline = kwargs["headerline"]
-        except:
-            headerline = None
-
-        try:
-            datatype = kwargs["type"]
-        except:
-            datatype = "structured"
-
-        """
-        datatype can be structured
-        datatype can be unstructured
-        """
+        self.header_rows = self.running[:self.skiplines]
 
         self.body_rows = self.running[self.skiplines:]
         self.body_rows = np.array(self.body_rows)
 
-        self.num_cols = self.body_rows.shape[1]
+        self.num_cols = len(self.running[0])
 
         if self.skiplines==0:
-
-            self.headers_rows = None
-            self.headers_explicit = ["col #"+str(column_id) for column_id in range(self.num_cols)]
-            self.headers = ["col_"+str(column_id) for column_id in range(self.num_cols)]
-        
+            self.headers_explicit = ["col #"+str(idx) for idx in range(self.num_cols)]
         elif self.skiplines!=0:
-
-            if headerline is None:
+            if self.headerline is None:
                 linenumber = self.skiplines-1
-            elif headerline < self.skiplines:
-                linenumber = headerline
+            elif self.headerline < self.skiplines:
+                linenumber = self.headerline
             else:
                 linenumber = self.skiplines-1
-
-            self.headers_rows = self.running[:self.skiplines]
             self.headers_explicit = self.running[linenumber]
 
-            self.headers = []
+        self.headers = []
 
-            for header in self.headers_explicit:
-                header = header.replace(" ","_").lower()
-                header = re.sub(r"[^\w]","",header)
-                header = "_"+header if header[0].isnumeric() else header
-                self.headers.append(header)
-            
-        for column_id,header in enumerate(self.headers):
-            setattr(self,header,self.body_rows[:,column_id].tolist())
+        for header in self.headers_explicit:
+            header = header.replace(" ","_").lower()
+            header = re.sub(r"[^\w]","",header)
+            header = "_"+header if header[0].isnumeric() else header
+            self.headers.append(header)
+
+        if self.body_rows.size!=0:
+            for idx,header in enumerate(self.headers):
+                setattr(self,header,self.body_rows[:,idx].tolist())
+        elif self.body_rows.size==0:
+            for idx,header in enumerate(self.headers):
+                setattr(self,header,[])
 
     def todatetime(self,attr_name="date",date_format='%m/%d/%Y'):
 
@@ -377,8 +377,6 @@ class data_table(data_manager):
             setattr(row,header,[value])
             getattr(self,header).append(value)
 
-        row.set_full_name()
-
         values = []
 
         for header in self.headers:
@@ -424,7 +422,7 @@ class data_table(data_manager):
             entry = "entry_"+str(idx)
             value = getattr(self.topEditItem,entry).get()
             setattr(row,header,[value])
-            getattr(self.header)[item] = value
+            getattr(self,header)[item] = value
 
         values = []
 
@@ -464,14 +462,17 @@ class data_table(data_manager):
 
     def saveChanges(self,func=None):
 
+        self.body_rows = []
+
         for header in self.headers:
             setattr(self,header,[])
         
-        self.body_rows = np.delete(self.body_rows,self.deleted,axis=0)
-
+        # self.body_rows = np.delete(self.body_rows,self.deleted,axis=0)
         for child in self.tree.get_children():
+            line = self.tree.item(child)["values"]
+            self.body_rows.append(line)
             for idx,header in enumerate(self.headers):
-                getattr(self,header).append(self.tree.item(child)["values"][idx])
+                getattr(self,header).append(line[idx])
 
         if func is not None:
             func()

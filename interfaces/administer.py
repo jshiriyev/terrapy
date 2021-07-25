@@ -51,6 +51,9 @@ class schedule():
         menubar.add_cascade(label="Edit",menu=editMenu)
         menubar.add_cascade(label="Help",menu=helpMenu)
 
+        self.instructors = data_table(headers_explicit=["Full Name","Position","Email"])
+        self.courses = data_table(headers_explicit=["Code","Description","Semester"])
+
         self.frame_notebook = ttk.Notebook(self.root)        
         self.frame0 = self.set_frame_notebook_sheet()
         self.frame0.pack(fill='both',expand=True)
@@ -260,8 +263,6 @@ class schedule():
         for tabid in self.frame_notebook.tabs():
             self.frame_notebook.forget(tabid)
 
-        self.instructors.full_name = self.instructors.get_description("first_name","last_name",deliminator=" ")
-
         for idx,name in enumerate(self.instructors.full_name):
 
             framename = "frame"+str(idx)
@@ -275,8 +276,6 @@ class schedule():
             self.frame_notebook.add(getattr(self,framename),text=name,compound=tk.RIGHT)
 
     def set_courses(self):
-
-        self.courses.description = self.courses.get_description("code","name_eng",deliminator="-")
 
         self.frame_courses.searchbox.content = []
 
@@ -488,13 +487,9 @@ class schedule():
 
         self.topEditInstructors = tk.Toplevel()
 
-        # print(self.instructors.first_name)
-
         self.instructors.draw_table(self.topEditInstructors,func=self.set_notebook)
 
         self.topEditInstructors.mainloop()
-
-        # self.set_notebook()
 
     def edit_courses(self):
 
@@ -503,8 +498,6 @@ class schedule():
         self.courses.draw_table(self.topEditCourses,func=self.set_courses)
 
         self.topEditCourses.mainloop()
-
-        # self.set_courses()
         
 if __name__ == "__main__":
     
