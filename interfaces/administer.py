@@ -488,7 +488,9 @@ class schedule():
 
         self.topEditInstructors = tk.Toplevel()
 
-        self.instructors.draw_table(self.topEditInstructors)
+        # print(self.instructors.first_name)
+
+        self.instructors.draw_table(self.topEditInstructors,func=self.set_notebook)
 
         self.topEditInstructors.mainloop()
 
@@ -498,7 +500,7 @@ class schedule():
 
         self.topEditCourses = tk.Toplevel()
 
-        self.courses.draw_table(self.topEditCourses)
+        self.courses.draw_table(self.topEditCourses,func=self.set_courses)
 
         self.topEditCourses.mainloop()
 

@@ -288,7 +288,7 @@ class data_table(data_manager):
 
         super().__init__(filepath,**kwargs)
 
-    def draw_table(self,window):
+    def draw_table(self,window,func=None):
 
         self.root = window
 
@@ -327,7 +327,7 @@ class data_table(data_manager):
         self.button_MoveDown = tk.Button(self.frame,text="Move Down",width=50,command=self.moveDown)
         self.button_MoveDown.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,10))
 
-        self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=self.saveChanges)
+        self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
         self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
         # self.tree.column("#0",width=0,stretch=tk.NO)
@@ -462,14 +462,19 @@ class data_table(data_manager):
 
         self.tree.move(item,self.tree.parent(item),self.tree.index(item)+1)
 
-    def saveChanges(self):
+    def saveChanges(self,func=None):
 
         for header in self.headers:
             setattr(self,header,[])
+        
+        self.body_rows = np.delete(self.body_rows,self.deleted,axis=0)
 
         for child in self.tree.get_children():
             for idx,header in enumerate(self.headers):
                 getattr(self,header).append(self.tree.item(child)["values"][idx])
+
+        if func is not None:
+            func()
 
         self.root.destroy()
 
