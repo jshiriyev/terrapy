@@ -30,16 +30,13 @@ class data_manager():
                  headers_explicit=None,
                  skiplines=0,
                  headerline=None,
-                 datatype="structured",
                  **kwargs):
 
         if filepath is None:
             if headers_explicit is not None:
                 self.running = [headers_explicit]
-                # self.running.append([""]*len(headers_explicit))
                 self.skiplines = 1
                 self.headerline = None
-                self.datatype = "equal"
                 self.read_lines()
             return
 
@@ -47,14 +44,11 @@ class data_manager():
         self.filename = self.filepath.split("\\")[-1]
 
         self.extension = os.path.splitext(self.filepath)[1]
-
         self.skiplines = skiplines
 
         self.headerline = headerline
 
-        self.datatype = datatype    #datatype can contain equal or unequal size lines
-
-        def skiptoline(file_read,keyword):
+        def skiptoline(file_read,keyword): #needs correction in this function about where to stop
             while True:
                 line = next(file_read)
                 phrase = line.split('\n')[0].strip().split(" ")[0]
@@ -69,10 +63,12 @@ class data_manager():
                 self.conn = sqlite3.connect(self.filepath)
             except Error:
                 print(Error)
+
         elif self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
             self.read_lines()
+
         elif self.extension == ".xlsx":
             self.wb = openpyxl.load_workbook(self.filepath)
             sheetname = kwargs["sheetname"]
@@ -80,38 +76,24 @@ class data_manager():
                 max_row=kwargs["max_row"],min_col=kwargs["min_col"],max_col=kwargs["max_col"],values_only=True)
             self.running = [list(line) for line in lines]
             self.read_lines()
+
         elif self.extension == ".inc":
-            # self.datatype == "unequal":
-            keywords = ["COMPDATMD","'Qum_Adasi-4'","DATES"]
+            self.skiplines = 1
+            self.running = [headers_explicit]
             with open(self.filepath,"r") as unequal_text:
-                for i in range(300):
-                    line = skiptoline(unequal_text,keywords[0])
+                for i in range(300): # needs correction here
+                    row = []
+                    row.append(skiptoline(unequal_text,keywords[0]))
                     line = skiptoline(unequal_text,keywords[1])
                     if line is not None:
-                        print(line)
+                        row.append(line)
                         line = skiptoline(unequal_text,keywords[2])
-                        print(line)
+                        row.append(line)
+                    self.running.append(row)
                     next(unequal_text)
-                # while True:
-                #     line = next(unequal_text)
-                #     line = line.split("\n")[0].split("\t")
-                #     if line[0].replace(" ","")==keywords[0]:
-                #         line = next(unequal_text)
-                #         line = line.split("\n")[0].split("\t")
-                #         if line[0].replace(" ","")==keywords[1]:
-                #             print(line.split("\n")[2].split("\t"),line.split("\n")[3].split("\t"))
-                #         else:
-                #             line = next(unequal_text)
-
-                #     line = line
-                    
-                # self.read_lines(unequal_text,**kwargs)
-                # self.running = [line.split("\n")[0].split("\t") for line in unequal_text.readlines()]
-            
+            self.read_lines()
 
     def read_lines(self,**kwargs):
-
-        # if self.datatype == "equal":
 
         self.header_rows = self.running[:self.skiplines]
 
@@ -145,23 +127,6 @@ class data_manager():
         elif self.body_rows.size==0:
             for idx,header in enumerate(self.headers):
                 setattr(self,header,[])
-
-        # elif self.datatype == "unequal":
-
-        #     
-
-        #     # keywords = kwargs["keywords"][0]
-
-        #     next(file_read)
-
-        #     for line in self.running:
-
-        #         if line[0]==keywor
-
-        #         if line[0]==keywords[1]:
-        #             print(line[2],line[3])
-
-
 
     def todatetime(self,attr_name="date",date_format='%m/%d/%Y'):
 
@@ -703,7 +668,9 @@ if __name__ == "__main__":
 
     filepath = "Z:\\PK_Kas_Island\\PK-KaS-Simulation Model\\INCLUDE\\DynamicModel_SCHEDULE.inc"
 
-    data_manager(filepath=filepath)
+    headers_explicit = ["COMPDATMD","'Qum_Adasi-4'","DATES"]
+
+    data_manager(filepath=filepath,headers_explicit)
 
     # data = data_manager("courses.xlsx",sheetname="courses")
     
