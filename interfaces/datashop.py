@@ -39,7 +39,7 @@ class data_manager():
                 # self.running.append([""]*len(headers_explicit))
                 self.skiplines = 1
                 self.headerline = None
-                self.datatype = "structured"
+                self.datatype = "equal"
                 self.read_lines()
             return
 
@@ -52,7 +52,16 @@ class data_manager():
 
         self.headerline = headerline
 
-        self.datatype = datatype    #datatype can be structured and unstructured
+        self.datatype = datatype    #datatype can contain equal or unequal size lines
+
+        def skiptoline(file_read,keyword):
+            while True:
+                line = next(file_read)
+                phrase = line.split('\n')[0].strip().split(" ")[0]
+                if phrase == keyword:
+                    return line
+                elif phrase == "/":
+                    return None
 
         if self.extension == ".db":
             self.conn = None
@@ -71,12 +80,38 @@ class data_manager():
                 max_row=kwargs["max_row"],min_col=kwargs["min_col"],max_col=kwargs["max_col"],values_only=True)
             self.running = [list(line) for line in lines]
             self.read_lines()
-        elif self.datatype == "structured":
-            with open(self.filepath,"r") as structured_text:
-                self.running = [line.split("\n")[0].split("\t") for line in structured_text.readlines()]
-            self.read_lines()
+        elif self.extension == ".inc":
+            # self.datatype == "unequal":
+            keywords = ["COMPDATMD","'Qum_Adasi-4'","DATES"]
+            with open(self.filepath,"r") as unequal_text:
+                for i in range(300):
+                    line = skiptoline(unequal_text,keywords[0])
+                    line = skiptoline(unequal_text,keywords[1])
+                    if line is not None:
+                        print(line)
+                        line = skiptoline(unequal_text,keywords[2])
+                        print(line)
+                    next(unequal_text)
+                # while True:
+                #     line = next(unequal_text)
+                #     line = line.split("\n")[0].split("\t")
+                #     if line[0].replace(" ","")==keywords[0]:
+                #         line = next(unequal_text)
+                #         line = line.split("\n")[0].split("\t")
+                #         if line[0].replace(" ","")==keywords[1]:
+                #             print(line.split("\n")[2].split("\t"),line.split("\n")[3].split("\t"))
+                #         else:
+                #             line = next(unequal_text)
 
-    def read_lines(self):
+                #     line = line
+                    
+                # self.read_lines(unequal_text,**kwargs)
+                # self.running = [line.split("\n")[0].split("\t") for line in unequal_text.readlines()]
+            
+
+    def read_lines(self,**kwargs):
+
+        # if self.datatype == "equal":
 
         self.header_rows = self.running[:self.skiplines]
 
@@ -110,6 +145,23 @@ class data_manager():
         elif self.body_rows.size==0:
             for idx,header in enumerate(self.headers):
                 setattr(self,header,[])
+
+        # elif self.datatype == "unequal":
+
+        #     
+
+        #     # keywords = kwargs["keywords"][0]
+
+        #     next(file_read)
+
+        #     for line in self.running:
+
+        #         if line[0]==keywor
+
+        #         if line[0]==keywords[1]:
+        #             print(line[2],line[3])
+
+
 
     def todatetime(self,attr_name="date",date_format='%m/%d/%Y'):
 
@@ -649,11 +701,15 @@ class data_graph(data_manager):
 
 if __name__ == "__main__":
 
+    filepath = "Z:\\PK_Kas_Island\\PK-KaS-Simulation Model\\INCLUDE\\DynamicModel_SCHEDULE.inc"
+
+    data_manager(filepath=filepath)
+
     # data = data_manager("courses.xlsx",sheetname="courses")
     
-    window = tk.Tk()
+    # window = tk.Tk()
 
-    gui = data_table("instructors.csv",skiplines=1)
-    gui.draw_table(window)
+    # gui = data_table("instructors.csv",skiplines=1)
+    # gui.draw_table(window)
 
-    window.mainloop()
+    # window.mainloop()
