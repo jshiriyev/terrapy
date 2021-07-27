@@ -26,14 +26,24 @@ from tkinter import filedialog
 
 class manager():
 
-    def __init__(self,filepath=None,headers_explicit=None,skiplines=0,headerline=None,**kwargs):
+    def __init__(self,
+                 filepath=None,
+                 sheetname=None,
+                 min_row=None,
+                 max_row=None,
+                 min_col=None,
+                 max_col=None,
+                 headers_explicit=None,
+                 headers_sub=None,
+                 header_linenumber=None,
+                 skiplines=0):
 
         if filepath is None:
             if headers_explicit is not None:
                 self.running = [headers_explicit]
                 self.skiplines = 1
-                self.headerline = None
-                self._read_equal()
+                self.header_linenumber = None
+                self._set_manager()
             return
 
         self.filepath = filepath
@@ -42,7 +52,7 @@ class manager():
         self.extension = os.path.splitext(self.filepath)[1]
         self.skiplines = skiplines
 
-        self.headerline = headerline
+        self.header_linenumber = header_linenumber
 
         if self.extension == ".db":
             self.conn = None
@@ -54,43 +64,24 @@ class manager():
         elif self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            self._read_equal()
+            self._set_manager()
 
         elif self.extension == ".xlsx":
             self.wb = openpyxl.load_workbook(self.filepath)
-            sheetname = kwargs["sheetname"]
-            lines = self.wb[sheetname].iter_rows(min_row=kwargs["min_row"],
-                max_row=kwargs["max_row"],min_col=kwargs["min_col"],max_col=kwargs["max_col"],values_only=True)
+            lines = self.wb[sheetname].iter_rows(min_row=min_row,max_row=max_row,min_col=min_col,max_col=max_col,values_only=True)
             self.running = [list(line) for line in lines]
-            self._read_equal()
+            self._set_manager()
 
         elif self.extension == ".inc":
 
+            self.running = [["KEYWORDS","DETAILS","DATES"]]
             self.skiplines = 1
-            self.headers_explicit = headers_explicit
+            self.headers_sub = headers_sub
 
-            self.headers = []
+            self._read_unequal()
+            self._set_manager()
 
-            for header in self.headers_explicit:
-                header = header.lower()
-                self.headers.append(header)
-                setattr(self,header,[])
-
-            childname = kwargs["child"]
-
-            with open(self.filepath,"r") as unequal_text:
-                while True:
-                    lines = self._read_unequal(unequal_text,child=childname)
-                    if lines=="END": break
-
-            nparray = np.array([])
-
-            for header in self.headers:
-                nparray = np.append(nparray,np.array(getattr(self,header)))
-
-            self.body_rows = nparray.reshape((len(self.headers),-1)).T
-
-    def _read_equal(self,**kwargs):
+    def _set_manager(self):
 
         self.header_rows = self.running[:self.skiplines]
 
@@ -102,10 +93,10 @@ class manager():
         if self.skiplines==0:
             self.headers_explicit = ["col #"+str(idx) for idx in range(self.num_cols)]
         elif self.skiplines!=0:
-            if self.headerline is None:
+            if self.header_linenumber is None:
                 linenumber = self.skiplines-1
-            elif self.headerline < self.skiplines:
-                linenumber = self.headerline
+            elif self.header_linenumber < self.skiplines:
+                linenumber = self.header_linenumber
             else:
                 linenumber = self.skiplines-1
             self.headers_explicit = self.running[linenumber]
@@ -125,9 +116,9 @@ class manager():
             for idx,header in enumerate(self.headers):
                 setattr(self,header,[])
 
-    def _read_unequal(self,file_read,child):
+    def _read_unequal(self):
 
-        # for now, I am assuming that DATES is the lowest keyword
+        # It is important to note the hierarchy of the keywords
 
         # keyword0 = "WELSPECS"            
         # keyword1 = "COMPDATMD"
@@ -138,44 +129,51 @@ class manager():
 
         # inside the keyword:
         comment = "--"
-        # keyword_end = "/"
+        endfile = "END"
 
-        # general description
-        fileend = "END"
+        flagContinueLoopFile = True
 
-        idx = 0
+        with open(self.filepath,"r") as unequal_text:
 
-        while True:
+            while flagContinueLoopFile:
 
-            line = next(file_read)
-            line = line.split('\n')[0].strip()
+                excludedDate = []
 
-            parent_phrase = line.split(" ")[0].strip()
+                flagContinueLoopHeaders = True
 
-            if any([parent_phrase==keyword for keyword in self.headers_explicit]):
-                while True:
+                while flagContinueLoopHeaders:
+
                     line = next(file_read)
                     line = line.split('\n')[0].strip()
 
-                    child_phrase = line.split("/")[0].strip()
+                    key_phrase = line.split(" ")[0].strip()
 
-                    if parent_phrase=="DATES":
-                        for i in range(idx):
-                            getattr(self,parent_phrase.lower()).append(child_phrase)
-                        return idx
+                    flagContinueLoopHeadersSub = True
 
-                    if child_phrase == "":
+                    if any([key_phrase == keyword for keyword in self.headers_explicit]):
+
+                        while flagContinueLoopHeadersSub:
+
+                            line = next(file_read)
+                            line = line.split('\n')[0].strip()
+
+                            sub_phrase = line.split("/")[0].strip()
+
+                            if key_phrase=="DATES":
+                                for phrases in excludedDate:
+                                    self.running.append(phrases.append(sub_phrase))
+                                flagContinueLoopHeaders = False
+                                break
+
+                            if sub_phrase == "":
+                                flagContinueLoopHeadersSub = False
+                            elif sub_phrase.split(" ")[0].strip() == self.headers_sub:
+                                excludeDate.append([key_phrase,sub_phrase])
+
+                    elif key_phrase == endfile:
+
+                        flagContinueLoopFile = False
                         break
-                    elif child_phrase.split(" ")[0].strip() == child:
-                        idx += 1
-                        for header in self.headers[:-1]:
-                            if parent_phrase.lower() == header:
-                                getattr(self,header).append(child_phrase)
-                            else:
-                                getattr(self,header).append("")
-
-            elif parent_phrase == fileend:
-                return fileend
 
     def todatetime(self,attr_name="date",date_format=None):
 
@@ -233,7 +231,7 @@ class manager():
 
         return [deliminator.join(row) for row in items.T]
 
-    def db_create_table(self,sqlite_table):
+    def _set_database_table(self,sqlite_table):
 
         # instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
         #                                     id integer PRIMARY KEY,
@@ -254,7 +252,7 @@ class manager():
         except Error:
             print(Error)
 
-    def db_insert_table(self,sqlite_table_insert,table_row):
+    def _insert_database_table(self,sqlite_table_insert,table_row):
 
         # instructor_table_insert = """ INSERT INTO instructors(
         #                                     id,
