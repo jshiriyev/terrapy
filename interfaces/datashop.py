@@ -720,23 +720,10 @@ class graph(manager):
         self.plot.draw()
 
 if __name__ == "__main__":
-
-    filepath = "Z:\\PK_Kas_Island\\PK-KaS-Simulation Model\\INCLUDE\\DynamicModel_SCHEDULE.inc"
-
-    headers_explicit = ["COMPDATMD","WCONHIST","DATES"]
-
-    # dm = table(filepath=filepath,headers_explicit=headers_explicit,child=["'Qum_Adasi-4'",None])
-
-    # data = manager("courses.xlsx",sheetname="courses")
     
     window = tk.Tk()
 
-    # gui = table("instructors.csv",skiplines=1)
-    gui = table(filepath=filepath,headers_explicit=headers_explicit,child="'Qum_Adasi-4'")
-
-
-
-    gui.todatetime(attr_name="DATES")
+    gui = table("instructors.csv",skiplines=1)
 
     gui.draw(window)
 
