@@ -1,6 +1,7 @@
 import csv
 import datetime
 
+from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 
 import os
@@ -23,21 +24,16 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 
-class data_manager():
+class manager():
 
-    def __init__(self,
-                 filepath=None,
-                 headers_explicit=None,
-                 skiplines=0,
-                 headerline=None,
-                 **kwargs):
+    def __init__(self,filepath=None,headers_explicit=None,skiplines=0,headerline=None,**kwargs):
 
         if filepath is None:
             if headers_explicit is not None:
                 self.running = [headers_explicit]
                 self.skiplines = 1
                 self.headerline = None
-                self.read_lines()
+                self._read_equal()
             return
 
         self.filepath = filepath
@@ -47,15 +43,6 @@ class data_manager():
         self.skiplines = skiplines
 
         self.headerline = headerline
-
-        def skiptoline(file_read,keyword): #needs correction in this function about where to stop
-            while True:
-                line = next(file_read)
-                phrase = line.split('\n')[0].strip().split(" ")[0]
-                if phrase == keyword:
-                    return line
-                elif phrase == "/":
-                    return None
 
         if self.extension == ".db":
             self.conn = None
@@ -67,7 +54,7 @@ class data_manager():
         elif self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            self.read_lines()
+            self._read_equal()
 
         elif self.extension == ".xlsx":
             self.wb = openpyxl.load_workbook(self.filepath)
@@ -75,25 +62,35 @@ class data_manager():
             lines = self.wb[sheetname].iter_rows(min_row=kwargs["min_row"],
                 max_row=kwargs["max_row"],min_col=kwargs["min_col"],max_col=kwargs["max_col"],values_only=True)
             self.running = [list(line) for line in lines]
-            self.read_lines()
+            self._read_equal()
 
         elif self.extension == ".inc":
-            self.skiplines = 1
-            self.running = [headers_explicit]
-            with open(self.filepath,"r") as unequal_text:
-                for i in range(300): # needs correction here
-                    row = []
-                    row.append(skiptoline(unequal_text,keywords[0]))
-                    line = skiptoline(unequal_text,keywords[1])
-                    if line is not None:
-                        row.append(line)
-                        line = skiptoline(unequal_text,keywords[2])
-                        row.append(line)
-                    self.running.append(row)
-                    next(unequal_text)
-            self.read_lines()
 
-    def read_lines(self,**kwargs):
+            self.skiplines = 1
+            self.headers_explicit = headers_explicit
+
+            self.headers = []
+
+            for header in self.headers_explicit:
+                header = header.lower()
+                self.headers.append(header)
+                setattr(self,header,[])
+
+            childname = kwargs["child"]
+
+            with open(self.filepath,"r") as unequal_text:
+                while True:
+                    lines = self._read_unequal(unequal_text,child=childname)
+                    if lines=="END": break
+
+            nparray = np.array([])
+
+            for header in self.headers:
+                nparray = np.append(nparray,np.array(getattr(self,header)))
+
+            self.body_rows = nparray.reshape((len(self.headers),-1)).T
+
+    def _read_equal(self,**kwargs):
 
         self.header_rows = self.running[:self.skiplines]
 
@@ -128,16 +125,71 @@ class data_manager():
             for idx,header in enumerate(self.headers):
                 setattr(self,header,[])
 
-    def todatetime(self,attr_name="date",date_format='%m/%d/%Y'):
+    def _read_unequal(self,file_read,child):
 
-        dates_string = getattr(self,attr_name)
+        # for now, I am assuming that DATES is the lowest keyword
 
-        dates = []
+        # keyword0 = "WELSPECS"            
+        # keyword1 = "COMPDATMD"
+        # keyword2 = "COMPORD"
+        # keyword3 = "WCONHIST"
+        # keyword4 = "WEFAC"
+        # keyword5 = "DATES"
+
+        # inside the keyword:
+        comment = "--"
+        # keyword_end = "/"
+
+        # general description
+        fileend = "END"
+
+        idx = 0
+
+        while True:
+
+            line = next(file_read)
+            line = line.split('\n')[0].strip()
+
+            parent_phrase = line.split(" ")[0].strip()
+
+            if any([parent_phrase==keyword for keyword in self.headers_explicit]):
+                while True:
+                    line = next(file_read)
+                    line = line.split('\n')[0].strip()
+
+                    child_phrase = line.split("/")[0].strip()
+
+                    if parent_phrase=="DATES":
+                        for i in range(idx):
+                            getattr(self,parent_phrase.lower()).append(child_phrase)
+                        return idx
+
+                    if child_phrase == "":
+                        break
+                    elif child_phrase.split(" ")[0].strip() == child:
+                        idx += 1
+                        for header in self.headers[:-1]:
+                            if parent_phrase.lower() == header:
+                                getattr(self,header).append(child_phrase)
+                            else:
+                                getattr(self,header).append("")
+
+            elif parent_phrase == fileend:
+                return fileend
+
+    def todatetime(self,attr_name="date",date_format=None):
+
+        dates_string = getattr(self,attr_name.lower())
+
+        dates_list = []
 
         for date_string in dates_string:
-            dates.append(datetime.datetime.strptime(date_string,date_format))
+            if date_format is None:
+                dates_list.append(parse(date_string))
+            else:
+                dates_list.append(datetime.datetime.strptime(date_string,date_format))
 
-        setattr(self,attr_name,dates)
+        setattr(self,attr_name.lower(),dates_list)
 
     def sortbased(self,attr_name="date"):
 
@@ -235,7 +287,7 @@ class data_manager():
         # DB.cursor.close()
         # DB.conn.close()
 
-    def df_write(self,outputfile,date_format='%m/%d/%Y'):
+    def write(self,outputfile,date_format='%m/%d/%Y'):
 
         self.outputfile = outputfile
 
@@ -299,13 +351,13 @@ class data_manager():
         #        except:
         #            break
 
-class data_table(data_manager):
+class table(manager):
 
     def __init__(self,filepath=None,**kwargs):
 
         super().__init__(filepath,**kwargs)
 
-    def draw_table(self,window,func=None):
+    def draw(self,window,func=None):
 
         self.root = window
 
@@ -353,6 +405,9 @@ class data_table(data_manager):
         #     self.tree.delete(item)
 
         for idx,values in enumerate(self.body_rows):
+            # values = []
+            # for header in self.headers:
+            #     values.append(getattr(self,header)[idx])
             self.tree.insert(parent="",index="end",iid=idx,values=tuple(values))
 
     def addItem(self):
@@ -386,7 +441,7 @@ class data_table(data_manager):
 
         iid = len(getattr(self,self.headers[0]))
         
-        row = data_manager()
+        row = manager()
 
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
@@ -433,7 +488,7 @@ class data_table(data_manager):
 
     def editItemEnterClicked(self,item,event=None):
         
-        row = data_manager()
+        row = manager()
 
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
@@ -513,13 +568,13 @@ class data_table(data_manager):
         for columnNumber in range(self.model.columnCount()):
             self.resizeColumnToContents(columnNumber)
 
-class data_graph(data_manager):
+class graph(manager):
 
     def __init__(self,filepath=None,**kwargs):
 
         super().__init__(filepath,**kwargs)
 
-    def draw_graph(self,window):
+    def draw(self,window):
 
         self.root = window
 
@@ -668,15 +723,21 @@ if __name__ == "__main__":
 
     filepath = "Z:\\PK_Kas_Island\\PK-KaS-Simulation Model\\INCLUDE\\DynamicModel_SCHEDULE.inc"
 
-    headers_explicit = ["COMPDATMD","'Qum_Adasi-4'","DATES"]
+    headers_explicit = ["COMPDATMD","WCONHIST","DATES"]
 
-    data_manager(filepath=filepath,headers_explicit)
+    # dm = table(filepath=filepath,headers_explicit=headers_explicit,child=["'Qum_Adasi-4'",None])
 
-    # data = data_manager("courses.xlsx",sheetname="courses")
+    # data = manager("courses.xlsx",sheetname="courses")
     
-    # window = tk.Tk()
+    window = tk.Tk()
 
-    # gui = data_table("instructors.csv",skiplines=1)
-    # gui.draw_table(window)
+    # gui = table("instructors.csv",skiplines=1)
+    gui = table(filepath=filepath,headers_explicit=headers_explicit,child="'Qum_Adasi-4'")
 
-    # window.mainloop()
+
+
+    gui.todatetime(attr_name="DATES")
+
+    gui.draw(window)
+
+    window.mainloop()
