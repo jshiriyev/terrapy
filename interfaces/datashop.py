@@ -50,6 +50,9 @@ class manager():
         self.filename = self.filepath.split("\\")[-1]
 
         self.extension = os.path.splitext(self.filepath)[1]
+
+        self.headers_explicit = headers_explicit
+
         self.skiplines = skiplines
 
         self.header_linenumber = header_linenumber
@@ -143,7 +146,7 @@ class manager():
 
                 while flagContinueLoopHeaders:
 
-                    line = next(file_read)
+                    line = next(unequal_text)
                     line = line.split('\n')[0].strip()
 
                     key_phrase = line.split(" ")[0].strip()
@@ -154,21 +157,22 @@ class manager():
 
                         while flagContinueLoopHeadersSub:
 
-                            line = next(file_read)
+                            line = next(unequal_text)
                             line = line.split('\n')[0].strip()
 
                             sub_phrase = line.split("/")[0].strip()
 
                             if key_phrase=="DATES":
-                                for phrases in excludedDate:
-                                    self.running.append(phrases.append(sub_phrase))
                                 flagContinueLoopHeaders = False
+                                for phrases in excludedDate:
+                                    phrases.append(sub_phrase)
+                                    self.running.append(phrases)
                                 break
 
                             if sub_phrase == "":
                                 flagContinueLoopHeadersSub = False
                             elif sub_phrase.split(" ")[0].strip() == self.headers_sub:
-                                excludeDate.append([key_phrase,sub_phrase])
+                                excludedDate.append([key_phrase,sub_phrase])
 
                     elif key_phrase == endfile:
 
@@ -403,9 +407,9 @@ class table(manager):
         #     self.tree.delete(item)
 
         for idx,values in enumerate(self.body_rows):
-            # values = []
-            # for header in self.headers:
-            #     values.append(getattr(self,header)[idx])
+            values = []
+            for header in self.headers:
+                values.append(getattr(self,header)[idx])
             self.tree.insert(parent="",index="end",iid=idx,values=tuple(values))
 
     def addItem(self):
@@ -718,11 +722,13 @@ class graph(manager):
         self.plot.draw()
 
 if __name__ == "__main__":
+
+    pass
     
-    window = tk.Tk()
+    # window = tk.Tk()
 
-    gui = table("instructors.csv",skiplines=1)
+    # gui = table("instructors.csv",skiplines=1)
 
-    gui.draw(window)
+    # gui.draw(window)
 
-    window.mainloop()
+    # window.mainloop()
