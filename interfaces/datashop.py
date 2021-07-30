@@ -29,33 +29,41 @@ class manager():
     def __init__(self,
                  filepath=None,
                  sheetname=None,
+                 headers=None,
                  min_row=None,
                  max_row=None,
                  min_col=None,
                  max_col=None,
-                 headers_explicit=None,
                  headers_sub=None,
-                 header_linenumber=None,
-                 skiplines=0):
+                 ):
 
-        if filepath is None:
-            if headers_explicit is not None:
-                self.running = [headers_explicit]
-                self.skiplines = 1
-                self.header_linenumber = None
-                self._set_manager()
+        if filepath is not None:
+            self.filepath = filepath
+            self.filename = self.filepath.split("\\")[-1]
+            self.extension = os.path.splitext(self.filepath)[1]
+
+        if sheetname is not None:
+            self.sheetname = sheetname
+
+        if headers is not None:
+            self.headers_ = headers
+
+        if min_row is not None:
+            self.min_row = min_row
+
+        if max_row is not None:
+            self.max_row = max_row
+
+        if min_col is not None:
+            self.min_col = min_col
+
+        if max_col is not None:
+            self.max_col = max_col
+
+        if filepath is None and headers is not None:
+            self.running = [self.headers_]
+            self.set_manager(skiplines=1)
             return
-
-        self.filepath = filepath
-        self.filename = self.filepath.split("\\")[-1]
-
-        self.extension = os.path.splitext(self.filepath)[1]
-
-        self.headers_explicit = headers_explicit
-
-        self.skiplines = skiplines
-
-        self.header_linenumber = header_linenumber
 
         if self.extension == ".db":
             self.conn = None
@@ -63,52 +71,58 @@ class manager():
                 self.conn = sqlite3.connect(self.filepath)
             except Error:
                 print(Error)
+            return
 
-        elif self.extension == ".csv":
+        if self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            self._set_manager()
+            # self.set_manager()
+            return
 
-        elif self.extension == ".xlsx":
-            self.wb = openpyxl.load_workbook(self.filepath)
-            lines = self.wb[sheetname].iter_rows(min_row=min_row,max_row=max_row,min_col=min_col,max_col=max_col,values_only=True)
+        if self.extension == ".xlsx":
+            wb = openpyxl.load_workbook(self.filepath,read_only=True)
+            lines = wb[sheetname].iter_rows(min_row=min_row,max_row=max_row,min_col=min_col,max_col=max_col,values_only=True)
             self.running = [list(line) for line in lines]
-            self._set_manager()
+            wb._archive.close()
+##            self.set_manager()
+            return
 
-        elif self.extension == ".inc":
+        if self.extension == ".inc":
 
             self.running = [["KEYWORDS","DETAILS","DATES"]]
-            self.skiplines = 1
             self.headers_sub = headers_sub
 
             self._read_unequal()
-            self._set_manager()
+            self.set_manager(skiplines=1)
+            return
 
-    def _set_manager(self):
+    def set_manager(self,skiplines=0,header_linenumber=None):
 
-        self.header_rows = self.running[:self.skiplines]
+        self.header_rows = self.running[:skiplines]
 
-        self.body_rows = self.running[self.skiplines:]
+        self.body_rows = self.running[skiplines:]
         self.body_rows = np.array(self.body_rows)
 
         self.num_cols = len(self.running[0])
 
-        if self.skiplines==0:
-            self.headers_explicit = ["col #"+str(idx) for idx in range(self.num_cols)]
-        elif self.skiplines!=0:
-            if self.header_linenumber is None:
-                linenumber = self.skiplines-1
-            elif self.header_linenumber < self.skiplines:
-                linenumber = self.header_linenumber
+        if skiplines==0:
+            self.headers_ = ["col #"+str(idx) for idx in range(self.num_cols)]
+        elif skiplines!=0:
+            if header_linenumber is None:
+                linenumber = skiplines-1
+            elif header_linenumber < skiplines:
+                linenumber = header_linenumber
             else:
-                linenumber = self.skiplines-1
-            self.headers_explicit = self.running[linenumber]
+                linenumber = skiplines-1
+            self.headers_ = self.running[linenumber]
 
         self.headers = []
 
-        for header in self.headers_explicit:
-            header = header.replace(" ","_").lower()
+        for header in self.headers_:
+            header = header.strip()
+            header = header.replace(" ","_")
             header = re.sub(r"[^\w]","",header)
+            header = header.lower()
             header = "_"+header if header[0].isnumeric() else header
             self.headers.append(header)
 
@@ -153,7 +167,7 @@ class manager():
 
                     flagContinueLoopHeadersSub = True
 
-                    if any([key_phrase == keyword for keyword in self.headers_explicit]):
+                    if any([key_phrase == keyword for keyword in self.headers_]):
 
                         while flagContinueLoopHeadersSub:
 
@@ -319,7 +333,7 @@ class manager():
         with open(self.outputfile,"w") as empty_file:
 
             for linenumber,row in enumerate(self.running):
-                index = linenumber-self.skiplines
+                index = linenumber-skiplines
                 # if the time gap with previous line is more than a month
                 cond1 = (self.Date[index]-self.Date[index-1]).days>31
                 # if the well name is different compared to previous line
@@ -367,7 +381,7 @@ class table(manager):
 
         self.tree = ttk.Treeview(self.root,columns=self.columns,show="headings",selectmode="browse")
 
-        for idx,(column,header) in enumerate(zip(self.columns,self.headers_explicit),start=1):
+        for idx,(column,header) in enumerate(zip(self.columns,self.headers_),start=1):
             if idx<len(self.headers) :
                 self.tree.column(column,anchor=tk.W,width=100)
             elif idx==len(self.headers):
@@ -416,7 +430,7 @@ class table(manager):
 
         self.topAddItem = tk.Toplevel()
 
-        for idx,(header,explicit) in enumerate(zip(self.headers,self.headers_explicit)):
+        for idx,(header,explicit) in enumerate(zip(self.headers,self.headers_)):
             label = "label_"+str(idx)
             entry = "entry_"+str(idx)
             pady = (30,5) if idx==0 else (5,5)
@@ -471,7 +485,7 @@ class table(manager):
 
         self.topEditItem = tk.Toplevel()
 
-        for idx,(header,explicit) in enumerate(zip(self.headers,self.headers_explicit)):
+        for idx,(header,explicit) in enumerate(zip(self.headers,self.headers_)):
             label = "label_"+str(idx)
             entry = "entry_"+str(idx)
             pady = (30,5) if idx==0 else (5,5)
