@@ -76,7 +76,6 @@ class manager():
         if self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
-            # self.set_manager()
             return
 
         if self.extension == ".xlsx":
@@ -377,9 +376,15 @@ class table(manager):
 
         self.root = window
 
+        self.frame0 = tk.Frame(self.root,width=50)
+        self.frame0.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+        self.scrollbar = tk.Scrollbar(self.frame0)
+        self.scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
+
         self.columns = ["#"+str(idx) for idx,_ in enumerate(self.headers,start=1)]
 
-        self.tree = ttk.Treeview(self.root,columns=self.columns,show="headings",selectmode="browse")
+        self.tree = ttk.Treeview(self.frame0,columns=self.columns,show="headings",selectmode="browse",yscrollcommand=self.scrollbar.set)
 
         for idx,(column,header) in enumerate(zip(self.columns,self.headers_),start=1):
             if idx<len(self.headers) :
@@ -390,12 +395,14 @@ class table(manager):
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
+        self.scrollbar.config(command=self.tree.yview)
+
         self.added = []
         self.deleted = []
 
         self.frame = tk.Frame(self.root,width=50)
         self.frame.configure(background="white")
-        self.frame.pack(side=tk.TOP)
+        self.frame.pack(side=tk.RIGHT,fill=tk.Y)
 
         self.button_Add = tk.Button(self.frame,text="Add Item",width=50,command=self.addItem)
         self.button_Add.pack(side=tk.TOP,ipadx=5,padx=10,pady=(5,1))
@@ -442,7 +449,7 @@ class table(manager):
         self.topAddItem.button = tk.Button(self.topAddItem,text="Add Item",command=self.addItemEnterClicked)
         self.topAddItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
 
-        self.topAddItem.bind('<Return>',self.addItemEnterClicked)
+        self.topAddItem.button.bind('<Return>',self.addItemEnterClicked)
 
         self.topAddItem.mainloop()
 
@@ -451,24 +458,16 @@ class table(manager):
 
     def addItemEnterClicked(self,event=None):
 
-        if event is not None:
-            if event.widget!=self.topAddItem.button:
-                return
+        if event is not None and event.widget!=self.topAddItem.button:
+            return
 
         iid = len(getattr(self,self.headers[0]))
-        
-        row = manager()
+
+        values = []
 
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topAddItem,entry).get()
-            setattr(row,header,[value])
-            getattr(self,header).append(value)
-
-        values = []
-
-        for header in self.headers:
-            value = getattr(row,header)[0]
             getattr(self,header).append(value)
             values.append(value)
 
@@ -498,24 +497,20 @@ class table(manager):
         self.topEditItem.button = tk.Button(self.topEditItem,text="Save Item Edit",command=lambda: self.editItemEnterClicked(item))
         self.topEditItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
 
-        # self.topEditItem.bind('<Return>',self.editItemEnterClicked)
+        self.topEditItem.button.bind('<Return>',lambda event: self.editItemEnterClicked(item,event))
 
         self.topEditItem.mainloop()
 
     def editItemEnterClicked(self,item,event=None):
-        
-        row = manager()
+
+        if event is not None and event.widget!=self.topEditItem.button:
+            return
+
+        values = []
 
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topEditItem,entry).get()
-            setattr(row,header,[value])
-            getattr(self,header)[item] = value
-
-        values = []
-
-        for header in self.headers:
-            value = getattr(row,header)[0]
             getattr(self,header)[item] = value
             values.append(value)
 
@@ -736,13 +731,12 @@ class graph(manager):
         self.plot.draw()
 
 if __name__ == "__main__":
-
-    pass
     
-    # window = tk.Tk()
+    window = tk.Tk()
 
-    # gui = table("instructors.csv",skiplines=1)
+    gui = table("instructors.csv")
+    gui.set_manager(skiplines=1)
 
-    # gui.draw(window)
+    gui.draw(window)
 
-    # window.mainloop()
+    window.mainloop()
