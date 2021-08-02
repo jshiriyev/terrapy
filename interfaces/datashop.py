@@ -28,8 +28,8 @@ class manager():
 
     def __init__(self,
                  filepath=None,
-                 sheetname=None,
                  headers=None,
+                 sheetname=None,
                  min_row=None,
                  max_row=None,
                  min_col=None,
@@ -41,12 +41,16 @@ class manager():
             self.filepath = filepath
             self.filename = self.filepath.split("\\")[-1]
             self.extension = os.path.splitext(self.filepath)[1]
+        elif headers is not None:
+            self.headers_ = headers
+            self.running = [self.headers_]
+            self.set_manager(skiplines=1)
+            return
+        else:
+            return
 
         if sheetname is not None:
             self.sheetname = sheetname
-
-        if headers is not None:
-            self.headers_ = headers
 
         if min_row is not None:
             self.min_row = min_row
@@ -59,11 +63,6 @@ class manager():
 
         if max_col is not None:
             self.max_col = max_col
-
-        if filepath is None and headers is not None:
-            self.running = [self.headers_]
-            self.set_manager(skiplines=1)
-            return
 
         if self.extension == ".db":
             self.conn = None
@@ -83,7 +82,7 @@ class manager():
             lines = wb[sheetname].iter_rows(min_row=min_row,max_row=max_row,min_col=min_col,max_col=max_col,values_only=True)
             self.running = [list(line) for line in lines]
             wb._archive.close()
-##            self.set_manager()
+            # self.set_manager()
             return
 
         if self.extension == ".inc":
@@ -302,50 +301,62 @@ class manager():
         # DB.cursor.close()
         # DB.conn.close()
 
-    def write(self,outputfile,date_format='%m/%d/%Y'):
+    def write(self,filepath,lines,sheet_title=None):
 
-        self.outputfile = outputfile
+        # writing .xlsx file
 
-        def create_new_line(idx):
-            line = []
-            for k,header in enumerate(self.header):
-                if k==0:
-                    line.append(self.WellName[idx-1])
-                elif k==1:
-                    line.append((self.Date[idx-1]+relativedelta(months=1)).strftime(date_format))
-                else:
-                    line.append(0)
-            return "\t".join(np.array(line))+"\n"
+        wb = openpyxl.Workbook()
 
-        def skiptoline(file_read,keyword,file_written=None):
+        sheet = wb.active
 
-            while True:
+        if sheet_title is not None:
+            sheet.title = sheet_title
+
+        for line in lines:
+            sheet.append(line)
+
+        wb.save(filepath)
+
+        # def create_new_line(idx):
+        #     line = []
+        #     for k,header in enumerate(self.header):
+        #         if k==0:
+        #             line.append(self.WellName[idx-1])
+        #         elif k==1:
+        #             line.append((self.Date[idx-1]+relativedelta(months=1)).strftime(date_format))
+        #         else:
+        #             line.append(0)
+        #     return "\t".join(np.array(line))+"\n"
+
+        # def skiptoline(file_read,keyword,file_written=None):
+
+        #     while True:
                 
-                line = next(file_read)
+        #         line = next(file_read)
 
-                if file_written is not None:
-                    file_written.write(line)
+        #         if file_written is not None:
+        #             file_written.write(line)
                 
-                if line.split('/')[0].strip() == keyword:
-                    break
+        #         if line.split('/')[0].strip() == keyword:
+        #             break
             
-        with open(self.outputfile,"w") as empty_file:
+        # with open(self.outputfile,"w") as empty_file:
 
-            for linenumber,row in enumerate(self.running):
-                index = linenumber-skiplines
-                # if the time gap with previous line is more than a month
-                cond1 = (self.Date[index]-self.Date[index-1]).days>31
-                # if the well name is different compared to previous line
-                cond2 = self.WellName[index]==self.WellName[index-1]
-                # if the date corresponds to previous month
-                cond3 = (datetime.datetime.today()-self.Date[index-1]).days<30
-                if index<=0: continue
-                if cond1 and cond2:
-                    empty_file.write(create_new_row(idx))
-                if not cond2 and not cond3:
-                    empty_file.write(create_new_row(idx))
+        #     for linenumber,row in enumerate(self.running):
+        #         index = linenumber-skiplines
+        #         # if the time gap with previous line is more than a month
+        #         cond1 = (self.Date[index]-self.Date[index-1]).days>31
+        #         # if the well name is different compared to previous line
+        #         cond2 = self.WellName[index]==self.WellName[index-1]
+        #         # if the date corresponds to previous month
+        #         cond3 = (datetime.datetime.today()-self.Date[index-1]).days<30
+        #         if index<=0: continue
+        #         if cond1 and cond2:
+        #             empty_file.write(create_new_row(idx))
+        #         if not cond2 and not cond3:
+        #             empty_file.write(create_new_row(idx))
 
-                empty_file.write(row)
+        #         empty_file.write(row)
 
         # with open(self.outputfile,"w") as writtenfile:
         #     for i,date in enumerate(rdate):
@@ -376,15 +387,11 @@ class table(manager):
 
         self.root = window
 
-        self.frame0 = tk.Frame(self.root,width=50)
-        self.frame0.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
-
-        self.scrollbar = tk.Scrollbar(self.frame0)
-        self.scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
+        self.scrollbar = tk.Scrollbar(self.root)
 
         self.columns = ["#"+str(idx) for idx,_ in enumerate(self.headers,start=1)]
 
-        self.tree = ttk.Treeview(self.frame0,columns=self.columns,show="headings",selectmode="browse",yscrollcommand=self.scrollbar.set)
+        self.tree = ttk.Treeview(self.root,columns=self.columns,show="headings",selectmode="browse",yscrollcommand=self.scrollbar.set)
 
         for idx,(column,header) in enumerate(zip(self.columns,self.headers_),start=1):
             if idx<len(self.headers) :
@@ -395,6 +402,8 @@ class table(manager):
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
+        self.scrollbar.pack(side=tk.LEFT,fill=tk.Y)
+
         self.scrollbar.config(command=self.tree.yview)
 
         self.added = []
@@ -402,7 +411,7 @@ class table(manager):
 
         self.frame = tk.Frame(self.root,width=50)
         self.frame.configure(background="white")
-        self.frame.pack(side=tk.RIGHT,fill=tk.Y)
+        self.frame.pack(side=tk.LEFT,fill=tk.Y)
 
         self.button_Add = tk.Button(self.frame,text="Add Item",width=50,command=self.addItem)
         self.button_Add.pack(side=tk.TOP,ipadx=5,padx=10,pady=(5,1))
@@ -734,7 +743,8 @@ if __name__ == "__main__":
     
     window = tk.Tk()
 
-    gui = table("instructors.csv")
+    # gui = table("instructors.csv")
+    gui = table(headers=["Full Name","Position","Contact"])
     gui.set_manager(skiplines=1)
 
     gui.draw(window)
