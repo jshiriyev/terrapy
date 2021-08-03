@@ -35,7 +35,7 @@ class manager():
                  min_col=None,
                  max_col=None,
                  headers_sub=None,
-                 ):
+                 **kwargs):
 
         if filepath is not None:
             self.filepath = filepath
@@ -88,9 +88,10 @@ class manager():
         if self.extension == ".inc":
 
             self.running = [["KEYWORDS","DETAILS","DATES"]]
+            self.headers_ = headers
             self.headers_sub = headers_sub
 
-            self._read_unequal()
+            self._read_unequal(**kwargs)
             self.set_manager(skiplines=1)
             return
 
@@ -131,20 +132,12 @@ class manager():
             for idx,header in enumerate(self.headers):
                 setattr(self,header,[])
 
-    def _read_unequal(self):
+    def _read_unequal(self,lowest="DATES",endline="/",endfile="END"):
 
-        # It is important to note the hierarchy of the keywords
-
-        # keyword0 = "WELSPECS"            
-        # keyword1 = "COMPDATMD"
-        # keyword2 = "COMPORD"
-        # keyword3 = "WCONHIST"
-        # keyword4 = "WEFAC"
-        # keyword5 = "DATES"
-
-        # inside the keyword:
-        comment = "--"
-        endfile = "END"
+        # It is important to note the hierarchy of the keywords and is important to specify
+        # the lowest keyword in the line of succession e.g., lowest = "DATES"
+        # While looping inside of the keyword, lines should end with end of line keyword e.g., endline = "/""
+        # File must end with end of file keyword e.g., endfile = "END"
 
         flagContinueLoopFile = True
 
@@ -172,9 +165,9 @@ class manager():
                             line = next(unequal_text)
                             line = line.split('\n')[0].strip()
 
-                            sub_phrase = line.split("/")[0].strip()
+                            sub_phrase = line.split(endline)[0].strip()
 
-                            if key_phrase=="DATES":
+                            if key_phrase==lowest:
                                 flagContinueLoopHeaders = False
                                 for phrases in excludedDate:
                                     phrases.append(sub_phrase)
