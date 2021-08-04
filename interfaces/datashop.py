@@ -132,10 +132,10 @@ class manager():
             for idx,header in enumerate(self.headers):
                 setattr(self,header,[])
 
-    def _read_unequal(self,lowest="DATES",endline="/",endfile="END"):
+    def _read_unequal(self,lowestKeyword="DATES",endline="/",endfile="END"):
 
         # It is important to note the hierarchy of the keywords and is important to specify
-        # the lowest keyword in the line of succession e.g., lowest = "DATES"
+        # the lowest keyword in the line of succession e.g., lowestKeyword = "DATES"
         # While looping inside of the keyword, lines should end with end of line keyword e.g., endline = "/""
         # File must end with end of file keyword e.g., endfile = "END"
 
@@ -145,7 +145,7 @@ class manager():
 
             while flagContinueLoopFile:
 
-                excludedDate = []
+                phrases = []
 
                 flagContinueLoopHeaders = True
 
@@ -167,17 +167,17 @@ class manager():
 
                             sub_phrase = line.split(endline)[0].strip()
 
-                            if key_phrase==lowest:
+                            if key_phrase==lowestKeyword:
                                 flagContinueLoopHeaders = False
-                                for phrases in excludedDate:
-                                    phrases.append(sub_phrase)
-                                    self.running.append(phrases)
+                                for phrase in phrases:
+                                    phrase.append(sub_phrase)
+                                    self.running.append(phrase)
                                 break
 
                             if sub_phrase == "":
                                 flagContinueLoopHeadersSub = False
                             elif sub_phrase.split(" ")[0].strip() == self.headers_sub:
-                                excludedDate.append([key_phrase,sub_phrase])
+                                phrases.append([key_phrase,sub_phrase])
 
                     elif key_phrase == endfile:
 
@@ -296,79 +296,28 @@ class manager():
 
     def write(self,filepath,lines,sheet_title=None):
 
-        # writing .xlsx file
+        extension = os.path.splitext(filepath)[1]
 
-        wb = openpyxl.Workbook()
+        if extension == ".db":
+            return
 
-        sheet = wb.active
+        if extension == ".csv":
+            return
 
-        if sheet_title is not None:
-            sheet.title = sheet_title
+        if extension == ".xlsx":
+            wb = openpyxl.Workbook()
+            sheet = wb.active
+            if sheet_title is not None:
+                sheet.title = sheet_title
+            for line in lines:
+                sheet.append(line)
+            wb.save(filepath)
+            return
 
-        for line in lines:
-            sheet.append(line)
-
-        wb.save(filepath)
-
-        # def create_new_line(idx):
-        #     line = []
-        #     for k,header in enumerate(self.header):
-        #         if k==0:
-        #             line.append(self.WellName[idx-1])
-        #         elif k==1:
-        #             line.append((self.Date[idx-1]+relativedelta(months=1)).strftime(date_format))
-        #         else:
-        #             line.append(0)
-        #     return "\t".join(np.array(line))+"\n"
-
-        # def skiptoline(file_read,keyword,file_written=None):
-
-        #     while True:
-                
-        #         line = next(file_read)
-
-        #         if file_written is not None:
-        #             file_written.write(line)
-                
-        #         if line.split('/')[0].strip() == keyword:
-        #             break
-            
-        # with open(self.outputfile,"w") as empty_file:
-
-        #     for linenumber,row in enumerate(self.running):
-        #         index = linenumber-skiplines
-        #         # if the time gap with previous line is more than a month
-        #         cond1 = (self.Date[index]-self.Date[index-1]).days>31
-        #         # if the well name is different compared to previous line
-        #         cond2 = self.WellName[index]==self.WellName[index-1]
-        #         # if the date corresponds to previous month
-        #         cond3 = (datetime.datetime.today()-self.Date[index-1]).days<30
-        #         if index<=0: continue
-        #         if cond1 and cond2:
-        #             empty_file.write(create_new_row(idx))
-        #         if not cond2 and not cond3:
-        #             empty_file.write(create_new_row(idx))
-
-        #         empty_file.write(row)
-
-        # with open(self.outputfile,"w") as writtenfile:
-        #     for i,date in enumerate(rdate):
-        #        skiptoline(rewrittenfile,'DATES',writtenfile)
-        #        skiptoline(rewrittenfile,rdate[i],writtenfile)
-        #        skiptoline(rewrittenfile,'WCONHIST',writtenfile)
-        #        while True:
-        #            wline = next(rewrittenfile)
-        #            if wline.split('/')[0].strip().split(' ')[0] == '\'BHR_76\'':
-        #                notypewritten.write(rcopy[i])
-        #                break
-        #            else:
-        #                notypewritten.write(wline)
-        #     while True:
-        #        try:
-        #            copiedline = next(rewrittenfile)
-        #            writtenfile.write(copiedline)
-        #        except:
-        #            break
+        if extension == ".inc":
+            with open(filepath,"w") as writtenfile:
+                for line in lines: writtenfile.write(line)
+            return
 
 class table(manager):
 
