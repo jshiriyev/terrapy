@@ -29,11 +29,11 @@ class manager():
     def __init__(self,
                  filepath=None,
                  headers=None,
-                 sheetname=None,
-                 min_row=None,
+                 min_row=1,
                  max_row=None,
-                 min_col=None,
+                 min_col=1,
                  max_col=None,
+                 sheetname=None,
                  headers_sub=None,
                  **kwargs):
 
@@ -64,6 +64,11 @@ class manager():
         if max_col is not None:
             self.max_col = max_col
 
+        if self.extension == ".csv":
+            with open(self.filepath,"r") as csv_text:
+                self.running = list(csv.reader(csv_text))
+            return
+
         if self.extension == ".db":
             self.conn = None
             try:
@@ -72,10 +77,23 @@ class manager():
                 print(Error)
             return
 
-        if self.extension == ".csv":
-            with open(self.filepath,"r") as csv_text:
-                self.running = list(csv.reader(csv_text))
+        if self.extension == ".inc":
+            self.running = [["KEYWORDS","DETAILS","DATES"]]
+            self.headers_ = headers
+            self.headers_sub = headers_sub
+            self._read_unequal(**kwargs)
+            self.set_manager(skiplines=1)
             return
+
+        if self.extension == ".txt":
+            with open(self.filepath,"r") as textlines:
+                self.running = []
+                for line in textlines:
+                    line = line.split('\n')[0].strip().split("\t")
+                    while len(line)<max_col:
+                        line.append("")
+                    self.running.append(line[min_col-1:max_col])
+            self.set_manager(**kwargs)
 
         if self.extension == ".xlsx":
             wb = openpyxl.load_workbook(self.filepath,read_only=True)
@@ -83,16 +101,6 @@ class manager():
             self.running = [list(line) for line in lines]
             wb._archive.close()
             # self.set_manager()
-            return
-
-        if self.extension == ".inc":
-
-            self.running = [["KEYWORDS","DETAILS","DATES"]]
-            self.headers_ = headers
-            self.headers_sub = headers_sub
-
-            self._read_unequal(**kwargs)
-            self.set_manager(skiplines=1)
             return
 
     def set_manager(self,skiplines=0,header_linenumber=None):
@@ -549,7 +557,7 @@ class graph(manager):
 
         self.listbox = tk.Listbox(self.frame_navigator,width=10,height=30,exportselection=False)
         self.listbox.grid(row=0,column=0,sticky=tk.NSEW)
-        self.listbox.bind('<<ListboxSelect>>',self.get_sheet_data)
+        # self.listbox.bind('<<ListboxSelect>>',self.get_sheet_data)
 
         self.label_template = tk.Label(self.frame_navigator,text="Plot Templates")
         self.label_template.grid(row=1,column=0,sticky=tk.EW)
