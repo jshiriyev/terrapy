@@ -26,16 +26,7 @@ from tkinter import filedialog
 
 class manager():
 
-    def __init__(self,
-                 filepath=None,
-                 headers=None,
-                 min_row=1,
-                 max_row=None,
-                 min_col=1,
-                 max_col=None,
-                 sheetname=None,
-                 headers_sub=None,
-                 **kwargs):
+    def __init__(self,filepath=None,headers=None,min_row=1,max_row=None,min_col=1,max_col=None,sheetname=None,headers_sub=None,**kwargs):
 
         if filepath is not None:
             self.filepath = filepath
@@ -103,43 +94,6 @@ class manager():
             # self.set_manager()
             return
 
-    def set_manager(self,skiplines=0,header_linenumber=None):
-
-        self.header_rows = self.running[:skiplines]
-
-        self.body_rows = self.running[skiplines:]
-        self.body_rows = np.array(self.body_rows)
-
-        self.num_cols = len(self.running[0])
-
-        if skiplines==0:
-            self.headers_ = ["col #"+str(idx) for idx in range(self.num_cols)]
-        elif skiplines!=0:
-            if header_linenumber is None:
-                linenumber = skiplines-1
-            elif header_linenumber < skiplines:
-                linenumber = header_linenumber
-            else:
-                linenumber = skiplines-1
-            self.headers_ = self.running[linenumber]
-
-        self.headers = []
-
-        for header in self.headers_:
-            header = header.strip()
-            header = header.replace(" ","_")
-            header = re.sub(r"[^\w]","",header)
-            header = header.lower()
-            header = "_"+header if header[0].isnumeric() else header
-            self.headers.append(header)
-
-        if self.body_rows.size!=0:
-            for idx,header in enumerate(self.headers):
-                setattr(self,header,self.body_rows[:,idx].tolist())
-        elif self.body_rows.size==0:
-            for idx,header in enumerate(self.headers):
-                setattr(self,header,[])
-
     def _read_unequal(self,lowestKeyword="DATES",endline="/",endfile="END"):
 
         # It is important to note the hierarchy of the keywords and is important to specify
@@ -192,23 +146,79 @@ class manager():
                         flagContinueLoopFile = False
                         break
 
-    def todatetime(self,attr_name="date",date_format=None):
+    def set_manager(self,skiplines=0,header_linenumber=None):
 
-        dates_string = getattr(self,attr_name.lower())
+        self.header_rows = self.running[:skiplines]
+
+        # self.body_rows = self.running[skiplines:]
+        self.body_cols = np.array(self.running[skiplines:]).T.tolist()
+
+        self.num_rows = len(self.running)-skiplines
+        self.num_cols = len(self.running[0])
+
+        if skiplines==0:
+            self.headers_ = ["col #"+str(idx) for idx in range(self.num_cols)]
+        elif skiplines!=0:
+            if header_linenumber is None:
+                linenumber = skiplines-1
+            elif header_linenumber < skiplines:
+                linenumber = header_linenumber
+            else:
+                linenumber = skiplines-1
+            self.headers_ = self.running[linenumber]
+
+        self.headers = []
+
+        for header in self.headers_:
+            header = header.strip()
+            header = header.replace(" ","_")
+            header = re.sub(r"[^\w]","",header)
+            header = header.lower()
+            header = "_"+header if header[0].isnumeric() else header
+            self.headers.append(header)
+
+        # if len(self.body_rows)!=0:
+        #     for idx,header in enumerate(self.headers):
+        #         setattr(self,header,self.body_rows[:,idx].tolist())
+        # elif len(self.body_rows)==0:
+        #     for idx,header in enumerate(self.headers):
+        #         setattr(self,header,[])
+
+    def get_column(self,header=None,idx=None):
+
+        if idx is None:
+            idx = self.headers.index(header)
+
+        return self.body_cols[idx]
+
+    def get_concatenated(self,*args,deliminator="_"):
+
+        items = []
+
+        for arg in args:
+            items.append(getattr(self,arg))
+
+        items = np.array(items,'U25')
+
+        return [deliminator.join(row) for row in items.T]
+
+    def todatetime(self,header="date",format=None):
+
+        strings = self.get_column(header.lower())
 
         dates_list = []
 
-        for date_string in dates_string:
-            if date_format is None:
-                dates_list.append(parse(date_string))
+        for string in strings:
+            if format is None:
+                dates_list.append(parse(string))
             else:
-                dates_list.append(datetime.datetime.strptime(date_string,date_format))
+                dates_list.append(datetime.datetime.strptime(string,format))
 
-        setattr(self,attr_name.lower(),dates_list)
+        setattr(self,header.lower(),dates_list)
 
-    def sortbased(self,attr_name="date"):
+    def sortbased(self,header="date"):
 
-        listA = getattr(self,attr_name)
+        listA = self.get_column(header.lower())
 
         idx = list(range(len(listA)))
 
@@ -223,9 +233,9 @@ class manager():
             self.toarray(header)
             setattr(self,header,getattr(self,header)[idx])
 
-    def toarray(self,attr_name):
+    def toarray(self,header):
 
-        list_of_string = getattr(self,attr_name)
+        list_of_string = getattr(self,header)
 
         try:
             try:
@@ -235,18 +245,7 @@ class manager():
         except:
             array_of_string = np.array(list_of_string)
 
-        setattr(self,attr_name,array_of_string)
-
-    def get_description(self,*args,deliminator="_"):
-
-        items = []
-
-        for arg in args:
-            items.append(getattr(self,arg))
-
-        items = np.array(items,'U25')
-
-        return [deliminator.join(row) for row in items.T]
+        setattr(self,header,array_of_string)
 
     def _set_database_table(self,sqlite_table):
 
@@ -386,10 +385,10 @@ class table(manager):
         # for item in self.tree.get_children():
         #     self.tree.delete(item)
 
-        for idx,values in enumerate(self.body_rows):
+        for idx in range(self.num_rows):
             values = []
             for header in self.headers:
-                values.append(getattr(self,header)[idx])
+                values.append(self.get_col_by_header(header)[idx])
             self.tree.insert(parent="",index="end",iid=idx,values=tuple(values))
 
     def addItem(self):
@@ -420,17 +419,15 @@ class table(manager):
         if event is not None and event.widget!=self.topAddItem.button:
             return
 
-        iid = len(getattr(self,self.headers[0]))
-
         values = []
 
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topAddItem,entry).get()
-            getattr(self,header).append(value)
+            # self.get_column(header).append(value)
             values.append(value)
 
-        self.tree.insert(parent="",index="end",iid=iid,values=values)
+        self.tree.insert(parent="",index="end",iid=self.num_rows,values=values)
 
         self.topAddItem.destroy()
 
@@ -451,7 +448,7 @@ class table(manager):
             setattr(self.topEditItem,entry,tk.Entry(self.topEditItem,width=30,font="Helvetica 11"))
             getattr(self.topEditItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topEditItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
-            getattr(self.topEditItem,entry).insert(0,getattr(self,header)[item])
+            getattr(self.topEditItem,entry).insert(0,self.get_column(header)[item])
 
         self.topEditItem.button = tk.Button(self.topEditItem,text="Save Item Edit",command=lambda: self.editItemEnterClicked(item))
         self.topEditItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
@@ -470,7 +467,7 @@ class table(manager):
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topEditItem,entry).get()
-            getattr(self,header)[item] = value
+            self.get_column(header)[item] = value
             values.append(value)
 
         self.tree.item(item,values=values)
