@@ -26,34 +26,77 @@ from tkinter import filedialog
 
 class manager():
 
-    def __init__(self,filepath=None,headers=None,min_row=1,max_row=None,min_col=1,max_col=None,sheetname=None,headers_sub=None,**kwargs):
+    def __init__(self,
+        filepath=None,
+        headers=None,
+        skiplines=1,
+        headerline=None,
+        equalsize=True,
+        min_row=0,
+        min_col=0,
+        max_row=None,
+        max_col=None,
+        sheetname=None,
+        header_lowest="DATES",
+        header_subs=None,
+        endline="/",
+        endfile="END"):
+
+        self.filepath = filepath
+        self.headers_ = headers
 
         if filepath is not None:
-            self.filepath = filepath
+
             self.filename = self.filepath.split("\\")[-1]
             self.extension = os.path.splitext(self.filepath)[1]
+            
+            if equalsize:
+                self._read_equal(min_row,min_col,max_row,max_col,sheetname)
+            else:
+                self._read_unequal(header_lowest,header_subs,endline,endfile)
+
         elif headers is not None:
-            self.headers_ = headers
+
             self.running = [self.headers_]
-            self.set_manager(skiplines=1)
-            return
+
         else:
+
             return
 
-        if sheetname is not None:
-            self.sheetname = sheetname
+        self.num_rows = len(self.running)-skiplines
+        self.num_cols = len(self.running[0])
 
-        if min_row is not None:
-            self.min_row = min_row
+        self.header_rows = self.running[:skiplines]
 
-        if max_row is not None:
-            self.max_row = max_row
+        if self.num_rows==0:
+            self.body_cols = [[] for i in range(self.num_cols)]
+        else:
+            self.body_cols = np.array(self.running[skiplines:]).T.tolist()
 
-        if min_col is not None:
-            self.min_col = min_col
+        if skiplines==0:
+            self.headers_ = ["col #"+str(idx) for idx in range(self.num_cols)]
+        elif skiplines!=0:
+            if headerline is None:
+                linenumber = skiplines-1
+            elif headerline < skiplines:
+                linenumber = headerline
+            else:
+                linenumber = skiplines-1
+            self.headers_ = self.running[linenumber]
 
-        if max_col is not None:
-            self.max_col = max_col
+        self.headers = []
+
+        for header in self.headers_:
+
+            header = header.strip()
+            header = header.replace(" ","_")
+            header = re.sub(r"[^\w]","",header)
+            header = header.lower()
+            header = "_"+header if header[0].isnumeric() else header
+
+            self.headers.append(header)
+
+    def _read_equal(self,min_row,min_col,max_row,max_col,sheetname):
 
         if self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
@@ -71,7 +114,7 @@ class manager():
         if self.extension == ".inc":
             self.running = [["KEYWORDS","DETAILS","DATES"]]
             self.headers_ = headers
-            self.headers_sub = headers_sub
+            self.header_subs = header_subs
             self._read_unequal(**kwargs)
             self.set_manager(skiplines=1)
             return
@@ -83,21 +126,21 @@ class manager():
                     line = line.split('\n')[0].strip().split("\t")
                     while len(line)<max_col:
                         line.append("")
-                    self.running.append(line[min_col-1:max_col])
+                    self.running.append(line[min_col:max_col+1])
             self.set_manager(**kwargs)
 
         if self.extension == ".xlsx":
             wb = openpyxl.load_workbook(self.filepath,read_only=True)
-            lines = wb[sheetname].iter_rows(min_row=min_row,max_row=max_row,min_col=min_col,max_col=max_col,values_only=True)
+            lines = wb[sheetname].iter_rows(min_row=min_row+1,max_row=max_row,min_col=min_col+1,max_col=max_col,values_only=True)
             self.running = [list(line) for line in lines]
             wb._archive.close()
             # self.set_manager()
             return
 
-    def _read_unequal(self,lowestKeyword="DATES",endline="/",endfile="END"):
+    def _read_unequal(self,header_lowest,header_subs,endline,endfile):
 
         # It is important to note the hierarchy of the keywords and is important to specify
-        # the lowest keyword in the line of succession e.g., lowestKeyword = "DATES"
+        # the lowest keyword in the line of succession e.g., header_lowest = "DATES"
         # While looping inside of the keyword, lines should end with end of line keyword e.g., endline = "/""
         # File must end with end of file keyword e.g., endfile = "END"
 
@@ -129,7 +172,7 @@ class manager():
 
                             sub_phrase = line.split(endline)[0].strip()
 
-                            if key_phrase==lowestKeyword:
+                            if key_phrase==header_lowest:
                                 flagContinueLoopHeaders = False
                                 for phrase in phrases:
                                     phrase.append(sub_phrase)
@@ -138,51 +181,13 @@ class manager():
 
                             if sub_phrase == "":
                                 flagContinueLoopHeadersSub = False
-                            elif sub_phrase.split(" ")[0].strip() == self.headers_sub:
+                            elif sub_phrase.split(" ")[0].strip() == self.header_subs:
                                 phrases.append([key_phrase,sub_phrase])
 
                     elif key_phrase == endfile:
 
                         flagContinueLoopFile = False
                         break
-
-    def set_manager(self,skiplines=0,header_linenumber=None):
-
-        self.header_rows = self.running[:skiplines]
-
-        # self.body_rows = self.running[skiplines:]
-        self.body_cols = np.array(self.running[skiplines:]).T.tolist()
-
-        self.num_rows = len(self.running)-skiplines
-        self.num_cols = len(self.running[0])
-
-        if skiplines==0:
-            self.headers_ = ["col #"+str(idx) for idx in range(self.num_cols)]
-        elif skiplines!=0:
-            if header_linenumber is None:
-                linenumber = skiplines-1
-            elif header_linenumber < skiplines:
-                linenumber = header_linenumber
-            else:
-                linenumber = skiplines-1
-            self.headers_ = self.running[linenumber]
-
-        self.headers = []
-
-        for header in self.headers_:
-            header = header.strip()
-            header = header.replace(" ","_")
-            header = re.sub(r"[^\w]","",header)
-            header = header.lower()
-            header = "_"+header if header[0].isnumeric() else header
-            self.headers.append(header)
-
-        # if len(self.body_rows)!=0:
-        #     for idx,header in enumerate(self.headers):
-        #         setattr(self,header,self.body_rows[:,idx].tolist())
-        # elif len(self.body_rows)==0:
-        #     for idx,header in enumerate(self.headers):
-        #         setattr(self,header,[])
 
     def get_column(self,header=None,idx=None):
 
@@ -424,10 +429,12 @@ class table(manager):
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topAddItem,entry).get()
-            # self.get_column(header).append(value)
+            self.get_column(header).append(value)
             values.append(value)
 
         self.tree.insert(parent="",index="end",iid=self.num_rows,values=values)
+
+        self.num_rows += 1
 
         self.topAddItem.destroy()
 
@@ -692,7 +699,6 @@ if __name__ == "__main__":
 
     # gui = table("instructors.csv")
     gui = table(headers=["Full Name","Position","Contact"])
-    gui.set_manager(skiplines=1)
 
     gui.draw(window)
 
