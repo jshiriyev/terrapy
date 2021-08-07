@@ -16,7 +16,7 @@ from tkinter import filedialog
 
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
-from datashop import data_table
+from datashop import table
 
 class schedule():
 
@@ -31,9 +31,9 @@ class schedule():
         self.root.config(menu=menubar)
 
         fileMenu = tk.Menu(menubar,tearoff="Off")
-        fileMenu.add_command(label="Open")
-        fileMenu.add_command(label="Save")
-        fileMenu.add_command(label="Save As ...")
+        fileMenu.add_command(label="Open",command=self.open)
+        fileMenu.add_command(label="Save",command=self.save)
+        fileMenu.add_command(label="Save As ...",command=self.saveAs)
         fileMenu.add_separator()
         fileMenu.add_command(label="Import ...",command=self.import_objects)
         fileMenu.add_command(label="Export ...",command=self.export_schedule)
@@ -51,8 +51,8 @@ class schedule():
         menubar.add_cascade(label="Edit",menu=editMenu)
         menubar.add_cascade(label="Help",menu=helpMenu)
 
-        self.instructors = data_table(headers_explicit=["Full Name","Position","Email"])
-        self.courses = data_table(headers_explicit=["Code","Description","Semester"])
+        self.instructors = table(headers=["Full Name","Position","Email"])
+        self.courses = table(headers=["Code","Description","Semester","Credits"])
 
         self.frame_notebook = ttk.Notebook(self.root)        
         self.frame0 = self.set_frame_notebook_sheet()
@@ -247,10 +247,11 @@ class schedule():
         if not filepath: return
 
         if object_name=="Instructors":
-            self.instructors = data_table(filepath,skiplines=1)
+            self.instructors = table(filepath,skiplines=1)
+            self.instructors.full_name = self.instructors.get_concatenated("first_name","last_name",deliminator=" ")
             self.set_notebook()
         elif object_name=="Courses":
-            self.courses = data_table(filepath,sheetname="courses",skiplines=1)
+            self.courses = table(filepath,sheetname="courses",skiplines=2,max_col=4)
             self.set_courses()
 
         status = "Imported \""+filepath+"\"."
@@ -262,6 +263,8 @@ class schedule():
 
         for tabid in self.frame_notebook.tabs():
             self.frame_notebook.forget(tabid)
+
+        self.instructors.full_name = self.instructors.get_concatenated("first_name","last_name",deliminator=" ")
 
         for idx,name in enumerate(self.instructors.full_name):
 
@@ -281,6 +284,8 @@ class schedule():
 
         self.frame_courses.searchbox.configure(
             completevalues=self.frame_courses.searchbox.content,allow_other_values=False)
+
+        self.courses.description = self.courses.get_concatenated("code","name_eng",deliminator=" ")
 
         self.frame_courses.searchbox.content = self.courses.description
 
@@ -487,7 +492,7 @@ class schedule():
 
         self.topEditInstructors = tk.Toplevel()
 
-        self.instructors.draw_table(self.topEditInstructors,func=self.set_notebook)
+        self.instructors.draw(self.topEditInstructors,func=self.set_notebook)
 
         self.topEditInstructors.mainloop()
 
@@ -495,9 +500,71 @@ class schedule():
 
         self.topEditCourses = tk.Toplevel()
 
-        self.courses.draw_table(self.topEditCourses,func=self.set_courses)
+        self.courses.draw(self.topEditCourses,func=self.set_courses)
 
         self.topEditCourses.mainloop()
+
+    def open(self):
+        
+        filepath = filedialog.askopenfilename(
+            title = "Select a File",
+            initialdir = os.getcwd(),
+            filetypes = (("BHOS Files","*.bhos"),
+                         ("All Files","*")))
+
+        if not filepath: return
+
+        dm = table(filepath)
+
+        # self.instructors = table(dm.get_column("links")[0])
+        # self.courses = table(dm.get_column("links")[1])
+        # self.connectivity = table(dm.get_column("links")[2])
+
+        # self.set_notebook()
+        # self.set_courses()
+        # self.set_connections()
+
+    def save(self):
+
+        if not hasattr(self,"outpath"):
+            self.saveAs()
+            return
+
+        outdir = os.path.split(self.outpath)[0]
+
+        instructors_path = os.path.join(outdir,"instructors.bhos")
+        courses_path = os.path.join(outdir,"courses.bhos")
+
+        self.instructors.write(instructors_path)
+        self.courses.write(courses_path)
+
+        filenames = [instructors_path,courses_path]
+
+        with open(self.outpath,'w') as outputfile:
+            for filename in filenames:
+                outputfile.write(filename.upper())
+                outputfile.write("\n")
+                with open(filename) as infile:
+                    for line in infile:
+                        outputfile.write(line)
+                outputfile.write("\n\n\n")
+                os.remove(filename)
+
+    def saveAs(self):
+
+        outpath = filedialog.asksaveasfilename(
+            title = "Select a File",
+            initialdir = os.getcwd(),
+            filetypes = (("BHOS Files","*.bhos"),),
+            defaultextension = ".bhos")
+
+        if not outpath: return
+
+        outpath = outpath.replace("/","\\")
+
+        self.outpath = outpath
+
+        self.save()
         
 if __name__ == "__main__":
     

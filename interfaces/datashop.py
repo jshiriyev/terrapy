@@ -37,8 +37,8 @@ class manager():
         max_row=None,
         max_col=None,
         sheetname=None,
-        header_lowest="DATES",
-        header_subs=None,
+        header_lowest=None,
+        header_sub=None,
         endline="/",
         endfile="END"):
 
@@ -47,13 +47,13 @@ class manager():
 
         if filepath is not None:
 
-            self.filename = self.filepath.split("\\")[-1]
+            self.filename = os.path.split(self.filepath)[1]
             self.extension = os.path.splitext(self.filepath)[1]
             
             if equalsize:
                 self._read_equal(min_row,min_col,max_row,max_col,sheetname)
             else:
-                self._read_unequal(header_lowest,header_subs,endline,endfile)
+                self._read_unequal(header_lowest,header_sub,endline,endfile)
 
         elif headers is not None:
 
@@ -98,6 +98,19 @@ class manager():
 
     def _read_equal(self,min_row,min_col,max_row,max_col,sheetname):
 
+        if max_row is not None:
+            max_row = max_row+1
+
+        if max_col is not None:
+            max_col = max_col+1
+
+        if self.extension == ".bhos":
+            self.running = []
+            with open(self.filepath,"r") as bhoslines:
+                for line in bhoslines:
+                    line = line.split('\n')[0].strip()
+                    self.running.append([line])
+
         if self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
@@ -111,22 +124,14 @@ class manager():
                 print(Error)
             return
 
-        if self.extension == ".inc":
-            self.running = [["KEYWORDS","DETAILS","DATES"]]
-            self.headers_ = headers
-            self.header_subs = header_subs
-            self._read_unequal(**kwargs)
-            self.set_manager(skiplines=1)
-            return
-
         if self.extension == ".txt":
+            self.running = []
             with open(self.filepath,"r") as textlines:
-                self.running = []
                 for line in textlines:
                     line = line.split('\n')[0].strip().split("\t")
                     while len(line)<max_col:
                         line.append("")
-                    self.running.append(line[min_col:max_col+1])
+                    self.running.append(line[min_col:max_col])
             self.set_manager(**kwargs)
 
         if self.extension == ".xlsx":
@@ -137,12 +142,20 @@ class manager():
             # self.set_manager()
             return
 
-    def _read_unequal(self,header_lowest,header_subs,endline,endfile):
+    def _read_unequal(self,header_lowest,header_sub,endline,endfile):
 
         # It is important to note the hierarchy of the keywords and is important to specify
         # the lowest keyword in the line of succession e.g., header_lowest = "DATES"
         # While looping inside of the keyword, lines should end with end of line keyword e.g., endline = "/""
         # File must end with end of file keyword e.g., endfile = "END"
+
+        if self.extension == ".inc":
+            self.running = [["KEYWORDS","DETAILS","DATES"]]
+        else:
+            return
+
+        if header_lowest is None:
+            header_lowest = self.header_[-1]
 
         flagContinueLoopFile = True
 
@@ -181,8 +194,12 @@ class manager():
 
                             if sub_phrase == "":
                                 flagContinueLoopHeadersSub = False
-                            elif sub_phrase.split(" ")[0].strip() == self.header_subs:
-                                phrases.append([key_phrase,sub_phrase])
+                            else:
+                                if header_sub is not None:
+                                    if sub_phrase.split(" ")[0].strip() == header_sub:
+                                        phrases.append([key_phrase,sub_phrase])
+                                else:
+                                    phrases.append([key_phrase,sub_phrase])
 
                     elif key_phrase == endfile:
 
@@ -201,7 +218,7 @@ class manager():
         items = []
 
         for arg in args:
-            items.append(getattr(self,arg))
+            items.append(self.get_column(arg))
 
         items = np.array(items,'U25')
 
@@ -306,14 +323,28 @@ class manager():
         # DB.cursor.close()
         # DB.conn.close()
 
-    def write(self,filepath,lines,sheet_title=None):
+    def write(self,filepath,sheet_title=None):
+
+        running = [self.headers]+np.array(self.body_cols).astype(str).T.tolist()
 
         extension = os.path.splitext(filepath)[1]
+
+        if extension == ".bhos":
+            with open(filepath,"w",encoding='utf-8') as writtenfile:
+                for line in running:
+                    writtenfile.write("\t".join(line)+"\n")
+            return
+
+        if extension == ".csv":
+            return
 
         if extension == ".db":
             return
 
-        if extension == ".csv":
+        if extension == ".inc":
+            with open(filepath,"w") as writtenfile:
+                for line in running:
+                    writtenfile.write("\t".join(line)+"\n")
             return
 
         if extension == ".xlsx":
@@ -321,14 +352,9 @@ class manager():
             sheet = wb.active
             if sheet_title is not None:
                 sheet.title = sheet_title
-            for line in lines:
+            for line in running:
                 sheet.append(line)
             wb.save(filepath)
-            return
-
-        if extension == ".inc":
-            with open(filepath,"w") as writtenfile:
-                for line in lines: writtenfile.write(line)
             return
 
 class table(manager):
@@ -361,6 +387,7 @@ class table(manager):
         self.scrollbar.config(command=self.tree.yview)
 
         self.added = []
+        self.edited = []
         self.deleted = []
 
         self.frame = tk.Frame(self.root,width=50)
@@ -385,18 +412,19 @@ class table(manager):
         self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
         self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
-        # self.tree.column("#0",width=0,stretch=tk.NO)
-
-        # for item in self.tree.get_children():
-        #     self.tree.delete(item)
+        self.body_cols = np.array(self.body_cols).T.tolist()
 
         for idx in range(self.num_rows):
-            values = []
-            for header in self.headers:
-                values.append(self.get_col_by_header(header)[idx])
+            values = self.body_cols[idx]
             self.tree.insert(parent="",index="end",iid=idx,values=tuple(values))
 
+        self.body_cols = np.array(self.body_cols).T.tolist()
+
     def addItem(self):
+
+        if hasattr(self,"topAddItem"):
+            if self.topAddItem.winfo_exists():
+                return
 
         self.topAddItem = tk.Toplevel()
 
@@ -429,8 +457,9 @@ class table(manager):
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topAddItem,entry).get()
-            self.get_column(header).append(value)
             values.append(value)
+
+        self.added.append(self.num_rows)
 
         self.tree.insert(parent="",index="end",iid=self.num_rows,values=values)
 
@@ -474,8 +503,9 @@ class table(manager):
         for idx,header in enumerate(self.headers):
             entry = "entry_"+str(idx)
             value = getattr(self.topEditItem,entry).get()
-            self.get_column(header)[item] = value
             values.append(value)
+
+        self.edited.append(item)
 
         self.tree.item(item,values=values)
 
@@ -487,6 +517,7 @@ class table(manager):
             index = int(item)
             self.tree.delete(index)
             self.deleted.append(index)
+            self.num_rows -= 1
 
     def moveUp(self):
 
@@ -508,34 +539,33 @@ class table(manager):
 
     def saveChanges(self,func=None):
 
-        self.body_rows = []
+        self.body_cols = np.array(self.body_cols).T.tolist()
 
-        for header in self.headers:
-            setattr(self,header,[])
-        
-        # self.body_rows = np.delete(self.body_rows,self.deleted,axis=0)
-        for child in self.tree.get_children():
-            line = self.tree.item(child)["values"]
-            self.body_rows.append(line)
-            for idx,header in enumerate(self.headers):
-                getattr(self,header).append(line[idx])
+        for idx in self.added:
+            values = self.tree.item(idx)["values"]
+            self.body_cols.append(values)
+
+        self.added = []
+
+        for idx in self.edited:
+            values = self.tree.item(idx)["values"]
+            self.body_cols[idx] = values
+
+        self.edited = []
+
+        self.deleted.sort(reverse=True)
+
+        for idx in self.deleted:
+            _ = self.body_cols.pop(idx)
+
+        self.deleted = []
+
+        self.body_cols = np.array(self.body_cols).T.tolist()
 
         if func is not None:
             func()
 
         self.root.destroy()
-
-        # save_to_database:
-        # self.conn = sqlite3.connect(self.filepath)
-        # # sqlite_table = '''CREATE TABLE SqliteDb_developers (
-        # #                  id INTEGER PRIMARY KEY,
-        # #                  name TEXT NOT NULL,
-        # #                  email text NOT NULL UNIQUE);'''
-        # self.cursor = self.conn.cursor()
-        # # self.cursor.execute(sqlite_table)
-        # # self.conn.commit()
-        # self.cursor.close()
-        # self.conn.close()
 
     def autoColumnWidth(self):
         
