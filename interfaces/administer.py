@@ -53,8 +53,8 @@ class schedule():
 
         self.instructors = table(headers=["First Name","Last Name","Patronym","Position","Email","Phone"])
         self.courses = table(headers=["Code","Title","Type","Semester","Credits","Enrolment"])
-        self.classroom = table(headers=["Type"])
-        self.connectivity = table(headers=["Instructor ID","Course ID","Semester"]) #,"Enrolment","Classroom"
+        self.classroom = table(headers=["Capacity","Type"])
+        self.connectivity = table(headers=["Instructor Name","Course ID","Semester"]) #,"Enrolment","Classroom"
 
         self.frame_notebook = ttk.Notebook(self.root)        
         self.frame0 = self.set_frame_notebook_sheet()
