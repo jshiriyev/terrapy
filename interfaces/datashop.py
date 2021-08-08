@@ -37,8 +37,7 @@ class manager():
         max_row=None,
         max_col=None,
         sheetname=None,
-        header_lowest=None,
-        header_sub=None,
+        sub_header=None,
         endline="/",
         endfile="END"):
 
@@ -53,7 +52,7 @@ class manager():
             if equalsize:
                 self._read_equal(min_row,min_col,max_row,max_col,sheetname)
             else:
-                self._read_unequal(header_lowest,header_sub,endline,endfile)
+                self._read_unequal(sub_header,endline,endfile)
 
         elif headers is not None:
 
@@ -104,13 +103,6 @@ class manager():
         if max_col is not None:
             max_col = max_col+1
 
-        if self.extension == ".bhos":
-            self.running = []
-            with open(self.filepath,"r") as bhoslines:
-                for line in bhoslines:
-                    line = line.split('\n')[0].strip()
-                    self.running.append([line])
-
         if self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
                 self.running = list(csv.reader(csv_text))
@@ -142,19 +134,12 @@ class manager():
             # self.set_manager()
             return
 
-    def _read_unequal(self,header_lowest,header_sub,endline,endfile):
+    def _read_unequal(self,sub_header,endline,endfile):
 
-        # It is important to note the hierarchy of the keywords and is important to specify
-        # the lowest keyword in the line of succession e.g., header_lowest = "DATES"
-        # While looping inside of the keyword, lines should end with end of line keyword e.g., endline = "/""
+        # While looping inside of the header, lines should end with end of line keyword e.g., endline = "/""
         # File must end with end of file keyword e.g., endfile = "END"
 
-        if self.extension == ".inc":
-            self.running = [["KEYWORDS","DETAILS","DATES"]]
-        elif self.extension == ".bhos":
-            self.running = [["OBJECTS","SUBOBJECTS"]]
-        else:
-            return
+        self.running = [["Headers","Sub-Headers"]]
 
         flagContinueLoopFile = True
 
@@ -162,61 +147,37 @@ class manager():
 
             while flagContinueLoopFile:
 
-                phrases = []
+                line = next(unequal_text)
+                line = line.split('\n')[0].strip()
 
-                flagContinueLoopHeaders = True
+                header_phrase = line.split(" ")[0].strip()
 
-                headerloops = 0
+                if any([header_phrase == header for header in self.headers_]):
 
-                while flagContinueLoopHeaders:
+                    flagContinueLoopHeadersSub = True
 
-                    line = next(unequal_text)
-                    line = line.split('\n')[0].strip()
+                    while flagContinueLoopHeadersSub:
 
-                    key_phrase = line.split(" ")[0].strip()
+                        line = next(unequal_text)
+                        line = line.split('\n')[0].strip()
 
-                    if any([key_phrase == header for header in self.headers_]):
+                        sub_header_phrase = line.split(endline)[0].strip()
 
-                        flagContinueLoopHeadersSub = True
-
-                        headerloops += 1
-
-                        while flagContinueLoopHeadersSub:
-
-                            line = next(unequal_text)
-                            line = line.split('\n')[0].strip()
-
-                            sub_phrase = line.split(endline)[0].strip()
-                            
-                            if header_lowest is not None:
-                                if key_phrase==header_lowest:
-                                    flagContinueLoopHeaders = False
-                                    for phrase in phrases:
-                                        phrase.append(sub_phrase)
-                                        self.running.append(phrase)
-                                    break
-
-                            if sub_phrase == "":
-                                flagContinueLoopHeadersSub = False
+                        if sub_header_phrase == "":
+                            flagContinueLoopHeadersSub = False
+                        else:
+                            if sub_header is not None:
+                                if sub_header_phrase.split(" ")[0].strip() == sub_header:
+                                    self.running.append([header_phrase,sub_header_phrase])
                             else:
-                                if header_sub is not None:
-                                    if sub_phrase.split(" ")[0].strip() == header_sub:
-                                        phrases.append([key_phrase,sub_phrase])
-                                else:
-                                    phrases.append([key_phrase,sub_phrase])
+                                self.running.append([header_phrase,sub_header_phrase])
 
-                        if header_lowest is None:
-                            if headerloops == len(self.headers_):
-                                flagContinueLoopHeaders = False
-                                for phrase in phrases:
-                                    self.running.append(phrase)
+                elif header_phrase == endfile:
 
-                    elif key_phrase == endfile:
+                    flagContinueLoopFile = False
+                    break
 
-                        flagContinueLoopFile = False
-                        break
-
-        if self.extension == ".bhos":
+        if len(self.headers_)==1:
             subobject = []
             for row in self.running[1:]:
                 subobject.append(row[1].split("\t"))
@@ -403,6 +364,7 @@ class table(manager):
 
         self.scrollbar.config(command=self.tree.yview)
 
+        self.editedFlag = False
         self.added = []
         self.edited = []
         self.deleted = []
@@ -429,13 +391,11 @@ class table(manager):
         self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
         self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
-        self.body_cols = np.array(self.body_cols).T.tolist()
+        body_rows = np.array(self.body_cols).T.tolist()
 
         for idx in range(self.num_rows):
-            values = self.body_cols[idx]
+            values = body_rows[idx]
             self.tree.insert(parent="",index="end",iid=idx,values=tuple(values))
-
-        self.body_cols = np.array(self.body_cols).T.tolist()
 
     def addItem(self):
 
@@ -475,6 +435,8 @@ class table(manager):
             entry = "entry_"+str(idx)
             value = getattr(self.topAddItem,entry).get()
             values.append(value)
+
+        self.editedFlag = True
 
         self.added.append(self.num_rows)
 
@@ -522,6 +484,8 @@ class table(manager):
             value = getattr(self.topEditItem,entry).get()
             values.append(value)
 
+        self.editedFlag = True
+
         self.edited.append(item)
 
         self.tree.item(item,values=values)
@@ -535,6 +499,8 @@ class table(manager):
             self.tree.delete(index)
             self.deleted.append(index)
             self.num_rows -= 1
+
+        self.editedFlag = True
 
     def moveUp(self):
 
@@ -555,6 +521,10 @@ class table(manager):
         self.tree.move(item,self.tree.parent(item),self.tree.index(item)+1)
 
     def saveChanges(self,func=None):
+
+        if not self.editedFlag:
+            self.root.destroy()
+            return
 
         self.body_cols = np.array(self.body_cols).T.tolist()
 

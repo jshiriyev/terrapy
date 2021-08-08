@@ -51,8 +51,10 @@ class schedule():
         menubar.add_cascade(label="Edit",menu=editMenu)
         menubar.add_cascade(label="Help",menu=helpMenu)
 
-        self.instructors = table(headers=["Full Name","Position","Email"])
-        self.courses = table(headers=["Code","Description","Semester","Credits"])
+        self.instructors = table(headers=["First Name","Last Name","Patronym","Position","Email","Phone"])
+        self.courses = table(headers=["Code","Title","Type","Semester","Credits","Enrolment"])
+        self.classroom = table(headers=["Type"])
+        self.connectivity = table(headers=["Instructor ID","Course ID","Semester"]) #,"Enrolment","Classroom"
 
         self.frame_notebook = ttk.Notebook(self.root)        
         self.frame0 = self.set_frame_notebook_sheet()
@@ -75,17 +77,24 @@ class schedule():
 
         self.style.configure("TNotebook",
                              tabposition="wn",
-                             background="white") # tabmargins=[2,5,2,0],
+                             background="#FFD580",
+                             borderwidt=0) # tabmargins=[2,5,2,0],
 
         self.style.configure("TNotebook.Tab",
-                             background="white",
+                             background="#FFD580",
+                             font=("Helvetica",11),
+                             borderwidth=2,
+                             relief="flat",
+                             foreground="black",
                              width=20,
                              anchor=tk.E) # padding=[40, 1, 5, 0],
 
         self.style.configure("AutocompleteEntryListbox",background="white")
 
-        self.style.map("TNotebook.Tab",
-                       background=[("selected","silver")]) #expand=[("selected",[1,1,1,0])]
+        self.style.map("TNotebook.Tab",background=[("selected","#CC5500")],foreground=[("selected","white")],
+            focuscolor=self.style.configure(".")["background"],expand=[("selected",[0,0,1,1])])
+        #,expand=[("selected",[0,0,0,0])],width=[("selected",22)],
+        
         """END-OF-STYLING"""  
 
     def set_frame_notebook_sheet(self):
@@ -101,12 +110,12 @@ class schedule():
         
         frame.configure(background="white")
 
-        frame.label0 = tk.Label(frame,text="Fall Semester")
-        frame.label0.configure(background="silver")
+        frame.label0 = ttk.Label(frame,text="Fall Term")
+        frame.label0.configure(background="#CC5500",font=("Helvetica", 11),foreground="white",anchor=tk.CENTER,borderwidth=5,relief="groove")
         frame.label0.grid(row=0,column=0,columnspan=2,sticky=tk.EW)
 
-        frame.label1 = tk.Label(frame,text="Spring Semester")
-        frame.label1.configure(background="silver")
+        frame.label1 = ttk.Label(frame,text="Spring Term")
+        frame.label1.configure(background="#CC5500",font=("Helvetica", 11),foreground="white",anchor=tk.CENTER,borderwidth=5,relief="groove")
         frame.label1.grid(row=0,column=2,columnspan=2,sticky=tk.EW)
 
         frame.listbox0 = tk.Listbox(frame,width=40,height=20)
@@ -115,49 +124,39 @@ class schedule():
         frame.listbox1 = tk.Listbox(frame,width=40,height=20)
         frame.listbox1.grid(row=1,column=2,columnspan=2,sticky=tk.NSEW)
 
-        frame.button_drop0 = tk.Button(frame,text="Drop Selected",
-            command=lambda: self.drop_course(frame.listbox0,self.frame_courses.searchbox))
-        
-        frame.button_drop0.configure(background="white")
+        frame.button_drop0 = ttk.Button(frame,text="Drop Selected",
+            command=lambda: self.drop_course("Fall Term"))
+        # frame.button_drop0.configure(background="white",relief="ridge",activebackground='#8b0000')
         frame.button_drop0.grid(row=2,column=0,sticky=tk.EW)
         
-        frame.button_clear0 = tk.Button(frame,text="Drop All",
-            command=lambda: self.drop_course(frame.listbox0,self.frame_courses.searchbox,
-                                                    moveall=True))
-        
-        frame.button_clear0.configure(background="white")
+        frame.button_clear0 = ttk.Button(frame,text="Drop All",
+            command=lambda: self.drop_course("Fall Term",moveall=True))
+        # frame.button_clear0.configure(background="white",relief="ridge",activebackground='#345')
         frame.button_clear0.grid(row=2,column=1,sticky=tk.EW)
 
-        frame.button_drop1 = tk.Button(frame,text="Drop Selected",
-            command=lambda: self.drop_course(frame.listbox1,self.frame_courses.searchbox))
-        
-        frame.button_drop1.configure(background="white")
+        frame.button_drop1 = ttk.Button(frame,text="Drop Selected",
+            command=lambda: self.drop_course("Spring Term"))
+        # frame.button_drop1.configure(background="white",relief="ridge",activebackground='#345')
         frame.button_drop1.grid(row=2,column=2,sticky=tk.EW)
         
-        frame.button_clear1 = tk.Button(frame,text="Drop All",
-            command=lambda: self.drop_course(frame.listbox1,self.frame_courses.searchbox,
-                                                    moveall=True))
-        
-        frame.button_clear1.configure(background="white")
+        frame.button_clear1 = ttk.Button(frame,text="Drop All",
+            command=lambda: self.drop_course("Spring Term",moveall=True))
+        # frame.button_clear1.configure(background="white",relief="ridge",activebackground='#345')
         frame.button_clear1.grid(row=2,column=3,sticky=tk.EW)
 
-        frame.button_test = tk.Button(frame,text="Test Instructor's schedule",
-                                   command=self.test_load)
-        
-        frame.button_test.configure(background="white")
+        frame.button_test = ttk.Button(frame,text="Test Instructor's schedule",command=self.test_load)
+        # frame.button_test.configure(background="white",relief="ridge",activebackground='#345')
         frame.button_test.grid(row=3,column=0,columnspan=2,sticky=tk.EW)
 
-        frame.button_print = tk.Button(frame,text="Add Instructor's schedule to Export",
-                                   command=self.add_export)
-        
-        frame.button_print.configure(background="white")
+        frame.button_print = ttk.Button(frame,text="Add Instructor's schedule to Export",command=self.add_export)
+        # frame.button_print.configure(background="white",relief="ridge",activebackground='#345')
         frame.button_print.grid(row=3,column=2,columnspan=2,sticky=tk.EW)
 
         return frame
 
     def set_frame_courses(self):
         
-        self.frame_courses = tk.Frame(self.root,width=300,height=200)
+        self.frame_courses = tk.Frame(self.root)
         
         tk.Grid.rowconfigure(self.frame_courses,1,weight=1)
         tk.Grid.rowconfigure(self.frame_courses,4,weight=1)
@@ -176,25 +175,21 @@ class schedule():
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
 
-        self.frame_courses.button_tofall = tk.Button(
-            self.frame_courses,text="Add to Fall",command=lambda: self.add_course("Fall"))
-
-        self.frame_courses.button_tofall.configure(background="white")
+        self.frame_courses.button_tofall = ttk.Button(
+            self.frame_courses,text="Add to Fall",command=lambda: self.add_course("Fall Term"))
+        # self.frame_courses.button_tofall.configure(background="white",relief="ridge",activebackground='#345')
         self.frame_courses.button_tofall.grid(row=3,column=0,sticky=tk.EW)
 
-        self.frame_courses.button_tospring = tk.Button(
-            self.frame_courses,text="Add to Spring",command=lambda: self.add_course("Spring"))
-
-        self.frame_courses.button_tospring.configure(background="white")
+        self.frame_courses.button_tospring = ttk.Button(
+            self.frame_courses,text="Add to Spring",command=lambda: self.add_course("Spring Term"))
+        # self.frame_courses.button_tospring.configure(background="white",relief="ridge",activebackground='#345')
         self.frame_courses.button_tospring.grid(row=3,column=1,sticky=tk.EW)
 
-        self.frame_courses.button_extended = tk.Button(
-            self.frame_courses,text="Extended View")
-
-        self.frame_courses.button_extended.configure(background="white")
+        self.frame_courses.button_extended = ttk.Button(self.frame_courses,text="Extended View",command=self.extended_view)
+        # self.frame_courses.button_extended.configure(background="white",relief="ridge",activebackground='#345')
         self.frame_courses.button_extended.grid(row=3,column=2,sticky=tk.EW)
 
-        self.frame_courses.status = tk.Listbox(self.frame_courses,width=40,height=10)
+        self.frame_courses.status = tk.Text(self.frame_courses,width=40,height=10,wrap=tk.CHAR)
         self.frame_courses.status.grid(row=4,column=0,columnspan=3,sticky=tk.NSEW)
 
         ## self.frame_courses.status_text = StringVar()
@@ -254,7 +249,7 @@ class schedule():
             self.courses = table(filepath,sheetname="courses",skiplines=2,max_col=4)
             self.set_courses()
 
-        status = "Imported \""+filepath+"\"."
+        status = "Imported \""+filepath+"\".\n"
         
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.see(tk.END)
@@ -294,59 +289,91 @@ class schedule():
         self.frame_courses.searchbox.configure(
             completevalues=self.frame_courses.searchbox.content,allow_other_values=True)
 
-    def drop_course(self,frombox,tobox,moveall=False):
+    def drop_course(self,semester,moveall=False):
+
+        idx = self.frame_notebook.index(self.frame_notebook.select())
+
+        instructor = self.instructors.full_name[idx]
+
+        frameID = "frame"+str(idx)
+
+        if semester == "Fall Term":
+            frombox = getattr(self,frameID).listbox0
+        elif semester == "Spring Term":
+            frombox = getattr(self,frameID).listbox1
+
+        tobox = self.frame_courses.searchbox
 
         if not frombox.get(0,tk.END):
-            status = "No course to drop."
+            status = "No course to drop.\n"
+            self.frame_courses.status.insert(tk.END,status)
+            self.frame_courses.status.yview(tk.END)
+            return
+        elif moveall:
+            dropped = list(frombox.get(0,tk.END))
+            status = "Dropped all courses.\n"
+            frombox.delete(0,tk.END)
+        elif frombox.curselection():
+            dropped = [frombox.get(frombox.curselection())]
+            status = "Dropped selected course.\n"
+            frombox.delete(frombox.curselection())
+        else:
+            status = "No course is selected.\n"
             self.frame_courses.status.insert(tk.END,status)
             self.frame_courses.status.yview(tk.END)
             return
 
-        if moveall:
-            tobox.content = tobox.content+list(frombox.get(0,tk.END))
-            tobox.content.sort()
-            tobox.configure(completevalues=tobox.content)
-            frombox.delete(0,tk.END)
-            status = "Dropped all courses."
-            self.frame_courses.status.insert(tk.END,status)
-            self.frame_courses.status.yview(tk.END)
+        body_rows = np.array(self.connectivity.body_cols).T.tolist()
         
-        elif frombox.curselection():
-            tobox.content.append(frombox.get(frombox.curselection()))
-            tobox.content.sort()
-            tobox.configure(completevalues=tobox.content)
-            frombox.delete(frombox.curselection())
-            status = "Dropped selected course."
-            self.frame_courses.status.insert(tk.END,status)
-            self.frame_courses.status.yview(tk.END)
+        for course in dropped:
+            body_rows.remove([instructor,course,semester])
+            self.connectivity.num_rows -= 1
+            tobox.content.append(course)
 
-        else:
-            status = "No course is selected."
-            self.frame_courses.status.insert(tk.END,status)
-            self.frame_courses.status.yview(tk.END)
+        tobox.content.sort()
+        tobox.configure(completevalues=tobox.content)
+
+        self.connectivity.body_cols = np.array(body_rows).T.tolist()
+            
+        self.frame_courses.status.insert(tk.END,status)
+        self.frame_courses.status.yview(tk.END)
             
     def add_course(self,semester):
 
         idx = self.frame_notebook.index(self.frame_notebook.select())
 
+        instructor = self.instructors.full_name[idx]
+
         frameID = "frame"+str(idx)
 
         frombox = self.frame_courses.searchbox
 
-        if semester == "Fall":
+        if semester == "Fall Term":
             tobox = getattr(self,frameID).listbox0
-        elif semester == "Spring":
+        elif semester == "Spring Term":
             tobox = getattr(self,frameID).listbox1
 
-        if frombox.listbox.curselection():
-
-            frombox.content.pop(frombox.listbox.curselection()[0])
-
-            tobox.insert(tk.END,frombox.listbox.get(frombox.listbox.curselection()))
-            
+        if frombox.listbox.curselection(): 
+            course = frombox.listbox.get(frombox.listbox.curselection())
+            frombox.content.remove(course)
             frombox.configure(completevalues=frombox.content)
-
             frombox.entry.delete(0,tk.END)
+            status = "The course is added.\n"
+        else:
+            status = "Select a course to add.\n"
+            return
+
+        body_rows = np.array(self.connectivity.body_cols).T.tolist()
+        body_rows.append([instructor,course,semester])
+
+        self.connectivity.num_rows += 1
+        
+        tobox.insert(tk.END,course)
+
+        self.connectivity.body_cols = np.array(body_rows).T.tolist()
+
+        self.frame_courses.status.insert(tk.END,status)
+        self.frame_courses.status.yview(tk.END)
 
     def test_load(self):
 
@@ -358,7 +385,7 @@ class schedule():
         f1 = getattr(self,frameID).listbox1.get(tk.ACTIVE)
 
         if not f0 and not f1:
-            status = "Total hours is "+str(0)+"."
+            status = "Total hours is "+str(0)+".\n"
             self.frame_courses.status.insert(tk.END,status)
             self.frame_courses.status.yview(tk.END)
             return
@@ -374,7 +401,7 @@ class schedule():
 
         hours_sum = hours.sum(axis=0)
 
-        status = "Total hours is "+str(int(hours_sum[8]))+"."
+        status = "Total hours is "+str(int(hours_sum[8]))+".\n"
 
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.yview(tk.END)
@@ -389,7 +416,7 @@ class schedule():
         f1 = getattr(self,frameID).listbox1.get(tk.ACTIVE)
 
         if not f0 and not f1:
-            status = "No course is selected."
+            status = "No course is selected.\n"
             self.frame_courses.status.insert(tk.END,status)
             self.frame_courses.status.yview(tk.END)
             return
@@ -429,7 +456,7 @@ class schedule():
 
             ws.append(list(np.array([code,name]))+list(hour_row))
 
-        status = "Saved " + self.instructors.fullname[idx] + "'s schedule to export"
+        status = "Saved " + self.instructors.fullname[idx] + "'s schedule to export.\n"
         
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.yview(tk.END)
@@ -437,7 +464,7 @@ class schedule():
     def export_schedule(self):
 
         if not hasattr(self,"wb"):
-            status = "No schedule is added to export."
+            status = "No schedule is added to export.\n"
             self.frame_courses.status.insert(tk.END,status)
             self.frame_courses.status.yview(tk.END)
             return
@@ -450,7 +477,7 @@ class schedule():
         
         self.wb.save(filename=exportfilepath)
 
-        status = "Saved to \""+exportfilepath+"\"."
+        status = "Saved to \""+exportfilepath+"\".\n"
         
         self.frame_courses.status.insert(tk.END,status)
         self.frame_courses.status.yview(tk.END)
@@ -504,6 +531,14 @@ class schedule():
 
         self.topEditCourses.mainloop()
 
+    def extended_view(self):
+
+        self.topExtendedView = tk.Toplevel()
+
+        self.connectivity.draw(self.topExtendedView)
+
+        self.topExtendedView.mainloop()
+
     def open(self):
         
         filepath = filedialog.askopenfilename(
@@ -516,6 +551,7 @@ class schedule():
 
         self.instructors = table(filepath,headers=["INSTRUCTORS"],equalsize=False)
         self.courses = table(filepath,headers=["COURSES"],equalsize=False)
+        self.connectivity = table(filepath,headers=["CONNECTIVITY"],equalsize=False)
 
         # self.instructors = table(dm.get_column("links")[0])
         # self.courses = table(dm.get_column("links")[1])
@@ -535,11 +571,13 @@ class schedule():
 
         instructors_path = os.path.join(outdir,"instructors.bhos")
         courses_path = os.path.join(outdir,"courses.bhos")
+        connectivity_path = os.path.join(outdir,"connectivity.bhos")
 
         self.instructors.write(instructors_path)
         self.courses.write(courses_path)
+        self.connectivity.write(connectivity_path)
 
-        filepaths = [instructors_path,courses_path]
+        filepaths = [instructors_path,courses_path,connectivity_path]
 
         with open(self.outpath,'w') as outputfile:
             for filepath in filepaths:
