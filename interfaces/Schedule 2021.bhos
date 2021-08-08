@@ -1,70 +1,75 @@
-C:\USERS\CAVID\DOCUMENTS\BHOSPY\INTERFACES\INSTRUCTORS.BHOS
-first_name	last_name	patronym	position	email	phone
-Fuad	Valiyev	Hasan	Professor		
-Narmina	Garayeva		Associated Professor		
-Khanum	Jafarova		Associated Professor		
-Gasham	Zeynalov	Aziz	Associated Professor		
-Samin	Malik		Associated Professor		
-Rauf	Nadirov	Sultan	Associated Professor		
-Farad	Kamyabi	Kadir	Development Head		
-Javid	Shiriyev	Farhad	Senior Lecturer		
-Elkhan	Ahmadov	Ahliman	Senior Lecturer		
-Tural	Abdullayev		Lecturer		
-Aida	Aslanova		Lecturer		
-Ulviyya	Jabiyeva		Instructor		
-Elnare	Rustamzade		Instructor		
-Rashad	Nazaraliyev	Rauf	Instructor		
-Vusal	Karimov		Instructor		
+INSTRUCTORS
+first_name	last_name	patronym	position	email	phone	/
+Samira	Musayeva	Ali	Chair			/
+Siyavush	Azakov	Isfandiyar	Professor			/
+Fuad	Valiyev	Hasan	Professor			/
+Narmina	Garayeva		Associated Professor			/
+Khanum	Jafarova		Associated Professor			/
+Gasham	Zeynalov	Aziz	Associated Professor			/
+Samin	Malik		Associated Professor			/
+Rauf	Nadirov	Sultan	Associated Professor			/
+Farad	Kamyabi	Kadir	Development Head			/
+Javid	Shiriyev	Farhad	Senior Lecturer			/
+Elkhan	Ahmadov	Ahliman	Senior Lecturer			/
+Tural	Abdullayev		Lecturer			/
+Aida	Aslanova		Lecturer			/
+Ulviyya	Jabiyeva		Instructor			/
+Elnare	Rustamzade		Instructor			/
+Rashad	Nazaraliyev	Rauf	Instructor			/
+Vusal	Karimov		Instructor			/
+/
 
 
 
-C:\USERS\CAVID\DOCUMENTS\BHOSPY\INTERFACES\COURSES.BHOS
-code	name_eng	name_aze	semester_number	credit_count
-ENG101	English Language 1	İngilis dili 1	1	20
-ENG102	English Language 2	İngilis dili 2	2	20
-AZL221	 	Azərbaycan dili və nitq mədəniyyəti	4	4
-HIST321	 	Azərbaycan tarixi	6	8
-COMP101	 	Informasiya-kommunikasiya texnologiyalarının mühəndislikdə tətbiqi 1	1	8
-COMP102	 	Informasiya-kommunikasiya texnologiyalarının mühəndislikdə tətbiqi 2	2	8
-MATH211	Mathematics for Engineers and Scientists 1	Mühəndislər və alimlər üçün riyaziyyat 1	3	7.5
-MATH212	Mathematics for Engineers and Scientists 2	Mühəndislər və alimlər üçün riyaziyyat 2	4	7.5
-MATH311	Mathematics for Engineers and Scientists 3	Mühəndislər və alimlər üçün riyaziyyat 3	5	7.5
-MATH312	Mathematics for Engineers and Scientists 4	Mühəndislər və alimlər üçün riyaziyyat 4	6	7.5
-PETE211	Foundation Engineering A	Mühəndisliyin əsasları A	3	7.5
-CHE201	Principles of Chemistry	Kimyanın əsasları	3	7.5
-PETE202	Mechanical Engineering Science 2	Mexanika mühəndisliyi elmi 2	4	7.5
-PETE301	Mechanical Engineering Science 3	Mexanika mühəndisliyi elmi 3	5	7.5
-CHE211	Process Industries A	Emal sənayeləri A	3	7.5
-CHE212	Process Industries B	Emal sənayeləri B	4	7.5
-PETE222	Introduction to Petroleum Engineering	Neft-qaz mühəndisliyinə giriş	4	7.5
-PETE311	Process Engineering A	Emal mühəndisliyi A	5	7.5
-PETE312	Process Engineering B	Emal mühəndisliyi B	6	7.5
-PETE314	Process Engineering C	Emal mühəndisliyi C	6	7.5
-PETE321	Geoscience A	Neft-qaz geologiyası elmi A	5	7.5
-PETE421	Geoscience B	Neft-qaz geologiyası elmi B	7	7.5
-PETE332	Process Design A	Proses layihələndirilməsi A	6	7.5
-PETE411	Formation Evaluation	Layın qiymətləndirilməsi	7	7.5
-PETE401	Reservoir Engineering 1	Lay mühəndisliyi 1	7	7.5
-PETE402	Reservoir Engineering 2	Lay mühəndisliyi 2	8	7.5
-PETE431	Drilling	Qazıma	7	7.5
-PETE442	Production Technology 1	Hasilat texnologiyası 1	8	7.5
-PETE541	Production Technology 2	Hasilat texnologiyası 2	9	7.5
-PETE452	Advanced Fluid Mechanics and Modelling	Mütərəqqi maye mexanikası və modelləşdirmə	8	7.5
-CHE442	Multiphase Thermodynamics	Çoxfazalı termodinamika	8	7.5
-CHE521	Safety&Sustainability	Dayanıqlıq, sağlamlıq və təhlükəsizlik	9	7.5
-PETE511	Research Project A	Tədqiqat layihəsi A	9	7.5
-PETE501	Field Development A	Yatağın işlənməsi A (layihə)	9	7.5
-PETE502	Field Development B	Yatağın işlənməsi B (layihə)	10	7.5
-PETE522	Reservoir Simulation	Yatağın modelləşdirilməsi	10	7.5
-CHE562	 	Neftin və qazın emalı	10	7.5
-PETE532	E&P Business and Economics	Enerji və neft-qaz biznesi və iqtisadiyyat	10	7.5
-EGP401	 	Enerji geosiyasəti	8	1
-MACD501	 	Mülki-müdafiənin və tibbi yardımın əsasları	10	2
-xxxx0	Control Modelling	None	0	0
-xxxx1	Oil and Gas Transportation and storage	None	0	0
-NM501	Summer Internship	yay istehsalat təcrüb.rəhbərlik	0	0
-NM502	Attestation Committee	Attestasiya komissiyasında üzvlük	0	0
-NM201	Mechanics	Mexanika	0	0
+COURSES
+code	name_eng	name_aze	semester_number	credit_count	/
+ENG101	English Language 1	İngilis dili 1	1	20	/
+ENG102	English Language 2	İngilis dili 2	2	20	/
+AZL221	 	Azərbaycan dili və nitq mədəniyyəti	4	4	/
+HIST321	 	Azərbaycan tarixi	6	8	/
+COMP101	 	Informasiya-kommunikasiya texnologiyalarının mühəndislikdə tətbiqi 1	1	8	/
+COMP102	 	Informasiya-kommunikasiya texnologiyalarının mühəndislikdə tətbiqi 2	2	8	/
+MATH211	Mathematics for Engineers and Scientists 1	Mühəndislər və alimlər üçün riyaziyyat 1	3	7.5	/
+MATH212	Mathematics for Engineers and Scientists 2	Mühəndislər və alimlər üçün riyaziyyat 2	4	7.5	/
+MATH311	Mathematics for Engineers and Scientists 3	Mühəndislər və alimlər üçün riyaziyyat 3	5	7.5	/
+MATH312	Mathematics for Engineers and Scientists 4	Mühəndislər və alimlər üçün riyaziyyat 4	6	7.5	/
+PETE211	Foundation Engineering A	Mühəndisliyin əsasları A	3	7.5	/
+CHE201	Principles of Chemistry	Kimyanın əsasları	3	7.5	/
+PETE202	Mechanical Engineering Science 2	Mexanika mühəndisliyi elmi 2	4	7.5	/
+PETE301	Mechanical Engineering Science 3	Mexanika mühəndisliyi elmi 3	5	7.5	/
+CHE211	Process Industries A	Emal sənayeləri A	3	7.5	/
+CHE212	Process Industries B	Emal sənayeləri B	4	7.5	/
+PETE222	Introduction to Petroleum Engineering	Neft-qaz mühəndisliyinə giriş	4	7.5	/
+PETE311	Process Engineering A	Emal mühəndisliyi A	5	7.5	/
+PETE312	Process Engineering B	Emal mühəndisliyi B	6	7.5	/
+PETE314	Process Engineering C	Emal mühəndisliyi C	6	7.5	/
+PETE321	Geoscience A	Neft-qaz geologiyası elmi A	5	7.5	/
+PETE421	Geoscience B	Neft-qaz geologiyası elmi B	7	7.5	/
+PETE332	Process Design A	Proses layihələndirilməsi A	6	7.5	/
+PETE411	Formation Evaluation	Layın qiymətləndirilməsi	7	7.5	/
+PETE401	Reservoir Engineering 1	Lay mühəndisliyi 1	7	7.5	/
+PETE402	Reservoir Engineering 2	Lay mühəndisliyi 2	8	7.5	/
+PETE431	Drilling	Qazıma	7	7.5	/
+PETE442	Production Technology 1	Hasilat texnologiyası 1	8	7.5	/
+PETE541	Production Technology 2	Hasilat texnologiyası 2	9	7.5	/
+PETE452	Advanced Fluid Mechanics and Modelling	Mütərəqqi maye mexanikası və modelləşdirmə	8	7.5	/
+CHE442	Multiphase Thermodynamics	Çoxfazalı termodinamika	8	7.5	/
+CHE521	Safety&Sustainability	Dayanıqlıq, sağlamlıq və təhlükəsizlik	9	7.5	/
+PETE511	Research Project A	Tədqiqat layihəsi A	9	7.5	/
+PETE501	Field Development A	Yatağın işlənməsi A (layihə)	9	7.5	/
+PETE502	Field Development B	Yatağın işlənməsi B (layihə)	10	7.5	/
+PETE522	Reservoir Simulation	Yatağın modelləşdirilməsi	10	7.5	/
+CHE562	 	Neftin və qazın emalı	10	7.5	/
+PETE532	E&P Business and Economics	Enerji və neft-qaz biznesi və iqtisadiyyat	10	7.5	/
+EGP401	 	Enerji geosiyasəti	8	1	/
+MACD501	 	Mülki-müdafiənin və tibbi yardımın əsasları	10	2	/
+xxxx0	Control Modelling	None	0	0	/
+xxxx1	Oil and Gas Transportation and storage	None	0	0	/
+NM501	Summer Internship	yay istehsalat təcrüb.rəhbərlik	0	0	/
+NM502	Attestation Committee	Attestasiya komissiyasında üzvlük	0	0	/
+NM201	Mechanics	Mexanika	0	0	/
+/
 
 
 
+END

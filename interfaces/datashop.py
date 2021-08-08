@@ -151,11 +151,10 @@ class manager():
 
         if self.extension == ".inc":
             self.running = [["KEYWORDS","DETAILS","DATES"]]
+        elif self.extension == ".bhos":
+            self.running = [["OBJECTS","SUBOBJECTS"]]
         else:
             return
-
-        if header_lowest is None:
-            header_lowest = self.header_[-1]
 
         flagContinueLoopFile = True
 
@@ -167,6 +166,8 @@ class manager():
 
                 flagContinueLoopHeaders = True
 
+                headerloops = 0
+
                 while flagContinueLoopHeaders:
 
                     line = next(unequal_text)
@@ -174,9 +175,11 @@ class manager():
 
                     key_phrase = line.split(" ")[0].strip()
 
-                    flagContinueLoopHeadersSub = True
+                    if any([key_phrase == header for header in self.headers_]):
 
-                    if any([key_phrase == keyword for keyword in self.headers_]):
+                        flagContinueLoopHeadersSub = True
+
+                        headerloops += 1
 
                         while flagContinueLoopHeadersSub:
 
@@ -184,13 +187,14 @@ class manager():
                             line = line.split('\n')[0].strip()
 
                             sub_phrase = line.split(endline)[0].strip()
-
-                            if key_phrase==header_lowest:
-                                flagContinueLoopHeaders = False
-                                for phrase in phrases:
-                                    phrase.append(sub_phrase)
-                                    self.running.append(phrase)
-                                break
+                            
+                            if header_lowest is not None:
+                                if key_phrase==header_lowest:
+                                    flagContinueLoopHeaders = False
+                                    for phrase in phrases:
+                                        phrase.append(sub_phrase)
+                                        self.running.append(phrase)
+                                    break
 
                             if sub_phrase == "":
                                 flagContinueLoopHeadersSub = False
@@ -201,10 +205,22 @@ class manager():
                                 else:
                                     phrases.append([key_phrase,sub_phrase])
 
+                        if header_lowest is None:
+                            if headerloops == len(self.headers_):
+                                flagContinueLoopHeaders = False
+                                for phrase in phrases:
+                                    self.running.append(phrase)
+
                     elif key_phrase == endfile:
 
                         flagContinueLoopFile = False
                         break
+
+        if self.extension == ".bhos":
+            subobject = []
+            for row in self.running[1:]:
+                subobject.append(row[1].split("\t"))
+            self.running = subobject
 
     def get_column(self,header=None,idx=None):
 
@@ -332,7 +348,8 @@ class manager():
         if extension == ".bhos":
             with open(filepath,"w",encoding='utf-8') as writtenfile:
                 for line in running:
-                    writtenfile.write("\t".join(line)+"\n")
+                    writtenfile.write("\t".join(line)+"\t/\n")
+                writtenfile.write("/\n")
             return
 
         if extension == ".csv":

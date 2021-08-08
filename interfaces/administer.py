@@ -514,14 +514,15 @@ class schedule():
 
         if not filepath: return
 
-        dm = table(filepath)
+        self.instructors = table(filepath,headers=["INSTRUCTORS"],equalsize=False)
+        self.courses = table(filepath,headers=["COURSES"],equalsize=False)
 
         # self.instructors = table(dm.get_column("links")[0])
         # self.courses = table(dm.get_column("links")[1])
         # self.connectivity = table(dm.get_column("links")[2])
 
-        # self.set_notebook()
-        # self.set_courses()
+        self.set_notebook()
+        self.set_courses()
         # self.set_connections()
 
     def save(self):
@@ -538,17 +539,20 @@ class schedule():
         self.instructors.write(instructors_path)
         self.courses.write(courses_path)
 
-        filenames = [instructors_path,courses_path]
+        filepaths = [instructors_path,courses_path]
 
         with open(self.outpath,'w') as outputfile:
-            for filename in filenames:
+            for filepath in filepaths:
+                filename = os.path.split(filepath)[1]
+                filename = os.path.splitext(filename)[0]
                 outputfile.write(filename.upper())
                 outputfile.write("\n")
-                with open(filename) as infile:
+                with open(filepath) as infile:
                     for line in infile:
                         outputfile.write(line)
                 outputfile.write("\n\n\n")
-                os.remove(filename)
+                os.remove(filepath)
+            outputfile.write("END")
 
     def saveAs(self):
 
