@@ -364,12 +364,14 @@ class table(manager):
 
         self.tree = ttk.Treeview(self.root,columns=self.columns,show="headings",selectmode="browse",yscrollcommand=self.scrollbar.set)
 
-        for idx,(column,header) in enumerate(zip(self.columns,self.headers_),start=1):
-            if idx<len(self.headers) :
+        self.sortReverseFlag = [False for col in self.columns]
+
+        for idx,(column,header) in enumerate(zip(self.columns,self.headers_)):
+            if idx<len(self.headers)-1 :
                 self.tree.column(column,anchor=tk.W,width=100)
-            elif idx==len(self.headers):
+            elif idx==len(self.headers)-1:
                 self.tree.column(column,anchor=tk.W)
-            self.tree.heading(column,text=header,anchor=tk.W,command=lambda _col = column: self.sort_column(_col))
+            self.tree.heading(column,text=header,anchor=tk.W,command=lambda x = idx: self.sort_column(x))
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
@@ -578,14 +580,19 @@ class table(manager):
         for columnNumber in range(self.model.columnCount()):
             self.resizeColumnToContents(columnNumber)
 
-    def sort_column(self,column):
+    def sort_column(self,index):
+
+        column = self.columns[index]
+        reverseFlag = self.sortReverseFlag[index]
 
         col_and_idx = [(self.tree.set(k,column), k) for k in self.tree.get_children('')]
 
-        col_and_idx.sort()
+        col_and_idx.sort(reverse=reverseFlag)
 
-        for index, (_,k) in enumerate(col_and_idx):
-            self.tree.move(k,'',index)
+        for idx, (_,k) in enumerate(col_and_idx):
+            self.tree.move(k,'',idx)
+
+        self.sortReverseFlag[index] = not reverseFlag
 
 class graph(manager):
 
