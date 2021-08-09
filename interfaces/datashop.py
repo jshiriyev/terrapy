@@ -29,59 +29,70 @@ class manager():
     def __init__(self,
         filepath=None,
         headers=None,
+        equalsize=True,
         skiplines=1,
         headerline=None,
-        equalsize=True,
         min_row=0,
         min_col=0,
         max_row=None,
         max_col=None,
         sheetname=None,
-        sub_header=None,
+        comment="--",
+        deliminator="\t",
         endline="/",
         endfile="END"):
 
         self.filepath = filepath
         self.headers_ = headers
+        self.equalsize = equalsize
+        self.skiplines = skiplines
+
+        if headerline is None:
+            self.headerline = skiplines-1
+        elif headerline<skiplines:
+            self.headerline = headerline
+        else:
+            self.headerline = skiplines-1
+
+        self.min_row = min_row
+        self.min_col = min_col
+        self.max_row = max_row if max_row is None else max_row+1
+        self.max_col = max_col if max_col is None else max_col+1
+        self.sheetname = sheetname
+        self.comment = comment
+        self.deliminator = deliminator
+        self.endline = endline
+        self.endfile = endfile
 
         if filepath is not None:
-
             self.filename = os.path.split(self.filepath)[1]
             self.extension = os.path.splitext(self.filepath)[1]
             
-            if equalsize:
-                self._read_equal(min_row,min_col,max_row,max_col,sheetname)
+            if self.equalsize:
+                self._read_equal()
             else:
-                self._read_unequal(sub_header,endline,endfile)
+                self._read_unequal()
 
         elif headers is not None:
-
             self.running = [self.headers_]
 
         else:
-
             return
 
-        self.num_rows = len(self.running)-skiplines
+        self.num_rows = len(self.running)-self.skiplines
         self.num_cols = len(self.running[0])
 
-        self.header_rows = self.running[:skiplines]
+        self.header_rows = self.running[:self.skiplines]
 
         if self.num_rows==0:
             self.body_cols = [[] for i in range(self.num_cols)]
         else:
-            self.body_cols = np.array(self.running[skiplines:]).T.tolist()
+            self.body_cols = np.array(self.running[self.skiplines:]).T.tolist()
 
-        if skiplines==0:
+        if self.skiplines==0:
             self.headers_ = ["col #"+str(idx) for idx in range(self.num_cols)]
         elif skiplines!=0:
-            if headerline is None:
-                linenumber = skiplines-1
-            elif headerline < skiplines:
-                linenumber = headerline
-            else:
-                linenumber = skiplines-1
-            self.headers_ = self.running[linenumber]
+            self.headers_ = self.running[self.headerline]
 
         self.headers = []
 
@@ -95,13 +106,7 @@ class manager():
 
             self.headers.append(header)
 
-    def _read_equal(self,min_row,min_col,max_row,max_col,sheetname):
-
-        if max_row is not None:
-            max_row = max_row+1
-
-        if max_col is not None:
-            max_col = max_col+1
+    def _read_equal(self):
 
         if self.extension == ".csv":
             with open(self.filepath,"r") as csv_text:
@@ -120,26 +125,27 @@ class manager():
             self.running = []
             with open(self.filepath,"r") as textlines:
                 for line in textlines:
-                    line = line.split('\n')[0].strip().split("\t")
-                    while len(line)<max_col:
-                        line.append("")
-                    self.running.append(line[min_col:max_col])
-            self.set_manager(**kwargs)
+                    line = self._texttocolumn(line)
+                    self.running.append(line)
+            return
 
         if self.extension == ".xlsx":
             wb = openpyxl.load_workbook(self.filepath,read_only=True)
-            lines = wb[sheetname].iter_rows(min_row=min_row+1,max_row=max_row,min_col=min_col+1,max_col=max_col,values_only=True)
+            lines = wb[sheetname].iter_rows(min_row=self.min_row+1,max_row=self.max_row,min_col=self.min_col+1,max_col=self.max_col,values_only=True)
             self.running = [list(line) for line in lines]
             wb._archive.close()
             # self.set_manager()
             return
 
-    def _read_unequal(self,sub_header,endline,endfile):
+    def _read_unequal(self):
 
         # While looping inside of the header, lines should end with end of line keyword e.g., endline = "/""
         # File must end with end of file keyword e.g., endfile = "END"
 
-        self.running = [["Headers","Sub-Headers"]]
+        self.running = []
+
+        if len(self.headers_)==1:
+            self.equalsize = True
 
         flagContinueLoopFile = True
 
@@ -161,27 +167,34 @@ class manager():
                         line = next(unequal_text)
                         line = line.split('\n')[0].strip()
 
-                        sub_header_phrase = line.split(endline)[0].strip()
+                        sub_header_phrase = line.split(self.endline)[0].strip()
 
                         if sub_header_phrase == "":
                             flagContinueLoopHeadersSub = False
                         else:
-                            if sub_header is not None:
-                                if sub_header_phrase.split(" ")[0].strip() == sub_header:
-                                    self.running.append([header_phrase,sub_header_phrase])
-                            else:
-                                self.running.append([header_phrase,sub_header_phrase])
+                            if sub_header_phrase[:2]!=self.comment:
+                                if self.equalsize:
+                                    row = self._texttocolumn(sub_header_phrase)
+                                else:
+                                    row = [sub_header_phrase]
+                                row.insert(0,header_phrase)
+                                self.running.append(row)
 
-                elif header_phrase == endfile:
+                elif header_phrase == self.endfile:
 
                     flagContinueLoopFile = False
                     break
 
-        if len(self.headers_)==1:
-            subobject = []
-            for row in self.running[1:]:
-                subobject.append(row[1].split("\t"))
-            self.running = subobject
+    def _texttocolumn(self,line):
+
+        line = line.split('\n')[0].strip()
+        line = re.sub(' +',' ',line)
+        line = line.split(self.deliminator)
+
+        while len(line)<self.max_col:
+            line.append("")
+
+        return line[self.min_col:self.max_col]
 
     def get_column(self,header=None,idx=None):
 
@@ -201,50 +214,50 @@ class manager():
 
         return [deliminator.join(row) for row in items.T]
 
-    def todatetime(self,header="date",format=None):
+    def todatetime(self,header="date",idx=None,format=None):
 
-        strings = self.get_column(header.lower())
+        if idx is None:
+            idx = self.headers.index(header)
 
         dates_list = []
 
-        for string in strings:
+        for string in self.body_cols[idx]:
             if format is None:
                 dates_list.append(parse(string))
             else:
                 dates_list.append(datetime.datetime.strptime(string,format))
 
-        setattr(self,header.lower(),dates_list)
+        self.body_cols[idx] = dates_list
 
-    def sortbased(self,header="date"):
+    def toarray(self,header=None,idx=None):
 
-        listA = self.get_column(header.lower())
-
-        idx = list(range(len(listA)))
-
-        zipped_lists = zip(listA,idx)
-        sorted_pairs = sorted(zipped_lists)
-
-        tuples = zip(*sorted_pairs)
-
-        listA, idx = [ list(tuple) for tuple in  tuples]
-
-        for header in self.headers:
-            self.toarray(header)
-            setattr(self,header,getattr(self,header)[idx])
-
-    def toarray(self,header):
-
-        list_of_string = getattr(self,header)
+        if idx is None:
+            idx = self.headers.index(header)
 
         try:
             try:
-                array_of_string = np.array(list_of_string).astype('int')
+                self.body_cols[idx] = np.array(self.body_cols[idx]).astype('int')
             except:
-                array_of_string = np.array(list_of_string).astype('float64')
+                self.body_cols[idx] = np.array(self.body_cols[idx]).astype('float64')
         except:
-            array_of_string = np.array(list_of_string)
+            self.body_cols[idx] = np.array(self.body_cols[idx])
 
-        setattr(self,header,array_of_string)
+    # def sortbased(self,header="date"):
+
+    #     listA = self.get_column(header.lower())
+
+    #     idx = list(range(len(listA)))
+
+    #     zipped_lists = zip(listA,idx)
+    #     sorted_pairs = sorted(zipped_lists)
+
+    #     tuples = zip(*sorted_pairs)
+
+    #     listA, idx = [ list(tuple) for tuple in  tuples]
+
+    #     for header in self.headers:
+    #         self.toarray(header)
+    #         setattr(self,header,getattr(self,header)[idx])
 
     def _set_database_table(self,sqlite_table):
 
@@ -356,7 +369,7 @@ class table(manager):
                 self.tree.column(column,anchor=tk.W,width=100)
             elif idx==len(self.headers):
                 self.tree.column(column,anchor=tk.W)
-            self.tree.heading(column,text=header,anchor=tk.W)
+            self.tree.heading(column,text=header,anchor=tk.W,command=lambda _col = column: self.sort_column(_col))
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
@@ -365,6 +378,7 @@ class table(manager):
         self.scrollbar.config(command=self.tree.yview)
 
         self.editedFlag = False
+
         self.added = []
         self.edited = []
         self.deleted = []
@@ -395,7 +409,7 @@ class table(manager):
 
         for idx in range(self.num_rows):
             values = body_rows[idx]
-            self.tree.insert(parent="",index="end",iid=idx,values=tuple(values))
+            self.tree.insert(parent="",index="end",values=tuple(values))
 
     def addItem(self):
 
@@ -438,9 +452,9 @@ class table(manager):
 
         self.editedFlag = True
 
-        self.added.append(self.num_rows)
+        self.added.append(values)
 
-        self.tree.insert(parent="",index="end",iid=self.num_rows,values=values)
+        self.tree.insert(parent="",index="end",values=values)
 
         self.num_rows += 1
 
@@ -451,7 +465,9 @@ class table(manager):
         if not self.tree.selection():
             return
         else:
-            item = int(self.tree.selection()[0])
+            item = self.tree.selection()[0]
+
+        values = self.tree.item(item)['values']
 
         self.topEditItem = tk.Toplevel()
 
@@ -463,7 +479,7 @@ class table(manager):
             setattr(self.topEditItem,entry,tk.Entry(self.topEditItem,width=30,font="Helvetica 11"))
             getattr(self.topEditItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topEditItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
-            getattr(self.topEditItem,entry).insert(0,self.get_column(header)[item])
+            getattr(self.topEditItem,entry).insert(0,values[idx])
 
         self.topEditItem.button = tk.Button(self.topEditItem,text="Save Item Edit",command=lambda: self.editItemEnterClicked(item))
         self.topEditItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
@@ -486,7 +502,7 @@ class table(manager):
 
         self.editedFlag = True
 
-        self.edited.append(item)
+        self.edited.append([self.tree.item(item)['values'],values])
 
         self.tree.item(item,values=values)
 
@@ -494,11 +510,15 @@ class table(manager):
 
     def deleteItem(self):
 
-        for item in self.tree.selection():
-            index = int(item)
-            self.tree.delete(index)
-            self.deleted.append(index)
-            self.num_rows -= 1
+        if not self.tree.selection():
+            return
+        else:
+            item = self.tree.selection()[0]
+
+        self.deleted.append(self.tree.item(item)['values'])
+        self.num_rows -= 1
+
+        self.tree.delete(item)
 
         self.editedFlag = True
 
@@ -526,31 +546,30 @@ class table(manager):
             self.root.destroy()
             return
 
-        self.body_cols = np.array(self.body_cols).T.tolist()
+        body_rows = np.array(self.body_cols).T.tolist()
 
-        for idx in self.added:
-            values = self.tree.item(idx)["values"]
-            self.body_cols.append(values)
+        for values in self.added:
+            body_rows.append(values)
 
         self.added = []
 
-        for idx in self.edited:
-            values = self.tree.item(idx)["values"]
-            self.body_cols[idx] = values
+        for row in self.edited:
+            body_rows.remove(row[0])
+            body_rows.append(row[1])
 
         self.edited = []
 
-        self.deleted.sort(reverse=True)
-
-        for idx in self.deleted:
-            _ = self.body_cols.pop(idx)
+        for values in self.deleted:
+            body_rows.remove(values)
 
         self.deleted = []
 
-        self.body_cols = np.array(self.body_cols).T.tolist()
+        self.body_cols = np.array(body_rows).T.tolist()
 
         if func is not None:
             func()
+
+        self.editedFlag = False
 
         self.root.destroy()
 
@@ -558,6 +577,15 @@ class table(manager):
         
         for columnNumber in range(self.model.columnCount()):
             self.resizeColumnToContents(columnNumber)
+
+    def sort_column(self,column):
+
+        col_and_idx = [(self.tree.set(k,column), k) for k in self.tree.get_children('')]
+
+        col_and_idx.sort()
+
+        for index, (_,k) in enumerate(col_and_idx):
+            self.tree.move(k,'',index)
 
 class graph(manager):
 
