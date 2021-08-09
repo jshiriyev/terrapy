@@ -1,3 +1,4 @@
+import copy
 import csv
 import datetime
 
@@ -79,20 +80,29 @@ class manager():
         else:
             return
 
-        self.num_rows = len(self.running)-self.skiplines
-        self.num_cols = len(self.running[0])
+        self.running = np.array(self.running)
 
-        self.header_rows = self.running[:self.skiplines]
+        numrow,numcol = self.running.shape
+
+        self.num_rows = numrow-self.skiplines
+        self.num_cols = numcol
+
+        self.title = np.asarray(self.running[:self.skiplines])
 
         if self.num_rows==0:
-            self.body_cols = [[] for i in range(self.num_cols)]
+            self.body = [[] for i in range(self.num_cols)]
         else:
-            self.body_cols = np.array(self.running[self.skiplines:]).T.tolist()
+            self.body = np.asarray(self.running[self.skiplines:]).T
+
+        self.body = []
+
+        for column in np.array(self.running[self.skiplines:]).T:
+            self.body.append(column)
 
         if self.skiplines==0:
             self.headers_ = ["col #"+str(idx) for idx in range(self.num_cols)]
         elif skiplines!=0:
-            self.headers_ = self.running[self.headerline]
+            self.headers_ = np.asarray(self.running[self.headerline])
 
         self.headers = []
 
@@ -201,7 +211,7 @@ class manager():
         if idx is None:
             idx = self.headers.index(header)
 
-        return self.body_cols[idx]
+        return self.body[idx]
 
     def get_concatenated(self,*args,deliminator="_"):
 
@@ -221,13 +231,13 @@ class manager():
 
         dates_list = []
 
-        for string in self.body_cols[idx]:
+        for string in self.body[idx]:
             if format is None:
                 dates_list.append(parse(string))
             else:
                 dates_list.append(datetime.datetime.strptime(string,format))
 
-        self.body_cols[idx] = dates_list
+        self.body[idx] = dates_list
 
     def toarray(self,header=None,idx=None):
 
@@ -236,11 +246,11 @@ class manager():
 
         try:
             try:
-                self.body_cols[idx] = np.array(self.body_cols[idx]).astype('int')
+                self.body[idx] = np.array(self.body[idx]).astype('int')
             except:
-                self.body_cols[idx] = np.array(self.body_cols[idx]).astype('float64')
+                self.body[idx] = np.array(self.body[idx]).astype('float64')
         except:
-            self.body_cols[idx] = np.array(self.body_cols[idx])
+            self.body[idx] = np.array(self.body[idx])
 
     # def sortbased(self,header="date"):
 
@@ -315,7 +325,7 @@ class manager():
 
     def write(self,filepath,sheet_title=None):
 
-        running = [self.headers]+np.array(self.body_cols).astype(str).T.tolist()
+        running = [self.headers]+np.array(self.body).astype(str).T.tolist()
 
         extension = os.path.splitext(filepath)[1]
 
@@ -407,7 +417,7 @@ class table(manager):
         self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
         self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
-        body_rows = np.array(self.body_cols).T.tolist()
+        body_rows = np.array(self.body).T.tolist()
 
         for idx in range(self.num_rows):
             values = body_rows[idx]
@@ -548,7 +558,7 @@ class table(manager):
             self.root.destroy()
             return
 
-        body_rows = np.array(self.body_cols).T.tolist()
+        body_rows = np.array(self.body).T.tolist()
 
         for values in self.added:
             body_rows.append(values)
@@ -566,7 +576,7 @@ class table(manager):
 
         self.deleted = []
 
-        self.body_cols = np.array(body_rows).T.tolist()
+        self.body = np.array(body_rows).T.tolist()
 
         if func is not None:
             func()
