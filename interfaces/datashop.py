@@ -232,6 +232,8 @@ class manager():
 
         for index,string in enumerate(col_split):
 
+            string = re.sub(deliminator+'+',deliminator,string)
+
             row = np.char.split(string,deliminator)[0]
 
             while len(row)<self.max_col:
@@ -249,9 +251,8 @@ class manager():
             self.running.insert(header_index,column)
             header_index += 1        
 
-        # line = re.sub(' +',' ',line)
-        # line = re.sub(r"[^\w]","",line)
         # 
+        # line = re.sub(r"[^\w]","",line)
         # line = "_"+line if line[0].isnumeric() else line
 
     def texttodatetime(self,header_index,format=None):
