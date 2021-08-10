@@ -117,7 +117,7 @@ class manager():
 
         if self.extension == ".xlsx":
             wb = openpyxl.load_workbook(self.filepath,read_only=True)
-            lines = wb[sheetname].iter_rows(min_row=self.min_row+1,max_row=self.max_row,min_col=self.min_col+1,max_col=self.max_col,values_only=True)
+            lines = wb[self.sheetname].iter_rows(min_row=self.min_row+1,max_row=self.max_row,min_col=self.min_col+1,max_col=self.max_col,values_only=True)
             self.running = [list(line) for line in lines]
             wb._archive.close()
             # self.set_manager()
@@ -141,7 +141,7 @@ class manager():
 
                 header_phrase = line.split(" ")[0].strip()
 
-                if any([header_phrase == header for header in self.headers]):
+                if header_phrase.isupper() and header_phrase != self.endfile:
 
                     flagContinueLoopHeadersSub = True
 
@@ -163,6 +163,12 @@ class manager():
 
                     flagContinueLoopFile = False
                     break
+
+    def get_column(self,header):
+
+        index = self.headers.index(header)
+
+        return self.running[index]
 
     def get_row(self,row_index):
 
@@ -189,17 +195,17 @@ class manager():
 
     def trim_columns_by_headers(self,headers):
 
-        indices = []
+        indicesToKeep = []
 
-        for index,header_read_from_file in enumerate(self.headers):
-            if not any([header_read_from_file == header for header in headers]):
-                indices.append(index)
+        for header_read_from_file in self.headers:
+            try:
+                if any([header_read_from_file.strip() == header for header in headers]):
+                    indicesToKeep.append(self.headers.index(header_read_from_file))
+            except:
+                continue
 
-        indices.sort(reverse=True)
-
-        for index in indices:
-            self.headers.pop(index)
-            self.running.pop(index)
+        self.headers = [self.headers[index] for index in indicesToKeep]
+        self.running = [self.running[index] for index in indicesToKeep]
 
     def columntotext(self,header_name_new,header_indices,deliminator=" "):
 
@@ -220,6 +226,27 @@ class manager():
 
         col_split = self.running[header_index]
 
+        col_split = col_split.reshape((-1,1))
+        col_multl = np.char.split(col_split,deliminator)
+
+        running = col_multl.shape
+
+        for line in col_mult:
+            while len(line[0])<self.max_col:
+                line[0].append("")
+
+        # for line in col_multl:
+
+
+
+
+        # MAJORR ISSUE
+
+
+
+        
+
+
         onestring = deliminator.join([row for row in col_split])
 
         col_split = np.array(np.char.split(onestring,deliminator).tolist()).reshape((self.running[0].size,-1)).T
@@ -234,8 +261,7 @@ class manager():
 
         # line = re.sub(' +',' ',line)
         # line = re.sub(r"[^\w]","",line)
-        # while len(line)<self.max_col:
-        #     line.append("")
+        # 
         # line = "_"+line if line[0].isnumeric() else line
 
     def texttodatetime(self,header_index,format=None):
