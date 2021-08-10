@@ -227,35 +227,25 @@ class manager():
         col_split = self.running[header_index]
 
         col_split = col_split.reshape((-1,1))
-        col_multl = np.char.split(col_split,deliminator)
 
-        running = col_multl.shape
+        running = []
 
-        for line in col_mult:
-            while len(line[0])<self.max_col:
-                line[0].append("")
+        for index,string in enumerate(col_split):
 
-        # for line in col_multl:
+            row = np.char.split(string,deliminator)[0]
 
+            while len(row)<self.max_col:
+                row.append("")
 
+            running.append(row)
 
-
-        # MAJORR ISSUE
-
-
-
-        
-
-
-        onestring = deliminator.join([row for row in col_split])
-
-        col_split = np.array(np.char.split(onestring,deliminator).tolist()).reshape((self.running[0].size,-1)).T
+        running = np.array(running).T
 
         self.headers.pop(header_index)
         self.running.pop(header_index)
 
-        for column in col_split:
-            self.headers.insert(header_index,"col #"+str(header_index))
+        for column in running:
+            self.headers.insert(header_index,"col ##"+str(header_index))
             self.running.insert(header_index,column)
             header_index += 1        
 
