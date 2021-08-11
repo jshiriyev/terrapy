@@ -27,10 +27,11 @@ from tkinter import filedialog
 
 class manager():
 
+    special_extensions = [".db",".xlsx"]
+
     def __init__(
         self,
         filepath=None,
-        equalsize=True,
         skiplines=1,
         headerline=None,
         min_row=0,
@@ -46,7 +47,7 @@ class manager():
             return
 
         self.filepath = filepath
-        self.equalsize = equalsize
+
         self.skiplines = skiplines
 
         if headerline is None:
@@ -68,10 +69,10 @@ class manager():
         self.filename = os.path.split(self.filepath)[1]
         self.extension = os.path.splitext(self.filepath)[1]
 
-        if self.equalsize:
-            self._read_equal()
+        if any([self.extension==extension for extension in self.special_extensions]):
+            self._read_special()
         else:
-            self._read_unequal()
+            self._read_main()
 
         self.title = []
 
@@ -92,39 +93,9 @@ class manager():
         for index,column in enumerate(nparray.T):
             self.running[index] = np.asarray(column)
 
-    def _read_equal(self):
+    def _read_main(self):
 
-        if self.extension == ".csv":
-            with open(self.filepath,"r") as csv_text:
-                self.running = list(csv.reader(csv_text))
-            return
-
-        if self.extension == ".db":
-            self.conn = None
-            try:
-                self.conn = sqlite3.connect(self.filepath)
-            except Error:
-                print(Error)
-            return
-
-        if self.extension == ".txt":
-            self.running = []
-            with open(self.filepath,"r") as textlines:
-                for line in textlines:
-                    line = self._texttocolumn(line)
-                    self.running.append(line)
-            return
-
-        if self.extension == ".xlsx":
-            wb = openpyxl.load_workbook(self.filepath,read_only=True)
-            lines = wb[self.sheetname].iter_rows(min_row=self.min_row+1,max_row=self.max_row,min_col=self.min_col+1,max_col=self.max_col,values_only=True)
-            self.running = [list(line) for line in lines]
-            wb._archive.close()
-            # self.set_manager()
-            return
-
-    def _read_unequal(self):
-
+        # While looping inside the file it does not read comment sections, e.g., comment = "--""
         # While looping inside of the header, lines should end with end of line keyword e.g., endline = "/""
         # File must end with end of file keyword e.g., endfile = "END"
 
@@ -137,32 +108,57 @@ class manager():
             while flagContinueLoopFile:
 
                 line = next(unequal_text)
-                line = line.split('\n')[0].strip()
 
-                header_phrase = line.split(" ")[0].strip()
+                row = line.split('\n')
 
-                if header_phrase.isupper() and header_phrase != self.endfile:
-
-                    flagContinueLoopHeadersSub = True
-
-                    while flagContinueLoopHeadersSub:
-
-                        line = next(unequal_text)
-                        line = line.split('\n')[0].strip()
-
-                        sub_header_phrase = line.split(self.endline)[0].strip()
-
-                        if sub_header_phrase == "":
-                            flagContinueLoopHeadersSub = False
-                        else:
-                            if sub_header_phrase[:2]!=self.comment:
-                                row = [header_phrase,sub_header_phrase]
-                                self.running.append(row)
-
-                elif header_phrase == self.endfile:
-
+                if len(row) == 1:
                     flagContinueLoopFile = False
                     break
+
+                line = row[0].strip()
+
+                if self.endline is not None:
+                    line = line.strip(self.endline)
+
+                if line == "":
+                    continue
+
+                if self.comment is not None:
+                    if line[:len(self.comment)] == self.comment:
+                        continue
+
+                if self.endfile is not None:
+                    if line[:len(self.endfile)] == self.endfile:
+                        flagContinueLoopFile = False
+                        break
+
+                self.running.append([line])
+
+
+    def _read_special(self):
+
+        if self.extension == ".db":
+
+            self.conn = None
+
+            try:
+                self.conn = sqlite3.connect(self.filepath)
+            except Error:
+                print(Error)
+            return
+
+        if self.extension == ".xlsx":
+
+            wb = openpyxl.load_workbook(self.filepath,read_only=True)
+
+            lines = wb[self.sheetname].iter_rows(min_row=self.min_row+1,
+                max_row=self.max_row,min_col=self.min_col+1,
+                max_col=self.max_col,values_only=True)
+
+            self.running = [list(line) for line in lines]
+
+            wb._archive.close()
+            return
 
     def get_column(self,header):
 
@@ -192,6 +188,74 @@ class manager():
 
         for index,col in enumerate(self.running):
             self.running[index] = np.delete(col,row_indices)
+
+    def set_incheaders(self):
+
+        nparray = np.array(self.running[0])
+
+        match_letter = np.empty(nparray.shape,dtype=bool)
+
+        for index,string in enumerate(nparray):
+            if any([character.isdigit() for character in string]):
+                match_letter[index] = False
+            else:
+                match_letter[index] = True
+
+        match_upper = np.char.isupper(nparray)
+
+        match_index = np.logical_and(match_letter,match_upper)
+
+        lower = np.where(match_index)[0]
+        upper = np.append(lower[1:],nparray.size)
+
+        repeat_count = upper-lower-1
+
+        match = nparray[match_index]
+
+        self.headers.insert(0,"sub-headers")
+        self.running.insert(0,[])
+
+        nparray[~match_index] = np.repeat(match,repeat_count)
+
+        index = nparray!=self.running[1]
+
+        self.running[0] = np.asarray(nparray[index])
+        self.running[1] = np.asarray(self.running[1][index])
+
+    def search_incheader(self,header,keyword):
+
+        match_index = self.running[0]==header
+
+        splitted = np.char.split(self.running[1][match_index],"'",maxsplit=2)
+
+        delete_index = np.empty(np.sum(match_index))
+
+        for index,row in enumerate(splitted):
+            if row[1]!=keyword:
+                delete_index[index] = True
+            else:
+                delete_index[index] = False
+
+        match_index[match_index] = delete_index
+
+        self.running[0] = np.delete(self.running[0],match_index)
+        self.running[1] = np.delete(self.running[1],match_index)
+
+    def set_incdates(self,keyword="DATES"):
+
+        match_index = self.running[0]==keyword
+
+        lower = np.where(match_index)[0]
+        upper = np.append(lower[1:],self.running[0].size)
+
+        delete_index = (upper-lower)==1
+
+        delete_index[-1] = False
+
+        match_index[match_index] = delete_index
+
+        self.running[0] = np.delete(self.running[0],match_index)
+        self.running[1] = np.delete(self.running[1],match_index)
 
     def trim_columns_by_headers(self,headers):
 
@@ -254,46 +318,75 @@ class manager():
         # line = re.sub(r"[^\w]","",line)
         # line = "_"+line if line[0].isnumeric() else line
 
-    def texttodatetime(self,header_index,format=None):
+    def texttodatetime(self,format=None,header_indices=None,headers=None):
 
-        col_date = self.running[header_index]
+        # I should correct this function, because of new structure
 
-        for string in col_date:
+        if header_indices is None:
+
+            header_indices = []
+
+            for header in headers:
+                header_indices.append(self.headers.index(header))
+
+        for index in header_indices:
+
+            column = self.running[index]
+
+        for string in column:
             if format is None:
                 dates_list.append(parse(string))
             else:
                 dates_list.append(datetime.datetime.strptime(string,format))
 
-        self.running[header_index] = np.array(dates_list)
+        self.running[index] = np.array(dates_list)
 
-    def texttonumber(self,header_index):
+    def texttonumber(self,header_indices=None,headers=None):
+
+        if header_indices is None:
+
+            header_indices = []
+
+            for header in headers:
+                header_indices.append(self.headers.index(header))
+
+        for index in header_indices:
+
+            column = self.running[index]
+
+            try:
+                self.running[index] = column.astype('int')
+            except:
+                self.running[index] = column.astype('float64')
+
+    def filtercolumn(self,keywords,header_index=None,header=None):
 
         if header_index is None:
             header_index = self.headers.index(header)
 
-        col_number = self.running[header_index]
+        nparray = self.running[header_index]
 
-        try:
-            self.running[header_index] = col_number.astype('int')
-        except:
-            self.running[header_index] = col_number.astype('float64')
+        keywords = np.array(keywords).reshape((-1,1))
 
-    # def sortbased(self,header="date"):
+        match_index = np.any(nparray==keywords,axis=0)
 
-    #     listA = self.get_column(header.lower())
+        for index,column in enumerate(self.running):
+            self.running[index] = column[match_index]
 
-    #     idx = list(range(len(listA)))
+        # listA = self.get_column(header.lower())
 
-    #     zipped_lists = zip(listA,idx)
-    #     sorted_pairs = sorted(zipped_lists)
+        # idx = list(range(len(listA)))
 
-    #     tuples = zip(*sorted_pairs)
+        # zipped_lists = zip(listA,idx)
+        # sorted_pairs = sorted(zipped_lists)
 
-    #     listA, idx = [ list(tuple) for tuple in  tuples]
+        # tuples = zip(*sorted_pairs)
 
-    #     for header in self.headers:
-    #         self.toarray(header)
-    #         setattr(self,header,getattr(self,header)[idx])
+        # listA, idx = [ list(tuple) for tuple in  tuples]
+
+        # for header in self.headers:
+        #     self.toarray(header)
+        #     setattr(self,header,getattr(self,header)[idx])
 
     def _set_database_table(self,sqlite_table):
 
@@ -398,8 +491,6 @@ class table(manager):
         elif headers[0]!="GETALL":
             self.trim_columns_by_headers(headers)
 
-        self.tablesize = self.running[0].size
-
     def draw(self,window,func=None):
 
         self.root = window
@@ -446,6 +537,8 @@ class table(manager):
 
         self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
         self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
+
+        self.tablesize = self.running[0].size
 
         for index in range(self.tablesize):
             self.tree.insert(parent="",index="end",iid=index,values=self.get_row(index))
@@ -784,12 +877,14 @@ class graph(manager):
         self.plot.draw()
 
 if __name__ == "__main__":
+
+    data = manager("cavid.txt",skiplines=0)
     
-    window = tk.Tk()
+    # window = tk.Tk()
 
     # gui = table("instructors.csv")
-    gui = table(headers=["Full Name","Position","Contact"])
+    # gui = table(headers=["Full Name","Position","Contact"])
 
-    gui.draw(window)
+    # gui.draw(window)
 
-    window.mainloop()
+    # window.mainloop()
