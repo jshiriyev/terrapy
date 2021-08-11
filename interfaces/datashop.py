@@ -222,7 +222,7 @@ class manager():
         self.headers.insert(col_indices.min(),header_name_new)
         self.running.insert(col_indices.min(),np.array([deliminator.join(row) for row in col_concatn.T]))
 
-    def texttocolumn(self,header_index,deliminator="\t"):
+    def texttocolumn(self,header_index,deliminator,max_split):
 
         col_split = self.running[header_index]
 
@@ -230,13 +230,13 @@ class manager():
 
         running = []
 
-        for index,string in enumerate(col_split):
+        for index,nparray in enumerate(col_split):
 
-            string = re.sub(deliminator+'+',deliminator,string)
+            string = re.sub(deliminator+'+',deliminator,nparray[0])
 
-            row = np.char.split(string,deliminator)[0]
+            row = np.char.split(string,deliminator).tolist()
 
-            while len(row)<self.max_col:
+            while len(row)<max_split:
                 row.append("")
 
             running.append(row)
@@ -249,9 +249,8 @@ class manager():
         for column in running:
             self.headers.insert(header_index,"col ##"+str(header_index))
             self.running.insert(header_index,column)
-            header_index += 1        
+            header_index += 1
 
-        # 
         # line = re.sub(r"[^\w]","",line)
         # line = "_"+line if line[0].isnumeric() else line
 
