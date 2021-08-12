@@ -77,21 +77,28 @@ class manager():
         self.title = []
 
         for _ in range(self.skiplines):
-            self.title.append(self.running.pop(0))
+            self.title.append(self._running.pop(0))
 
-        num_cols = len(self.running[0])
+        num_cols = len(self._running[0])
 
         if self.skiplines==0:
-            self.headers = ["col #"+str(index) for index in range(num_cols)]
+            self._headers = ["col #"+str(index) for index in range(num_cols)]
         elif skiplines!=0:
-            self.headers = self.title[self.headerline]
+            self._headers = self.title[self.headerline]
 
-        nparray = np.array(self.running)
+        self.headers = self._headers
 
-        self.running = [[] for _ in range(num_cols)]
+        nparray = np.array(self._running)
+
+        self._running = [[] for _ in range(num_cols)]
 
         for index,column in enumerate(nparray.T):
-            self.running[index] = np.asarray(column)
+            self._running[index] = np.asarray(column)
+
+        self.running = [[] for _ in range(len(self._running))]
+
+        for index in range(len(self._running)):
+            self.running[index] = np.asarray(self._running[index])
 
     def _read_main(self):
 
@@ -99,28 +106,25 @@ class manager():
         # While looping inside of the header, lines should end with end of line keyword e.g., endline = "/""
         # File must end with end of file keyword e.g., endfile = "END"
 
-        self.running = []
+        self._running = []
 
         flagContinueLoopFile = True
 
-        with open(self.filepath,"r") as unequal_text:
+        with open(self.filepath,"r") as text:
 
             while flagContinueLoopFile:
 
-                line = next(unequal_text)
-
-                row = line.split('\n')
-
-                if len(row) == 1:
-                    flagContinueLoopFile = False
+                try:
+                    line = next(text)
+                except:
                     break
 
-                line = row[0].strip()
+                line = line.split('\n')[0].strip()
 
                 if self.endline is not None:
                     line = line.strip(self.endline)
 
-                if line == "":
+                if line=="":
                     continue
 
                 if self.comment is not None:
@@ -129,11 +133,9 @@ class manager():
 
                 if self.endfile is not None:
                     if line[:len(self.endfile)] == self.endfile:
-                        flagContinueLoopFile = False
                         break
 
-                self.running.append([line])
-
+                self._running.append([line])
 
     def _read_special(self):
 
@@ -155,55 +157,32 @@ class manager():
                 max_row=self.max_row,min_col=self.min_col+1,
                 max_col=self.max_col,values_only=True)
 
-            self.running = [list(line) for line in lines]
+            self._running = [list(line) for line in lines]
 
             wb._archive.close()
             return
 
-    def get_column(self,header):
+    def set_subheaders(self,header_index,match=None,title="sub-headers"):
 
-        index = self.headers.index(header)
+        nparray = np.array(self._running[header_index])
 
-        return self.running[index]
+        if match is not None:
+            match_col,match_keys = match
+            match_keys = np.array(match_keys).reshape((-1,1))
+            match_index = np.any(self._running[match_col]==match_keys,axis=0)
 
-    def get_row(self,row_index):
-
-        row = []
-        
-        for col in self.running:
-            row.append(col[row_index])
-
-        return tuple(row)
-
-    def set_row(self,row,row_index=None):
-        
-        if row_index is None:
-            for index,col in enumerate(self.running):
-                self.running[index] = np.append(col,row[index])
         else:
-            for index, _ in enumerate(self.running):
-                self.running[index][row_index] = row[index]
+            match_letter = np.empty(nparray.shape,dtype=bool)
+            for index,string in enumerate(nparray):
+                if any([character.isdigit() for character in string]):
+                    match_letter[index] = False
+                else:
+                    match_letter[index] = True
 
-    def del_row(self,row_indices):
+            match_upper = np.char.isupper(nparray)
+            match_index = np.logical_and(match_letter,match_upper)
 
-        for index,col in enumerate(self.running):
-            self.running[index] = np.delete(col,row_indices)
-
-    def set_incheaders(self):
-
-        nparray = np.array(self.running[0])
-
-        match_letter = np.empty(nparray.shape,dtype=bool)
-
-        for index,string in enumerate(nparray):
-            if any([character.isdigit() for character in string]):
-                match_letter[index] = False
-            else:
-                match_letter[index] = True
-
-        match_upper = np.char.isupper(nparray)
-
-        match_index = np.logical_and(match_letter,match_upper)
+        firstocc = np.argmax(match_index)
 
         lower = np.where(match_index)[0]
         upper = np.append(lower[1:],nparray.size)
@@ -212,17 +191,189 @@ class manager():
 
         match = nparray[match_index]
 
-        self.headers.insert(0,"sub-headers")
-        self.running.insert(0,[])
+        nparray[firstocc:][~match_index[firstocc:]] = np.repeat(match,repeat_count)
 
-        nparray[~match_index] = np.repeat(match,repeat_count)
+        self._headers.insert(header_index,title)
+        self._running.insert(header_index,np.asarray(nparray))
 
-        index = nparray!=self.running[1]
+        for index,column in enumerate(self._running):
+            self._running[index] = np.array(self._running[index][firstocc:][~match_index[firstocc:]])
 
-        self.running[0] = np.asarray(nparray[index])
-        self.running[1] = np.asarray(self.running[1][index])
+        self.headers = self._headers
+        self.running = [[] for _ in range(len(self._running))]
 
-    def search_incheader(self,header,keyword):
+        for index in range(len(self._running)):
+            self.running[index] = np.asarray(self._running[index])
+
+    def columntotext(self,header_name_new,header_indices,deliminator=" "):
+
+        col_concatn = np.empty((len(header_indices),self._running[0].size),dtype='U25')
+        col_indices = np.empty(len(header_indices))
+
+        for index in enumerate(header_indices):
+            col_concatn[index] = self._running[index]
+
+        for index in header_indices:
+            self._headers.pop(index)
+            self._running.pop(index)
+
+        self._headers.insert(col_indices.min(),header_name_new)
+        self._running.insert(col_indices.min(),np.array([deliminator.join(row) for row in col_concatn.T]))
+
+        self.headers = self._headers
+        self.running = [[] for _ in range(len(self._running))]
+
+        for index in range(len(self._running)):
+            self.running[index] = np.asarray(self._running[index])
+
+    def texttocolumn(self,header_index,deliminator,max_split):
+
+        header_string = self._headers[header_index]
+        header_string = re.sub(deliminator+'+',deliminator,header_string)
+
+        headers = header_string.split(deliminator)
+
+        for index in range(max_split):
+            if len(headers)<index+1:
+                headers.append("col ##"+string(header_index+index))
+
+        column_to_split = np.asarray(self._running[header_index])
+
+        running = []
+
+        for index,string in enumerate(column_to_split):
+
+            string = re.sub(deliminator+'+',deliminator,string)
+
+            row = np.char.split(string,deliminator).tolist()
+
+            while len(row)<max_split:
+                row.append("")
+
+            running.append(row)
+
+        running = np.array(running,dtype=str).T
+
+        self._headers.pop(header_index)
+        self._running.pop(header_index)
+
+        for header,column in zip(headers,running):
+            self._headers.insert(header_index,header)
+            self._running.insert(header_index,column)
+            header_index += 1
+
+        # line = re.sub(r"[^\w]","",line)
+        # line = "_"+line if line[0].isnumeric() else line
+
+        self.headers = self._headers
+        self.running = [[] for _ in range(len(self._running))]
+
+        for index in range(len(self._running)):
+            self.running[index] = np.asarray(self._running[index])
+
+    def astype(self,header_indices=None,headers=None,dtypes=None):
+
+        if header_indices is None:
+
+            header_indices = []
+
+            for header in headers:
+                header_indices.append(self._headers.index(header))
+
+        for index,header_index in enumerate(header_indices):
+
+            column = np.asarray(self.running[header_index])
+
+            if dtypes[index]==np.datetime64:
+
+                dates_list = []
+
+                for string in column:
+
+                    dates_list.append(parse(string))
+                    # dates_list.append(datetime.datetime.strptime(string,format))
+
+                column = np.array(dates_list)
+
+            self.running[header_index] = column.astype(dtypes[index])
+
+    def set_rows(self,row,row_index=None):
+        
+        if row_index is None:
+            for index,col in enumerate(self.running):
+                self.running[index] = np.append(col,row[index])
+        else:
+            for index, _ in enumerate(self.running):
+                self.running[index][row_index] = row[index]
+
+    def del_rows(self,row_indices):
+
+        for index,col in enumerate(self.running):
+            self.running[index] = np.delete(col,row_indices)
+
+    def get_columns(self,header_indices=None,headers=None):
+
+        indicesToKeep = []
+
+        for header_read_from_file in self._headers:
+            try:
+                if any([header_read_from_file.strip() == header for header in headers]):
+                    indicesToKeep.append(self._headers.index(header_read_from_file))
+            except:
+                continue
+
+        self.headers = [self._headers[index] for index in indicesToKeep]
+        self.running = [[] for _ in range(indicesToKeep)]
+
+        for index in indicesToKeep:
+            self.running[index] = np.asarray(self._running[index])
+
+    def get_rows(self,row_indices):
+
+        rows = []
+        
+        for index,column in enumerate(self.running):
+            # print(type(column[row_indices]))
+            # print(column[row_indices][:10])
+            rows.append(column[row_indices].astype(str))
+
+        return np.asarray(rows).T
+
+    def filter_columns(self,keywords,header_index=None,header=None,inplace=False):
+
+        if header_index is None:
+            header_index = self._headers.index(header)
+
+        keywords = np.array(keywords).reshape((-1,1))
+
+        match_index = np.any(self._running[header_index]==keywords,axis=0)
+
+        self.running = [[] for _ in range(len(self._running))]
+
+        if not inplace:
+            for index,column in enumerate(self._running):
+                self.running[index] = np.asarray(column[match_index])
+        else:
+            for index,column in enumerate(self._running):
+                self._running[index] = column[match_index]
+                self.running[index] = np.asarray(self._running[index])
+
+        # listA = self.get_column(header.lower())
+
+        # idx = list(range(len(listA)))
+
+        # zipped_lists = zip(listA,idx)
+        # sorted_pairs = sorted(zipped_lists)
+
+        # tuples = zip(*sorted_pairs)
+
+        # listA, idx = [ list(tuple) for tuple in  tuples]
+
+        # for header in self._headers:
+        #     self.toarray(header)
+        #     setattr(self,header,getattr(self,header)[idx])
+
+    def filter_rows(self,header,keyword):
 
         match_index = self.running[0]==header
 
@@ -241,152 +392,42 @@ class manager():
         self.running[0] = np.delete(self.running[0],match_index)
         self.running[1] = np.delete(self.running[1],match_index)
 
-    def set_incdates(self,keyword="DATES"):
+    def write(self,filepath,sheet_title=None):
 
-        match_index = self.running[0]==keyword
+        running = np.array(self.running,dtype='U25').T
 
-        lower = np.where(match_index)[0]
-        upper = np.append(lower[1:],self.running[0].size)
+        running = np.insert(running,0,self._headers).reshape((-1,len(self.running)))
 
-        delete_index = (upper-lower)==1
+        extension = os.path.splitext(filepath)[1]
 
-        delete_index[-1] = False
+        if extension == ".bhos":
+            with open(filepath,"w",encoding='utf-8') as writtenfile:
+                for line in running:
+                    writtenfile.write("\t".join(line)+"\t/\n")
+                writtenfile.write("/\n")
+            return
 
-        match_index[match_index] = delete_index
+        if extension == ".csv":
+            return
 
-        self.running[0] = np.delete(self.running[0],match_index)
-        self.running[1] = np.delete(self.running[1],match_index)
+        if extension == ".db":
+            return
 
-    def trim_columns_by_headers(self,headers):
+        if extension == ".inc":
+            with open(filepath,"w") as writtenfile:
+                for line in running:
+                    writtenfile.write("\t".join(line)+"\n")
+            return
 
-        indicesToKeep = []
-
-        for header_read_from_file in self.headers:
-            try:
-                if any([header_read_from_file.strip() == header for header in headers]):
-                    indicesToKeep.append(self.headers.index(header_read_from_file))
-            except:
-                continue
-
-        self.headers = [self.headers[index] for index in indicesToKeep]
-        self.running = [self.running[index] for index in indicesToKeep]
-
-    def columntotext(self,header_name_new,header_indices,deliminator=" "):
-
-        col_concatn = np.empty((len(header_indices),self.running[0].size),dtype='U25')
-        col_indices = np.empty(len(header_indices))
-
-        for index in enumerate(header_indices):
-            col_concatn[index] = self.running[index]
-
-        for index in header_indices:
-            self.headers.pop(index)
-            self.running.pop(index)
-
-        self.headers.insert(col_indices.min(),header_name_new)
-        self.running.insert(col_indices.min(),np.array([deliminator.join(row) for row in col_concatn.T]))
-
-    def texttocolumn(self,header_index,deliminator,max_split):
-
-        col_split = self.running[header_index]
-
-        col_split = col_split.reshape((-1,1))
-
-        running = []
-
-        for index,nparray in enumerate(col_split):
-
-            string = re.sub(deliminator+'+',deliminator,nparray[0])
-
-            row = np.char.split(string,deliminator).tolist()
-
-            while len(row)<max_split:
-                row.append("")
-
-            running.append(row)
-
-        running = np.array(running).T
-
-        self.headers.pop(header_index)
-        self.running.pop(header_index)
-
-        for column in running:
-            self.headers.insert(header_index,"col ##"+str(header_index))
-            self.running.insert(header_index,column)
-            header_index += 1
-
-        # line = re.sub(r"[^\w]","",line)
-        # line = "_"+line if line[0].isnumeric() else line
-
-    def texttodatetime(self,format=None,header_indices=None,headers=None):
-
-        # I should correct this function, because of new structure
-
-        if header_indices is None:
-
-            header_indices = []
-
-            for header in headers:
-                header_indices.append(self.headers.index(header))
-
-        for index in header_indices:
-
-            column = self.running[index]
-
-        for string in column:
-            if format is None:
-                dates_list.append(parse(string))
-            else:
-                dates_list.append(datetime.datetime.strptime(string,format))
-
-        self.running[index] = np.array(dates_list)
-
-    def texttonumber(self,header_indices=None,headers=None):
-
-        if header_indices is None:
-
-            header_indices = []
-
-            for header in headers:
-                header_indices.append(self.headers.index(header))
-
-        for index in header_indices:
-
-            column = self.running[index]
-
-            try:
-                self.running[index] = column.astype('int')
-            except:
-                self.running[index] = column.astype('float64')
-
-    def filtercolumn(self,keywords,header_index=None,header=None):
-
-        if header_index is None:
-            header_index = self.headers.index(header)
-
-        nparray = self.running[header_index]
-
-        keywords = np.array(keywords).reshape((-1,1))
-
-        match_index = np.any(nparray==keywords,axis=0)
-
-        for index,column in enumerate(self.running):
-            self.running[index] = column[match_index]
-
-        # listA = self.get_column(header.lower())
-
-        # idx = list(range(len(listA)))
-
-        # zipped_lists = zip(listA,idx)
-        # sorted_pairs = sorted(zipped_lists)
-
-        # tuples = zip(*sorted_pairs)
-
-        # listA, idx = [ list(tuple) for tuple in  tuples]
-
-        # for header in self.headers:
-        #     self.toarray(header)
-        #     setattr(self,header,getattr(self,header)[idx])
+        if extension == ".xlsx":
+            wb = openpyxl.Workbook()
+            sheet = wb.active
+            if sheet_title is not None:
+                sheet.title = sheet_title
+            for line in running:
+                sheet.append(line)
+            wb.save(filepath)
+            return
 
     def _set_database_table(self,sqlite_table):
 
@@ -442,42 +483,7 @@ class manager():
         # DB.cursor.close()
         # DB.conn.close()
 
-    def write(self,filepath,sheet_title=None):
-
-        running = np.array(self.running,dtype='U25').T
-
-        running = np.insert(running,0,self.headers).reshape((-1,len(self.running)))
-
-        extension = os.path.splitext(filepath)[1]
-
-        if extension == ".bhos":
-            with open(filepath,"w",encoding='utf-8') as writtenfile:
-                for line in running:
-                    writtenfile.write("\t".join(line)+"\t/\n")
-                writtenfile.write("/\n")
-            return
-
-        if extension == ".csv":
-            return
-
-        if extension == ".db":
-            return
-
-        if extension == ".inc":
-            with open(filepath,"w") as writtenfile:
-                for line in running:
-                    writtenfile.write("\t".join(line)+"\n")
-            return
-
-        if extension == ".xlsx":
-            wb = openpyxl.Workbook()
-            sheet = wb.active
-            if sheet_title is not None:
-                sheet.title = sheet_title
-            for line in running:
-                sheet.append(line)
-            wb.save(filepath)
-            return
+   
 
 class table(manager):
 
@@ -540,8 +546,8 @@ class table(manager):
 
         self.tablesize = self.running[0].size
 
-        for index in range(self.tablesize):
-            self.tree.insert(parent="",index="end",iid=index,values=self.get_row(index))
+        for index,row in enumerate(self.get_rows(list(range(self.tablesize)))):
+            self.tree.insert(parent="",index="end",iid=index,values=tuple(row.tolist()))
 
         self.editedFlag = False
 
@@ -877,14 +883,12 @@ class graph(manager):
         self.plot.draw()
 
 if __name__ == "__main__":
-
-    data = manager("cavid.txt",skiplines=0)
     
-    # window = tk.Tk()
+    window = tk.Tk()
 
-    # gui = table("instructors.csv")
-    # gui = table(headers=["Full Name","Position","Contact"])
+    gui = table("instructors.csv")
+    gui = table(headers=["Full Name","Position","Contact"])
 
-    # gui.draw(window)
+    gui.draw(window)
 
-    # window.mainloop()
+    window.mainloop()
