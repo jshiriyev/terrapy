@@ -1,20 +1,12 @@
-import copy
-import csv
-import datetime
-
 from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
 
 import os
 import re
-import sys
 
-import matplotlib.pyplot as plt
-
+from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import numpy as np
-
 import openpyxl
 
 import sqlite3
@@ -24,6 +16,8 @@ import tkinter as tk
 
 from tkinter import ttk
 from tkinter import filedialog
+
+
 
 class manager():
 
@@ -297,14 +291,14 @@ class manager():
 
             self.running[header_index] = column.astype(dtypes[index])
 
-    def set_rows(self,row,row_index=None):
+    def set_rows(self,row,row_indices=None):
         
-        if row_index is None:
-            for index,col in enumerate(self.running):
-                self.running[index] = np.append(col,row[index])
+        if row_indices is None:
+            for index,column in enumerate(self.running):
+                self.running[index] = np.append(column,row[index])
         else:
             for index, _ in enumerate(self.running):
-                self.running[index][row_index] = row[index]
+                self.running[index][row_indices] = row[index]
 
     def del_rows(self,row_indices):
 
@@ -413,9 +407,6 @@ class manager():
                 for line in running:
                     writtenfile.write("\t".join(line)+"\t/\n")
                 writtenfile.write("/\n")
-            return
-
-        if extension == ".csv":
             return
 
         if extension == ".db":
@@ -739,6 +730,8 @@ class table(manager):
 
         self.sortReverseFlag[index] = not reverseFlag
 
+
+
 class graph(manager):
 
     def __init__(self,filepath=None,**kwargs):
@@ -889,6 +882,8 @@ class graph(manager):
         self.figure.set_tight_layout(True)
 
         self.plot.draw()
+
+
 
 if __name__ == "__main__":
     
