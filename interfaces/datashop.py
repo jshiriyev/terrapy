@@ -373,24 +373,32 @@ class manager():
         #     self.toarray(header)
         #     setattr(self,header,getattr(self,header)[idx])
 
-    def filter_rows(self,header,keyword):
+    def filter_rows(self,keyword,header_index=None,header=None,inplace=False):
 
-        match_index = self.running[0]==header
+        if header_index is None:
+            header_index = self._headers.index(header)
 
-        splitted = np.char.split(self.running[1][match_index],"'",maxsplit=2)
+        column = self.running[header_index]
 
-        delete_index = np.empty(np.sum(match_index))
+        splitted = np.char.split(column,"'",maxsplit=2)
+
+        match_index = np.empty(column.shape,dtype=bool)
 
         for index,row in enumerate(splitted):
-            if row[1]!=keyword:
-                delete_index[index] = True
+            if row[1]==keyword:
+                match_index[index] = True
             else:
-                delete_index[index] = False
+                match_index[index] = False
 
-        match_index[match_index] = delete_index
+        self.running = [[] for _ in range(len(self._running))]
 
-        self.running[0] = np.delete(self.running[0],match_index)
-        self.running[1] = np.delete(self.running[1],match_index)
+        if not inplace:
+            for index,column in enumerate(self._running):
+                self.running[index] = np.asarray(column[match_index])
+        else:
+            for index,column in enumerate(self._running):
+                self._running[index] = column[match_index]
+                self.running[index] = np.asarray(self._running[index])
 
     def write(self,filepath,sheet_title=None):
 
