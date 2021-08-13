@@ -1,5 +1,7 @@
 from dateutil.parser import parse
 
+import inspect
+
 import os
 import re
 
@@ -229,18 +231,20 @@ class manager():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
-    def astype(self,header_indices=None,headers=None,dtypes=None):
+    def astype(self,header_index=None,header=None,dtype=None):
 
-        if header_indices is None:
-            header_indices = [self._headers.index(header) for header in headers]
+        if header_index is None:
+            header_index = self._headers.index(header)
 
-        for index,dtype in zip(header_indices,dtypes):
+        if inspect.isclass(dtype):
+            vdate = np.vectorize(lambda x: dtype(x))
+        elif type(dtype)==str:
+            if type(self._running[header_index][0])==datetime.datetime:
+                vdate = np.vectorize(lambda x: x.strftime(dtype))
+            elif any([type(self._running[header_index][0])==class_ for class_ in [str,np.str_,np.str]]):
+                vdate = np.vectorize(lambda x: parse(x).strftime(dtype))
 
-            if dtype != np.datetime64:
-                self._running[index] = np.array(self._running[index],dtype=dtype)
-            else:
-                vdate = np.vectorize(lambda x: dtype(x))
-                self._running[index] = vdate(self._running[index])
+        self._running[header_index] = vdate(self._running[header_index])
 
     def set_rows(self,row,row_indices=None):
         
@@ -359,31 +363,11 @@ class manager():
 
         vprint = np.vectorize(lambda *args: string.format(*args))
 
+        columns = [np.asarray(self._running[index]) for index in header_indices]
 
-
-        # this is for getting datetime in a required format
-
-        self._running[6] = self._running[6].tolist()
-
-        datestring = []
-        
-        for date in self._running[6]:
-            datestring.append(date.strftime('%d %b %Y').upper())
-
-        self._running[6] = np.array(datestring,dtype=str)
-
-
-
-
-
-
-        column_new = [np.asarray(self._running[index]) for index in header_indices]
-
-        column_new = vprint(*column_new)
-
-        with open(filepath,"w",encoding='utf-8') as writtenfile:
-            for line in column_new:
-                writtenfile.write(line)
+        with open(filepath,"w",encoding='utf-8') as wfile:
+            for line in vprint(*columns):
+                wfile.write(line)
 
     def write_special(self,filepath,**kwargs):
 
