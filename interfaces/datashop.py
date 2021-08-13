@@ -368,7 +368,7 @@ class manager():
         datestring = []
         
         for date in self._running[6]:
-            datestring.append(date.strftime('%d %m %Y'))
+            datestring.append(date.strftime('%d %b %Y').upper())
 
         self._running[6] = np.array(datestring,dtype=str)
 
