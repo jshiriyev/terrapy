@@ -359,6 +359,24 @@ class manager():
 
         vprint = np.vectorize(lambda *args: string.format(*args))
 
+
+
+        # this is for getting datetime in a required format
+
+        self._running[6] = self._running[6].tolist()
+
+        datestring = []
+        
+        for date in self._running[6]:
+            datestring.append(date.strftime('%d %m %Y'))
+
+        self._running[6] = np.array(datestring,dtype=str)
+
+
+
+
+
+
         column_new = [np.asarray(self._running[index]) for index in header_indices]
 
         column_new = vprint(*column_new)
