@@ -177,20 +177,22 @@ class manager():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
-    def columntotext(self,header_name_new,header_indices=None,headers=None,deliminator=" "):
+    def columntotext(self,header_new,header_indices=None,headers=None,string=None):
 
         if header_indices is None:
             header_indices = [self._headers.index(header) for header in headers]
 
-        col_concatn = []
+        if string is None:
+            string = ("{} "*len(header_indices)).strip()
 
-        for index in header_indices:
-            col_concatn.append(self._running[index])
+        vprint = np.vectorize(lambda *args: string.format(*args))
 
-        col_concatn = np.array(col_concatn,dtype=str)
+        column_new = [np.asarray(self._running[index]) for index in header_indices]
 
-        self._headers.append(header_name_new)
-        self._running.append(np.array([deliminator.join(row) for row in col_concatn.T]))
+        column_new = vprint(*column_new)
+
+        self._headers.append(header_new)
+        self._running.append(column_new)
 
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
