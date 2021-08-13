@@ -23,19 +23,7 @@ class manager():
 
     special_extensions = [".db",".xlsx"]
 
-    def __init__(
-        self,
-        filepath=None,
-        skiplines=1,
-        headerline=None,
-        min_row=0,
-        min_col=0,
-        max_row=None,
-        max_col=None,
-        sheetname=None,
-        comment="--",
-        endline="/",
-        endfile="END"):
+    def __init__(self,filepath=None,skiplines=1,headerline=None,comment="--",endline="/",endfile="END",**kwargs):
 
         if filepath is None:
             return
@@ -51,11 +39,6 @@ class manager():
         else:
             self.headerline = skiplines-1
 
-        self.min_row = min_row
-        self.min_col = min_col
-        self.max_row = max_row if max_row is None else max_row+1
-        self.max_col = max_col if max_col is None else max_col+1
-        self.sheetname = sheetname
         self.comment = comment
         self.endline = endline
         self.endfile = endfile
@@ -64,9 +47,9 @@ class manager():
         self.extension = os.path.splitext(self.filepath)[1]
 
         if any([self.extension==extension for extension in self.special_extensions]):
-            self._read_special()
+            self.read_special(**kwargs)
         else:
-            self._read_main()
+            self.read_plain()
 
         self.title = []
 
@@ -76,29 +59,24 @@ class manager():
         num_cols = len(self._running[0])
 
         if self.skiplines==0:
-            self._headers = ["col #"+str(index) for index in range(num_cols)]
+            self._headers = ["Column #"+str(index) for index in range(num_cols)]
         elif skiplines!=0:
             self._headers = self.title[self.headerline]
 
         self.headers = self._headers
 
-        nparray = np.array(self._running)
+        nparray = np.array(self._running).T
 
-        self._running = [[] for _ in range(num_cols)]
+        self._running = [np.asarray(column) for column in nparray]
 
-        for index,column in enumerate(nparray.T):
-            self._running[index] = np.asarray(column)
+        self.running = [np.asarray(column) for column in self._running]
 
-        self.running = [[] for _ in range(len(self._running))]
+    def read_plain(self):
 
-        for index in range(len(self._running)):
-            self.running[index] = np.asarray(self._running[index])
-
-    def _read_main(self):
-
-        # While looping inside the file it does not read comment sections, e.g., comment = "--""
-        # While looping inside of the header, lines should end with end of line keyword e.g., endline = "/""
-        # File must end with end of file keyword e.g., endfile = "END"
+        # While looping inside the file it does not read lines:
+        # - starting with comment phrase, e.g., comment = "--"
+        # - after the end of line phrase, e.g., endline = "/"
+        # - after the end of file keyword e.g., endfile = "END"
 
         self._running = []
 
@@ -131,7 +109,7 @@ class manager():
 
                 self._running.append([line])
 
-    def _read_special(self):
+    def read_special(self,sheetname=None,min_row=1,min_col=1,max_row=None,max_col=None):
 
         if self.extension == ".db":
 
@@ -147,9 +125,8 @@ class manager():
 
             wb = openpyxl.load_workbook(self.filepath,read_only=True)
 
-            lines = wb[self.sheetname].iter_rows(min_row=self.min_row+1,
-                max_row=self.max_row,min_col=self.min_col+1,
-                max_col=self.max_col,values_only=True)
+            lines = wb[self.sheetname].iter_rows(min_row=min_row,
+                max_row=max_row,min_col=min_col,max_col=max_col,values_only=True)
 
             self._running = [list(line) for line in lines]
 
@@ -194,10 +171,7 @@ class manager():
             self._running[index] = np.array(self._running[index][firstocc:][~match_index[firstocc:]])
 
         self.headers = self._headers
-        self.running = [[] for _ in range(len(self._running))]
-
-        for index in range(len(self._running)):
-            self.running[index] = np.asarray(self._running[index])
+        self.running = [np.asarray(column) for column in self._running]
 
     def columntotext(self,header_name_new,header_indices,deliminator=" "):
 
@@ -215,10 +189,7 @@ class manager():
         self._running.insert(col_indices.min(),np.array([deliminator.join(row) for row in col_concatn.T]))
 
         self.headers = self._headers
-        self.running = [[] for _ in range(len(self._running))]
-
-        for index in range(len(self._running)):
-            self.running[index] = np.asarray(self._running[index])
+        self.running = [np.asarray(column) for column in self._running]
 
     def texttocolumn(self,header_index,deliminator,max_split):
 
@@ -260,11 +231,8 @@ class manager():
         # line = "_"+line if line[0].isnumeric() else line
 
         self.headers = self._headers
-        self.running = [[] for _ in range(len(self._running))]
-
-        for index in range(len(self._running)):
-            self.running[index] = np.asarray(self._running[index])
-
+        self.running = [np.asarray(column) for column in self._running]
+        
     def astype(self,header_indices=None,headers=None,dtypes=None):
 
         if header_indices is None:
