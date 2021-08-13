@@ -146,17 +146,6 @@ class manager():
 
         match_index = vmatch(nparray)
 
-        # match_letter = np.empty(nparray.shape,dtype=bool)
-        # 
-        # for index,string in enumerate(nparray):
-        #     if any([character.isdigit() for character in string]):
-        #         match_letter[index] = False
-        #     else:
-        #         match_letter[index] = True
-
-        # match_upper = np.char.isupper(nparray)
-        # match_index = np.logical_and(match_letter,match_upper)
-
         firstocc = np.argmax(match_index)
 
         lower = np.where(match_index)[0]
@@ -173,26 +162,6 @@ class manager():
 
         for index,column in enumerate(self._running):
             self._running[index] = np.array(self._running[index][firstocc:][~match_index[firstocc:]])
-
-        self.headers = self._headers
-        self.running = [np.asarray(column) for column in self._running]
-
-    def columntotext(self,header_new,header_indices=None,headers=None,string=None):
-
-        if header_indices is None:
-            header_indices = [self._headers.index(header) for header in headers]
-
-        if string is None:
-            string = ("{} "*len(header_indices)).strip()
-
-        vprint = np.vectorize(lambda *args: string.format(*args))
-
-        column_new = [np.asarray(self._running[index]) for index in header_indices]
-
-        column_new = vprint(*column_new)
-
-        self._headers.append(header_new)
-        self._running.append(column_new)
 
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
@@ -240,27 +209,38 @@ class manager():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
+    def columntotext(self,header_new,header_indices=None,headers=None,string=None):
+
+        if header_indices is None:
+            header_indices = [self._headers.index(header) for header in headers]
+
+        if string is None:
+            string = ("{} "*len(header_indices)).strip()
+
+        vprint = np.vectorize(lambda *args: string.format(*args))
+
+        column_new = [np.asarray(self._running[index]) for index in header_indices]
+
+        column_new = vprint(*column_new)
+
+        self._headers.append(header_new)
+        self._running.append(column_new)
+
+        self.headers = self._headers
+        self.running = [np.asarray(column) for column in self._running]
+
     def astype(self,header_indices=None,headers=None,dtypes=None):
 
         if header_indices is None:
             header_indices = [self._headers.index(header) for header in headers]
 
-        for index,header_index in enumerate(header_indices):
+        for index,dtype in zip(header_indices,dtypes):
 
-            column = np.asarray(self.running[header_index])
-
-            if dtypes[index]==np.datetime64:
-
-                dates_list = []
-
-                for string in column:
-
-                    dates_list.append(parse(string))
-                    # dates_list.append(datetime.datetime.strptime(string,format))
-
-                column = np.array(dates_list)
-
-            self.running[header_index] = column.astype(dtypes[index])
+            if dtype != np.datetime64:
+                self._running[index] = np.array(self._running[index],dtype=dtype)
+            else:
+                vdate = np.vectorize(lambda x: dtype(x))
+                self._running[index] = vdate(self._running[index])
 
     def set_rows(self,row,row_indices=None):
         
@@ -363,27 +343,31 @@ class manager():
                 self._running[index] = column[match_index]
                 self.running[index] = np.asarray(self._running[index])
 
-    def writeto(self,filepath,**kwargs):
+    def write_to(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
 
         output_extension = os.path.splitext(filepath)[1]
 
-        running = np.array(self._running,dtype='U25').T
-        running = np.insert(running,0,self._headers).reshape((-1,len(self._running)))
-
         if any([output_extension==extension for extension in self.special_extensions]):
-            self.write_special(filepath,running,**kwargs)
+            self.write_special(filepath,**kwargs)
             return
 
+        if header_indices is None:
+            header_indices = [self._headers.index(header) for header in headers]
+
+        if string is None:
+            string = ("{}\t"*len(header_indices))[:-1]+"\n"
+
+        vprint = np.vectorize(lambda *args: string.format(*args))
+
+        column_new = [np.asarray(self._running[index]) for index in header_indices]
+
+        column_new = vprint(*column_new)
+
         with open(filepath,"w",encoding='utf-8') as writtenfile:
-            for line in running:
-                writtenfile.write("\t".join(line)+"\t/\n")
-            writtenfile.write("/\n")
+            for line in column_new:
+                writtenfile.write(line)
 
-        with open(filepath,"w") as writtenfile:
-            for line in running:
-                writtenfile.write("\t".join(line)+"\n")
-
-    def write_special(self,filepath,running,**kwargs):
+    def write_special(self,filepath,**kwargs):
 
         if extension == ".xlsx":
             wb = openpyxl.Workbook()
