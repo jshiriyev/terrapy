@@ -232,7 +232,7 @@ class manager():
 
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
-        
+
     def astype(self,header_indices=None,headers=None,dtypes=None):
 
         if header_indices is None:
@@ -268,12 +268,12 @@ class manager():
             for index, _ in enumerate(self.running):
                 self.running[index][row_indices] = row[index]
 
-    def del_rows(self,row_indices):
+    def del_rows(self,row_indices,inplace=False):
 
         for index,col in enumerate(self.running):
             self.running[index] = np.delete(col,row_indices)
 
-    def get_columns(self,header_indices=None,headers=None):
+    def get_columns(self,header_indices=None,headers=None,inplace=False):
 
         indicesToKeep = []
 
@@ -290,13 +290,11 @@ class manager():
         for index in indicesToKeep:
             self.running[index] = np.asarray(self._running[index])
 
-    def get_rows(self,row_indices):
+    def get_rows(self,row_indices,inplace=False):
 
         rows = []
         
         for index,column in enumerate(self.running):
-            # print(type(column[row_indices]))
-            # print(column[row_indices][:10])
             rows.append(column[row_indices].astype(str))
 
         return np.asarray(rows).T
