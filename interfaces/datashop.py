@@ -125,33 +125,37 @@ class manager():
 
             wb = openpyxl.load_workbook(self.filepath,read_only=True)
 
-            lines = wb[self.sheetname].iter_rows(min_row=min_row,
-                max_row=max_row,min_col=min_col,max_col=max_col,values_only=True)
+            lines = wb[sheetname].iter_rows(min_row=min_row,min_col=min_col,
+                max_row=max_row,max_col=max_col,values_only=True)
 
             self._running = [list(line) for line in lines]
 
             wb._archive.close()
             return
 
-    def set_subheaders(self,header_index,match=None,title="sub-headers"):
+    def set_subheaders(self,header_index,match_key="INC",match_regex=None,title="SUB-HEADERS"):
 
         nparray = np.array(self._running[header_index])
 
-        if match is not None:
-            match_col,match_keys = match
-            match_keys = np.array(match_keys).reshape((-1,1))
-            match_index = np.any(self._running[match_col]==match_keys,axis=0)
+        if match_regex is None and match_key == "INC":
+            match_regex = r'^[A-Z]+$'                         #for strings with only capital letters no digits
+        elif match_regex is None and match_key == "DATES":
+            match_regex = r'^\d{1,2} [A-Z]{3} \d{2}\d{2}?$'   #for strings with [1 or 2 digits][space][3 capital letters][space][2 or 4 digits], e.g. DATES
 
-        else:
-            match_letter = np.empty(nparray.shape,dtype=bool)
-            for index,string in enumerate(nparray):
-                if any([character.isdigit() for character in string]):
-                    match_letter[index] = False
-                else:
-                    match_letter[index] = True
+        vmatch = np.vectorize(lambda x:bool(re.compile(match_regex).match(x)))
 
-            match_upper = np.char.isupper(nparray)
-            match_index = np.logical_and(match_letter,match_upper)
+        match_index = vmatch(nparray)
+
+        # match_letter = np.empty(nparray.shape,dtype=bool)
+        # 
+        # for index,string in enumerate(nparray):
+        #     if any([character.isdigit() for character in string]):
+        #         match_letter[index] = False
+        #     else:
+        #         match_letter[index] = True
+
+        # match_upper = np.char.isupper(nparray)
+        # match_index = np.logical_and(match_letter,match_upper)
 
         firstocc = np.argmax(match_index)
 
@@ -160,9 +164,9 @@ class manager():
 
         repeat_count = upper-lower-1
 
-        match = nparray[match_index]
+        match_content = nparray[match_index]
 
-        nparray[firstocc:][~match_index[firstocc:]] = np.repeat(match,repeat_count)
+        nparray[firstocc:][~match_index[firstocc:]] = np.repeat(match_content,repeat_count)
 
         self._headers.insert(header_index,title)
         self._running.insert(header_index,np.asarray(nparray))
@@ -173,20 +177,20 @@ class manager():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
-    def columntotext(self,header_name_new,header_indices,deliminator=" "):
+    def columntotext(self,header_name_new,header_indices=None,headers=None,deliminator=" "):
 
-        col_concatn = np.empty((len(header_indices),self._running[0].size),dtype='U25')
-        col_indices = np.empty(len(header_indices))
+        if header_indices is None:
+            header_indices = [self._headers.index(header) for header in headers]
 
-        for index in enumerate(header_indices):
-            col_concatn[index] = self._running[index]
+        col_concatn = []
 
         for index in header_indices:
-            self._headers.pop(index)
-            self._running.pop(index)
+            col_concatn.append(self._running[index])
 
-        self._headers.insert(col_indices.min(),header_name_new)
-        self._running.insert(col_indices.min(),np.array([deliminator.join(row) for row in col_concatn.T]))
+        col_concatn = np.array(col_concatn,dtype=str)
+
+        self._headers.append(header_name_new)
+        self._running.append(np.array([deliminator.join(row) for row in col_concatn.T]))
 
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
@@ -229,18 +233,15 @@ class manager():
 
         # line = re.sub(r"[^\w]","",line)
         # line = "_"+line if line[0].isnumeric() else line
-
+        # vmatch = np.vectorize(lambda x:bool(re.compile('[Ab]').match(x)))
+        
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
     def astype(self,header_indices=None,headers=None,dtypes=None):
 
         if header_indices is None:
-
-            header_indices = []
-
-            for header in headers:
-                header_indices.append(self._headers.index(header))
+            header_indices = [self._headers.index(header) for header in headers]
 
         for index,header_index in enumerate(header_indices):
 
@@ -360,29 +361,27 @@ class manager():
                 self._running[index] = column[match_index]
                 self.running[index] = np.asarray(self._running[index])
 
-    def write(self,filepath,sheet_title=None):
+    def writeto(self,filepath,**kwargs):
 
-        running = np.array(self.running,dtype='U25').T
+        output_extension = os.path.splitext(filepath)[1]
 
-        running = np.insert(running,0,self._headers).reshape((-1,len(self.running)))
+        running = np.array(self._running,dtype='U25').T
+        running = np.insert(running,0,self._headers).reshape((-1,len(self._running)))
 
-        extension = os.path.splitext(filepath)[1]
-
-        if extension == ".bhos":
-            with open(filepath,"w",encoding='utf-8') as writtenfile:
-                for line in running:
-                    writtenfile.write("\t".join(line)+"\t/\n")
-                writtenfile.write("/\n")
+        if any([output_extension==extension for extension in self.special_extensions]):
+            self.write_special(filepath,running,**kwargs)
             return
 
-        if extension == ".db":
-            return
+        with open(filepath,"w",encoding='utf-8') as writtenfile:
+            for line in running:
+                writtenfile.write("\t".join(line)+"\t/\n")
+            writtenfile.write("/\n")
 
-        if extension == ".inc":
-            with open(filepath,"w") as writtenfile:
-                for line in running:
-                    writtenfile.write("\t".join(line)+"\n")
-            return
+        with open(filepath,"w") as writtenfile:
+            for line in running:
+                writtenfile.write("\t".join(line)+"\n")
+
+    def write_special(self,filepath,running,**kwargs):
 
         if extension == ".xlsx":
             wb = openpyxl.Workbook()
@@ -392,6 +391,9 @@ class manager():
             for line in running:
                 sheet.append(line)
             wb.save(filepath)
+            return
+
+        if extension == ".db":
             return
 
     def _set_database_table(self,sqlite_table):
