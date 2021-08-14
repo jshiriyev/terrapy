@@ -142,7 +142,7 @@ class manager():
         elif regex is None and regex_builtin=="INC_DATES":
             regex = r'^\d{1,2} [A-Z]{3} \d{2}\d{2}?$'   #for strings with [1 or 2 digits][space][3 capital letters][space][2 or 4 digits], e.g. DATES
 
-        vmatch = np.vectorize(lambda x:bool(re.compile(regex).match(x)))
+        vmatch = np.vectorize(lambda x: bool(re.compile(regex).match(x)))
 
         match_index = vmatch(nparray)
 
@@ -166,16 +166,20 @@ class manager():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
-    def texttocolumn(self,header_index,header,deliminator,max_split):
+    def texttocolumn(self,header_index=None,header=None,deliminator=None,maxsplit=None):
+
+        if header_index is None:
+            header_index = self.header.index(header)
 
         header_string = self._headers[header_index]
-        header_string = re.sub(deliminator+'+',deliminator,header_string)
+        # header_string = re.sub(deliminator+'+',deliminator,header_string)
 
         headers = header_string.split(deliminator)
 
-        for index in range(max_split):
-            if len(headers)<index+1:
-                headers.append("col ##"+string(header_index+index))
+        if maxsplit is not None:
+            for index in range(maxsplit):
+                if len(headers)<index+1:
+                    headers.append("col ##"+string(header_index+index))
 
         column_to_split = np.asarray(self._running[header_index])
 
@@ -183,12 +187,12 @@ class manager():
 
         for index,string in enumerate(column_to_split):
 
-            string = re.sub(deliminator+'+',deliminator,string)
-
+            # string = re.sub(deliminator+'+',deliminator,string)
             row = np.char.split(string,deliminator).tolist()
 
-            while len(row)<max_split:
-                row.append("")
+            if maxsplit is not None:
+                while len(row)<maxsplit:
+                    row.append("")
 
             running.append(row)
 
@@ -411,15 +415,17 @@ class manager():
 
 class table(manager):
 
-    def __init__(self,headers=["GETALL"],filepath=None,**kwargs):
+    def __init__(self,filepath=None,headers=None,**kwargs):
 
         super().__init__(filepath,**kwargs)
 
         if filepath is None:
-            self.headers = headers
-            self.running = [np.array([]) for _ in self.headers]
-        elif headers[0]!="GETALL":
-            self.trim_columns_by_headers(headers)
+
+            self._headers = headers
+            self._running = [np.array([]) for _ in self._headers]
+
+            self.headers = self._headers
+            self.running = [np.asarray(column) for column in self._running]
 
     def draw(self,window,func=None):
 
@@ -810,7 +816,8 @@ if __name__ == "__main__":
     
     window = tk.Tk()
 
-    gui = table("instructors.csv")
+    # gui = table("instructors.csv")
+    # gui.texttocolumn(0,deliminator=",")
     gui = table(headers=["Full Name","Position","Contact"])
 
     gui.draw(window)
