@@ -51,10 +51,10 @@ class schedule():
         menubar.add_cascade(label="Edit",menu=editMenu)
         menubar.add_cascade(label="Help",menu=helpMenu)
 
-        self.instructors = table(headers=["First Name","Last Name","Patronym","Position","Email","Phone"])
-        self.courses = table(headers=["Code","Title","Type","Semester","Credits","Enrolment"])
-        self.classroom = table(headers=["Capacity","Type"])
-        self.connectivity = table(headers=["Instructor Name","Course ID","Semester"]) #,"Enrolment","Classroom"
+        self.instructors = table(headers=["Full Name","Position"])
+        self.courses = table(headers=["Code","Title","Type","Credits","Enrolment"])
+        self.classroom = table(headers=["Type","Capacity"])
+        self.connectivity = table(headers=["Instructor Name","Course ID","Semester","Classroom"])
 
         self.frame_notebook = ttk.Notebook(self.root)        
         self.frame0 = self.set_frame_notebook_sheet()

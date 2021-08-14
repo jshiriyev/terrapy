@@ -456,14 +456,18 @@ class table(manager):
         self.frame.configure(background="white")
         self.frame.pack(side=tk.LEFT,fill=tk.Y)
 
-        self.button_Add = tk.Button(self.frame,text="Add Item",width=50,command=self.addItem)
-        self.button_Add.pack(side=tk.TOP,ipadx=5,padx=10,pady=(5,1))
+        self.tree.bind("<Control-Key-n>",self.addItem)
+
+        # self.button_Add = tk.Button(self.frame,text="Add Item",width=50,command=self.addItem)
+        # self.button_Add.pack(side=tk.TOP,ipadx=5,padx=10,pady=(5,1))
 
         self.button_EditItem = tk.Button(self.frame,text="Edit Item",width=50,command=self.editItem)
         self.button_EditItem.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,1))
 
-        self.button_Delete = tk.Button(self.frame,text="Delete Item",width=50,command=self.deleteItem)
-        self.button_Delete.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,10))
+        self.tree.bind("<Delete>",self.deleteItem)
+
+        # self.button_Delete = tk.Button(self.frame,text="Delete Item",width=50,command=self.deleteItem)
+        # self.button_Delete.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,10))
 
         self.button_MoveUp = tk.Button(self.frame,text="Move Up",width=50,command=self.moveUp)
         self.button_MoveUp.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
@@ -485,7 +489,7 @@ class table(manager):
         self.edited = []
         self.deleted = []
 
-    def addItem(self):
+    def addItem(self,event):
 
         if hasattr(self,"topAddItem"):
             if self.topAddItem.winfo_exists():
@@ -582,7 +586,7 @@ class table(manager):
 
         self.topEditItem.destroy()
 
-    def deleteItem(self):
+    def deleteItem(self,event):
 
         if not self.tree.selection():
             return
