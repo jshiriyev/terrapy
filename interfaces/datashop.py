@@ -19,8 +19,6 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 
-
-
 class manager():
 
     special_extensions = [".db",".xlsx"]
@@ -135,16 +133,16 @@ class manager():
             wb._archive.close()
             return
 
-    def set_subheaders(self,header_index,match_key="INC",match_regex=None,title="SUB-HEADERS"):
+    def set_subheaders(self,header_index=None,header=None,regex=None,regex_builtin="INC_HEADERS",title="SUB-HEADERS"):
 
         nparray = np.array(self._running[header_index])
 
-        if match_regex is None and match_key == "INC":
-            match_regex = r'^[A-Z]+$'                         #for strings with only capital letters no digits
-        elif match_regex is None and match_key == "DATES":
-            match_regex = r'^\d{1,2} [A-Z]{3} \d{2}\d{2}?$'   #for strings with [1 or 2 digits][space][3 capital letters][space][2 or 4 digits], e.g. DATES
+        if regex is None and regex_builtin=="INC_HEADERS":
+            regex = r'^[A-Z]+$'                         #for strings with only capital letters no digits
+        elif regex is None and regex_builtin=="INC_DATES":
+            regex = r'^\d{1,2} [A-Z]{3} \d{2}\d{2}?$'   #for strings with [1 or 2 digits][space][3 capital letters][space][2 or 4 digits], e.g. DATES
 
-        vmatch = np.vectorize(lambda x:bool(re.compile(match_regex).match(x)))
+        vmatch = np.vectorize(lambda x:bool(re.compile(regex).match(x)))
 
         match_index = vmatch(nparray)
 
@@ -168,7 +166,7 @@ class manager():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
-    def texttocolumn(self,header_index,deliminator,max_split):
+    def texttocolumn(self,header_index,header,deliminator,max_split):
 
         header_string = self._headers[header_index]
         header_string = re.sub(deliminator+'+',deliminator,header_string)
@@ -260,6 +258,15 @@ class manager():
         for index,col in enumerate(self.running):
             self.running[index] = np.delete(col,row_indices)
 
+    def get_rows(self,row_indices,inplace=False):
+
+        rows = []
+        
+        for index,column in enumerate(self.running):
+            rows.append(column[row_indices].astype(str))
+
+        return np.asarray(rows).T
+
     def get_columns(self,header_indices=None,headers=None,inplace=False):
 
         indicesToKeep = []
@@ -277,75 +284,40 @@ class manager():
         for index in indicesToKeep:
             self.running[index] = np.asarray(self._running[index])
 
-    def get_rows(self,row_indices,inplace=False):
+    def sort(self,header_index,header,reverse=False,inplace=False):
 
-        rows = []
-        
-        for index,column in enumerate(self.running):
-            rows.append(column[row_indices].astype(str))
+        listA = self.get_column(header.lower())
 
-        return np.asarray(rows).T
+        idx = list(range(len(listA)))
 
-    def filter_columns(self,keywords,header_index=None,header=None,inplace=False):
+        zipped_lists = zip(listA,idx)
+        sorted_pairs = sorted(zipped_lists)
 
-        if header_index is None:
-            header_index = self._headers.index(header)
+        tuples = zip(*sorted_pairs)
 
-        keywords = np.array(keywords).reshape((-1,1))
+        listA, idx = [ list(tuple) for tuple in  tuples]
 
-        match_index = np.any(self._running[header_index]==keywords,axis=0)
+        for header in self._headers:
+            self.toarray(header)
+            setattr(self,header,getattr(self,header)[idx])
 
-        self.running = [[] for _ in range(len(self._running))]
-
-        if not inplace:
-            for index,column in enumerate(self._running):
-                self.running[index] = np.asarray(column[match_index])
-        else:
-            for index,column in enumerate(self._running):
-                self._running[index] = column[match_index]
-                self.running[index] = np.asarray(self._running[index])
-
-        # listA = self.get_column(header.lower())
-
-        # idx = list(range(len(listA)))
-
-        # zipped_lists = zip(listA,idx)
-        # sorted_pairs = sorted(zipped_lists)
-
-        # tuples = zip(*sorted_pairs)
-
-        # listA, idx = [ list(tuple) for tuple in  tuples]
-
-        # for header in self._headers:
-        #     self.toarray(header)
-        #     setattr(self,header,getattr(self,header)[idx])
-
-    def filter_rows(self,keyword,header_index=None,header=None,inplace=False):
+    def filter(self,header_index=None,header=None,keywords=None,regex=None,inplace=False):
 
         if header_index is None:
             header_index = self._headers.index(header)
 
-        column = self.running[header_index]
-
-        splitted = np.char.split(column,"'",maxsplit=2)
-
-        match_index = np.empty(column.shape,dtype=bool)
-
-        for index,row in enumerate(splitted):
-            if row[1]==keyword:
-                match_index[index] = True
-            else:
-                match_index[index] = False
-
-        self.running = [[] for _ in range(len(self._running))]
-
-        if not inplace:
-            for index,column in enumerate(self._running):
-                self.running[index] = np.asarray(column[match_index])
+        if keywords is not None:
+            match_array = np.array(keywords).reshape((-1,1))
+            match_index = np.any(self._running[header_index]==match_array,axis=0)
         else:
-            for index,column in enumerate(self._running):
-                self._running[index] = column[match_index]
-                self.running[index] = np.asarray(self._running[index])
+            match_vectr = np.vectorize(lambda x:bool(re.compile(regex).match(x)))
+            match_index = match_vectr(self._running[header_index])
+
+        if inplace:
+            self._running = [column[match_index] for column in self._running]
+            self.running = [np.asarray(column) for column in self.running]
+        else:
+            self.running = [np.asarray(column[match_index]) for column in self._running]
 
     def write_to(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
 
@@ -382,63 +354,60 @@ class manager():
             return
 
         if extension == ".db":
-            return
 
-    def _set_database_table(self,sqlite_table):
+            # _set_database_table(self,sqlite_table):
 
-        # instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
-        #                                     id integer PRIMARY KEY,
-        #                                     first_name text NOT NULL,
-        #                                     last_name text NOT NULL,
-        #                                     patronym text NOT NULL,
-        #                                     position text NOT NULL,
-        #                                     status text NOT NULL,
-        #                                     email text NOT NULL UNIQUE,
-        #                                     phone integer NOT NULL UNIQUE);"""
+            # instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
+            #                                     id integer PRIMARY KEY,
+            #                                     first_name text NOT NULL,
+            #                                     last_name text NOT NULL,
+            #                                     patronym text NOT NULL,
+            #                                     position text NOT NULL,
+            #                                     status text NOT NULL,
+            #                                     email text NOT NULL UNIQUE,
+            #                                     phone integer NOT NULL UNIQUE);"""
 
-        self.sqlite_table = sqlite_table
+            self.sqlite_table = sqlite_table
 
-        try:
-            self.cursor = self.conn.cursor()
-            self.cursor.execute(self.sqlite_table)
+            try:
+                self.cursor = self.conn.cursor()
+                self.cursor.execute(self.sqlite_table)
+                self.conn.commit()
+            except Error:
+                print(Error)
+
+            # _insert_database_table(self,sqlite_table_insert,table_row):
+
+            # instructor_table_insert = """ INSERT INTO instructors(
+            #                                     id,
+            #                                     first_name,
+            #                                     last_name,
+            #                                     patronym,
+            #                                     position,
+            #                                     status,
+            #                                     email,
+            #                                     phone)
+            #                                     VALUES(?,?,?,?,?,?,?,?)"""
+
+            self.sqlite_table_insert = sqlite_table_insert
+            self.cursor.execute(self.sqlite_table_insert,table_row)
             self.conn.commit()
-        except Error:
-            print(Error)
 
-    def _insert_database_table(self,sqlite_table_insert,table_row):
+            """database manager"""
 
-        # instructor_table_insert = """ INSERT INTO instructors(
-        #                                     id,
-        #                                     first_name,
-        #                                     last_name,
-        #                                     patronym,
-        #                                     position,
-        #                                     status,
-        #                                     email,
-        #                                     phone)
-        #                                     VALUES(?,?,?,?,?,?,?,?)"""
+            # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
+            
+            # DB = database_manager(dbpath)
 
-        self.sqlite_table_insert = sqlite_table_insert
-        self.cursor.execute(self.sqlite_table_insert,table_row)
-        self.conn.commit()
+            # DB.create_table(instructor_table)
 
-        """database manager"""
+            # instructor = (7,"Javid","Shiriyev","Farhad",
+            #             "Senior Lecturer","Hour Based Teaching",
+            #             "cavid.shiriyev@bhos.edu.az","+994508353992")
 
-        # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
-        
-        # DB = database_manager(dbpath)
-
-        # DB.create_table(instructor_table)
-
-        # instructor = (7,"Javid","Shiriyev","Farhad",
-        #             "Senior Lecturer","Hour Based Teaching",
-        #             "cavid.shiriyev@bhos.edu.az","+994508353992")
-
-        # DB.insert_table(instructor_table_insert,instructor)
-        # DB.cursor.close()
-        # DB.conn.close()
-
-   
+            # DB.insert_table(instructor_table_insert,instructor)
+            # DB.cursor.close()
+            # DB.conn.close()
 
 class table(manager):
 
@@ -686,8 +655,6 @@ class table(manager):
 
         self.sortReverseFlag[index] = not reverseFlag
 
-
-
 class graph(manager):
 
     def __init__(self,filepath=None,**kwargs):
@@ -838,8 +805,6 @@ class graph(manager):
         self.figure.set_tight_layout(True)
 
         self.plot.draw()
-
-
 
 if __name__ == "__main__":
     
