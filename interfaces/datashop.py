@@ -555,7 +555,9 @@ class table(manager):
 
     def editItem(self,event):
 
-        if not self.tree.selection():
+        if not self.tree.identify('item',event.x,event.y):
+            return
+        elif not self.tree.selection():
             return
         else:
             item = self.tree.selection()[0]
