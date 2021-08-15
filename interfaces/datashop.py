@@ -1,3 +1,5 @@
+import copy
+
 from dateutil.parser import parse
 
 import inspect
@@ -63,7 +65,7 @@ class manager():
         elif skiplines!=0:
             self._headers = self.title[self.headerline]
 
-        self.headers = self._headers
+        self.headers = copy.copy(self._headers)
 
         nparray = np.array(self._running).T
 
@@ -163,13 +165,13 @@ class manager():
         for index,column in enumerate(self._running):
             self._running[index] = np.array(self._running[index][firstocc:][~match_index[firstocc:]])
 
-        self.headers = self._headers
+        self.headers = copy.copy(self._headers)
         self.running = [np.asarray(column) for column in self._running]
 
     def texttocolumn(self,header_index=None,header=None,deliminator=None,maxsplit=None):
 
         if header_index is None:
-            header_index = self.header.index(header)
+            header_index = self._header.index(header)
 
         header_string = self._headers[header_index]
         # header_string = re.sub(deliminator+'+',deliminator,header_string)
@@ -210,7 +212,7 @@ class manager():
         # line = "_"+line if line[0].isnumeric() else line
         # vmatch = np.vectorize(lambda x:bool(re.compile('[Ab]').match(x)))
         
-        self.headers = self._headers
+        self.headers = copy.copy(self._headers)
         self.running = [np.asarray(column) for column in self._running]
 
     def columntotext(self,header_new,header_indices=None,headers=None,string=None):
@@ -230,7 +232,7 @@ class manager():
         self._headers.append(header_new)
         self._running.append(column_new)
 
-        self.headers = self._headers
+        self.headers = copy.copy(self._headers)
         self.running = [np.asarray(column) for column in self._running]
 
     def astype(self,header_index=None,header=None,dtype=None):
@@ -248,45 +250,51 @@ class manager():
 
         self._running[header_index] = vdate(self._running[header_index])
 
+        self.running[header_index] = np.asarray(self._running[header_index])
+
     def set_rows(self,row,row_indices=None):
         
         if row_indices is None:
-            for index,column in enumerate(self.running):
-                self.running[index] = np.append(column,row[index])
+            for index,column in enumerate(self._running):
+                self._running[index] = np.append(column,row[index])
         else:
-            for index, _ in enumerate(self.running):
-                self.running[index][row_indices] = row[index]
+            for index, _ in enumerate(self._running):
+                self._running[index][row_indices] = row[index]
+
+        self.running = [np.asarray(column) for column in self._running]
 
     def del_rows(self,row_indices,inplace=False):
 
-        for index,col in enumerate(self.running):
-            self.running[index] = np.delete(col,row_indices)
+        row_indices = np.array(row_indices).reshape((-1,1))
+
+        all_rows = np.arange(self._running[0].size)
+
+        keep_index = np.any(all_rows==row_indices,axis=0)
+
+        if inplace:
+            self._running = [column[keep_index] for column in self._running]
+            self.running = [np.asarray(column) for column in self._running]
+        else:
+            self.running = [np.asarray(column[keep_index]) for column in self._running]
 
     def get_rows(self,row_indices,inplace=False):
 
-        rows = []
-        
-        for index,column in enumerate(self.running):
-            rows.append(column[row_indices].astype(str))
-
-        return np.asarray(rows).T
+        if inplace:
+            self._running = [column[row_indices] for column in self._running]
+            self.running = [np.asarray(column) for column in self._running]
+        else:
+            self.running = [np.asarray(column[row_indices]) for column in self._running]
 
     def get_columns(self,header_indices=None,headers=None,inplace=False):
 
-        indicesToKeep = []
+        if header_indices is None:
+            header_indices = [self._headers.index(header) for header in headers]
 
-        for header_read_from_file in self._headers:
-            try:
-                if any([header_read_from_file.strip() == header for header in headers]):
-                    indicesToKeep.append(self._headers.index(header_read_from_file))
-            except:
-                continue
-
-        self.headers = [self._headers[index] for index in indicesToKeep]
-        self.running = [[] for _ in range(indicesToKeep)]
-
-        for index in indicesToKeep:
-            self.running[index] = np.asarray(self._running[index])
+        if inplace:
+            self._running = [self.running[index] for index in header_indices]
+            self.running = [np.asarray(column) for column in self._running]
+        else:
+            self.running = [np.asarray(self.running[index]) for index in header_indices]
 
     def sort(self,header_index=None,header=None,reverse=False,inplace=False,returnFlag=False):
 
@@ -478,8 +486,8 @@ class table(manager):
 
         self.tablesize = self.running[0].size
 
-        for index,row in enumerate(self.get_rows(list(range(self.tablesize)))):
-            self.tree.insert(parent="",index="end",iid=index,values=tuple(row.tolist()))
+        # for index,row in enumerate(self.get_rows(list(range(self.tablesize)))):
+        #     self.tree.insert(parent="",index="end",iid=index,values=tuple(row.tolist()))
 
         self.editedFlag = False
 
@@ -833,9 +841,9 @@ if __name__ == "__main__":
     
     window = tk.Tk()
 
-    gui = table("instructors.csv")
-    gui.texttocolumn(0,deliminator=",")
-    # gui = table(headers=["Full Name","Position","Contact"])
+    # gui = table("instructors.csv")
+    # gui.texttocolumn(0,deliminator=",")
+    gui = table(headers=["Full Name","Position","Contact"])
 
     gui.draw(window)
 
