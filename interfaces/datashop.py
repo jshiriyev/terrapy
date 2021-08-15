@@ -288,22 +288,24 @@ class manager():
         for index in indicesToKeep:
             self.running[index] = np.asarray(self._running[index])
 
-    def sort(self,header_index,header,reverse=False,inplace=False):
+    def sort(self,header_index=None,header=None,reverse=False,inplace=False,returnFlag=False):
 
-        listA = self.get_column(header.lower())
+        if header_index is None:
+            header_index = self.headers.index(header)
 
-        idx = list(range(len(listA)))
+        sort_index = np.argsort(self._running[header_index])
 
-        zipped_lists = zip(listA,idx)
-        sorted_pairs = sorted(zipped_lists)
+        if reverse:
+            sort_index = np.flip(sort_index)
 
-        tuples = zip(*sorted_pairs)
+        if inplace:
+            self._running = [column[sort_index] for column in self._running]
+            self.running = [np.asarray(column) for column in self._running]
+        else:
+            self.running = [np.asarray(column[sort_index]) for column in self._running]
 
-        listA, idx = [ list(tuple) for tuple in  tuples]
-
-        for header in self._headers:
-            self.toarray(header)
-            setattr(self,header,getattr(self,header)[idx])
+        if returnFlag:
+            return sort_index
 
     def filter(self,header_index=None,header=None,keywords=None,regex=None,inplace=False):
 
@@ -319,7 +321,7 @@ class manager():
 
         if inplace:
             self._running = [column[match_index] for column in self._running]
-            self.running = [np.asarray(column) for column in self.running]
+            self.running = [np.asarray(column) for column in self._running]
         else:
             self.running = [np.asarray(column[match_index]) for column in self._running]
 
@@ -649,19 +651,32 @@ class table(manager):
             func()
             self.root.destroy()
 
-    def sort_column(self,index):
+    def sort_column(self,header_index):
 
-        column = self.columns[index]
-        reverseFlag = self.sortReverseFlag[index]
+        reverseFlag = self.sortReverseFlag[header_index]
 
-        col_and_idx = [(self.tree.set(k,column), k) for k in self.tree.get_children('')]
+        sort_indices = self.sort(header_index=header_index,reverse=reverseFlag,inplace=True,returnFlag=True)
 
-        col_and_idx.sort(reverse=reverseFlag)
+        # column = self.columns[index]
+        
+        # col_and_idx = [(self.tree.set(k,column), k) for k in self.tree.get_children('')]
 
-        for idx, ( _ ,k) in enumerate(col_and_idx):
-            self.tree.move(k,'',idx)
+        # col_and_idx.sort(reverse=reverseFlag)
 
-        self.sortReverseFlag[index] = not reverseFlag
+        # print(sort_indices)
+
+        # for index,sort_index in enumerate(sort_indices):
+        #     print(index,sort_index)
+        #     self.tree.move(sort_index,'',index)
+
+        self.tree.delete(*self.tree.get_children())
+
+        for index,value in enumerate(self.get_rows(list(range(self.tablesize)))):
+            self.tree.insert(parent="",index="end",iid=index,values=value.tolist())
+
+        self.sortReverseFlag[header_index] = not reverseFlag
+
+        # print(self.running[0])
 
 class graph(manager):
 
