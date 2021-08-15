@@ -269,7 +269,7 @@ class manager():
 
         all_rows = np.arange(self._running[0].size)
 
-        keep_index = np.any(all_rows==row_indices,axis=0)
+        keep_index = ~np.any(all_rows==row_indices,axis=0)
 
         if inplace:
             self._running = [column[keep_index] for column in self._running]
@@ -437,6 +437,12 @@ class table(manager):
             self.headers = self._headers
             self.running = [np.asarray(column) for column in self._running]
 
+        self.editedFlag = False
+
+        self.added = []
+        self.edited = []
+        self.deleted = []
+
     def draw(self,window,func=None):
 
         self.root = window
@@ -484,16 +490,18 @@ class table(manager):
         # self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
         # self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
+        self.refill()
+
+    def refill(self):
+
         self.tablesize = self.running[0].size
 
-        # for index,row in enumerate(self.get_rows(list(range(self.tablesize)))):
-        #     self.tree.insert(parent="",index="end",iid=index,values=tuple(row.tolist()))
+        self.tree.delete(*self.tree.get_children())
 
-        self.editedFlag = False
+        rows = np.array(self.running).T.tolist()
 
-        self.added = []
-        self.edited = []
-        self.deleted = []
+        for index,row in enumerate(rows):
+            self.tree.insert(parent="",index="end",iid=index,values=row)
 
     def addItem(self,event):
 
@@ -533,11 +541,13 @@ class table(manager):
             value = getattr(self.topAddItem,entry).get()
             values.append(value)
 
+        self.set_rows(values)
+
         self.tree.insert(parent="",index="end",iid=self.tablesize,values=values)
 
-        self.added.append(values)
-
         self.tablesize += 1
+        
+        self.added.append(values)
 
         self.editedFlag = True
 
@@ -585,9 +595,11 @@ class table(manager):
             value = getattr(self.topEditItem,entry).get()
             values.append(value)
 
+        self.set_rows(values,int(item))
+
         self.tree.item(item,values=values)
 
-        self.edited.append([int(item),values]) # index and new values
+        self.edited.append([int(item),values]) # index and new values; NEW: CORRECT IT: it must be old value
 
         self.editedFlag = True
 
@@ -600,9 +612,11 @@ class table(manager):
         else:
             item = self.tree.selection()[0]
 
-        self.deleted.append(int(item))
+        self.del_rows(int(item),inplace=True)
 
         self.tree.delete(item)
+
+        self.deleted.append(int(item))  # you should also save what is deleted
 
         self.editedFlag = True
 
@@ -624,67 +638,47 @@ class table(manager):
 
         self.tree.move(item,self.tree.parent(item),self.tree.index(item)+1)
 
+    def sort_column(self,header_index):
+
+        reverseFlag = self.sortReverseFlag[header_index]
+
+        sort_index = np.argsort(self.running[header_index])
+
+        if reverseFlag:
+            sort_index = np.flip(sort_index)
+
+        self.running = [column[sort_index] for column in self.running]
+
+        self.refill()
+
+        self.sortReverseFlag[header_index] = not reverseFlag
+
     def saveChanges(self,func=None,event=None):
 
         if not self.editedFlag:
             self.root.destroy()
             return
 
-        for values in self.added:
-            self.set_rows(values)
-
-        self.added = []
-
-        for index,values in self.edited:
-            self.set_rows(values,index)
-
-        self.edited = []
-
-        self.del_rows(self.deleted)
-
-        self.deleted = []
-
-        self.tablesize = self.running[0].size
-
         self.editedFlag = False
 
+        self.added = []
+        self.edited = []
+        self.deleted = []
+
         if func is None:
-            print("save is clicked, below is saved data:")
-            values = self.get_rows(list(range(self.tablesize)))
-            [print(column) for column in self.running]
-            self.tree.delete(*self.tree.get_children())
-            for index,value in enumerate(values.tolist()):
-                self.tree.insert(parent="",index="end",iid=index,values=value)
+            self.refill()
         else:
             func()
             self.root.destroy()
 
-    def sort_column(self,header_index):
+    def exit(self):
 
-        reverseFlag = self.sortReverseFlag[header_index]
+        # exit without save:
+        # bring deleted back
+        # return any edits
+        # delete added ones
 
-        sort_indices = self.sort(header_index=header_index,reverse=reverseFlag,inplace=True,returnFlag=True)
-
-        # column = self.columns[index]
-        
-        # col_and_idx = [(self.tree.set(k,column), k) for k in self.tree.get_children('')]
-
-        # col_and_idx.sort(reverse=reverseFlag)
-
-        # print(sort_indices)
-
-        # for index,sort_index in enumerate(sort_indices):
-        #     print(index,sort_index)
-        #     self.tree.move(sort_index,'',index)
-
-        self.tree.delete(*self.tree.get_children())
-
-        for index,value in enumerate(self.get_rows(list(range(self.tablesize)))):
-            self.tree.insert(parent="",index="end",iid=index,values=value.tolist())
-
-        self.sortReverseFlag[header_index] = not reverseFlag
-
-        # print(self.running[0])
+        self.root.destroy()
 
 class graph(manager):
 
@@ -841,9 +835,9 @@ if __name__ == "__main__":
     
     window = tk.Tk()
 
-    # gui = table("instructors.csv")
-    # gui.texttocolumn(0,deliminator=",")
-    gui = table(headers=["Full Name","Position","Contact"])
+    gui = table("instructors.csv")
+    gui.texttocolumn(0,deliminator=",")
+    # gui = table(headers=["Full Name","Position","Contact"])
 
     gui.draw(window)
 
