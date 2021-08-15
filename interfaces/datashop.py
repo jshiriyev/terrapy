@@ -478,7 +478,6 @@ class table(manager):
         # self.button_Add.pack(side=tk.TOP,ipadx=5,padx=10,pady=(5,1))
 
         self.tree.bind("<Double-1>",self.editItem)
-        self.tree.bind("<KeyPress-e>",self.editItem)
 
         self.tree.bind("<Delete>",self.deleteItem)
 
@@ -513,17 +512,19 @@ class table(manager):
 
         self.topAddItem.resizable(0,0)
 
-        for idx,(header,explicit) in enumerate(zip(self.headers,self.headers)):
-            label = "label_"+str(idx)
-            entry = "entry_"+str(idx)
-            pady = (30,5) if idx==0 else (5,5)
-            setattr(self.topAddItem,label,tk.Label(self.topAddItem,text=explicit,font="Helvetica 11",width=20,anchor=tk.E))
+        for index,header in enumerate(self.headers):
+            label = "label_"+str(index)
+            entry = "entry_"+str(index)
+            pady = (30,5) if index==0 else (5,5)
+            setattr(self.topAddItem,label,tk.Label(self.topAddItem,text=header,font="Helvetica 11",width=20,anchor=tk.E))
             setattr(self.topAddItem,entry,tk.Entry(self.topAddItem,width=30,font="Helvetica 11"))
-            getattr(self.topAddItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
-            getattr(self.topAddItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
+            getattr(self.topAddItem,label).grid(row=index,column=0,ipady=5,padx=(10,5),pady=pady)
+            getattr(self.topAddItem,entry).grid(row=index,column=1,ipady=5,padx=(5,10),pady=pady)
+
+        self.topAddItem.entry_0.focus()
 
         self.topAddItem.button = tk.Button(self.topAddItem,text="Add Item",command=self.addItemEnterClicked)
-        self.topAddItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
+        self.topAddItem.button.grid(row=index+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
 
         self.topAddItem.button.bind('<Return>',self.addItemEnterClicked)
 
@@ -555,6 +556,9 @@ class table(manager):
 
     def editItem(self,event):
 
+        if hasattr(self,"topEditItem"):
+            if self.topEditItem.winfo_exists():
+                return
         if not self.tree.identify('item',event.x,event.y):
             return
         elif not self.tree.selection():
@@ -577,6 +581,8 @@ class table(manager):
             getattr(self.topEditItem,label).grid(row=idx,column=0,ipady=5,padx=(10,5),pady=pady)
             getattr(self.topEditItem,entry).grid(row=idx,column=1,ipady=5,padx=(5,10),pady=pady)
             getattr(self.topEditItem,entry).insert(0,values[idx])
+
+        self.topEditItem.entry_0.focus()
 
         self.topEditItem.button = tk.Button(self.topEditItem,text="Save Item Edit",command=lambda: self.editItemEnterClicked(item))
         self.topEditItem.button.grid(row=idx+1,column=0,columnspan=2,ipady=5,padx=15,pady=(15,30),sticky=tk.EW)
