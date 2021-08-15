@@ -437,14 +437,14 @@ class table(manager):
 
         self.tree = ttk.Treeview(self.root,columns=self.columns,show="headings",selectmode="browse",yscrollcommand=self.scrollbar.set)
 
-        self.sortReverseFlag = [False for col in self.columns]
+        self.sortReverseFlag = [False for column in self.columns]
 
         for idx,(column,header) in enumerate(zip(self.columns,self.headers)):
             if idx<len(self.headers)-1 :
                 self.tree.column(column,anchor=tk.W,width=100)
             elif idx==len(self.headers)-1:
                 self.tree.column(column,anchor=tk.W)
-            self.tree.heading(column,text=header,anchor=tk.W,command=lambda x = idx: self.sort_column(x))
+            self.tree.heading(column,text=header,anchor=tk.W,command=lambda x=idx: self.sort_column(x))
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
@@ -452,31 +452,27 @@ class table(manager):
 
         self.scrollbar.config(command=self.tree.yview)
 
-        self.frame = tk.Frame(self.root,width=50)
-        self.frame.configure(background="white")
-        self.frame.pack(side=tk.LEFT,fill=tk.Y)
+        # self.frame = tk.Frame(self.root,width=50)
+        # self.frame.configure(background="white")
+        # self.frame.pack(side=tk.LEFT,fill=tk.Y)
 
-        self.tree.bind("<Control-Key-n>",self.addItem)
+        self.tree.bind("<KeyPress-i>",self.addItem)
 
         # self.button_Add = tk.Button(self.frame,text="Add Item",width=50,command=self.addItem)
         # self.button_Add.pack(side=tk.TOP,ipadx=5,padx=10,pady=(5,1))
 
-        self.button_EditItem = tk.Button(self.frame,text="Edit Item",width=50,command=self.editItem)
-        self.button_EditItem.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,1))
+        self.tree.bind("<Double-1>",self.editItem)
+        self.tree.bind("<KeyPress-e>",self.editItem)
 
         self.tree.bind("<Delete>",self.deleteItem)
 
-        # self.button_Delete = tk.Button(self.frame,text="Delete Item",width=50,command=self.deleteItem)
-        # self.button_Delete.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,10))
+        self.tree.bind("<KeyPress-j>",self.moveDown)
+        self.tree.bind("<KeyPress-k>",self.moveUp)
 
-        self.button_MoveUp = tk.Button(self.frame,text="Move Up",width=50,command=self.moveUp)
-        self.button_MoveUp.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
+        self.tree.bind("<Control-KeyPress-s>",lambda event: self.saveChanges(func,event))
 
-        self.button_MoveDown = tk.Button(self.frame,text="Move Down",width=50,command=self.moveDown)
-        self.button_MoveDown.pack(side=tk.TOP,ipadx=5,padx=10,pady=(1,10))
-
-        self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
-        self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
+        # self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
+        # self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
 
         self.tablesize = self.running[0].size
 
@@ -497,6 +493,8 @@ class table(manager):
 
         self.topAddItem = tk.Toplevel()
 
+        self.topAddItem.resizable(0,0)
+
         for idx,(header,explicit) in enumerate(zip(self.headers,self.headers)):
             label = "label_"+str(idx)
             entry = "entry_"+str(idx)
@@ -512,9 +510,6 @@ class table(manager):
         self.topAddItem.button.bind('<Return>',self.addItemEnterClicked)
 
         self.topAddItem.mainloop()
-
-        # for idx in self.tree.selection():
-        #     print(self.tree.item(idx,'values'))
 
     def addItemEnterClicked(self,event=None):
 
@@ -538,7 +533,7 @@ class table(manager):
 
         self.topAddItem.destroy()
 
-    def editItem(self):
+    def editItem(self,event):
 
         if not self.tree.selection():
             return
@@ -548,6 +543,8 @@ class table(manager):
         values = self.tree.item(item)['values']
 
         self.topEditItem = tk.Toplevel()
+
+        self.topEditItem.resizable(0,0)
 
         for idx,(header,explicit) in enumerate(zip(self.headers,self.headers)):
             label = "label_"+str(idx)
@@ -599,7 +596,7 @@ class table(manager):
 
         self.editedFlag = True
 
-    def moveUp(self):
+    def moveUp(self,event):
 
         if not self.tree.selection():
             return
@@ -608,7 +605,7 @@ class table(manager):
 
         self.tree.move(item,self.tree.parent(item),self.tree.index(item)-1)
 
-    def moveDown(self):
+    def moveDown(self,event):
 
         if not self.tree.selection():
             return
@@ -617,23 +614,23 @@ class table(manager):
 
         self.tree.move(item,self.tree.parent(item),self.tree.index(item)+1)
 
-    def saveChanges(self,func=None):
+    def saveChanges(self,func=None,event=None):
 
         if not self.editedFlag:
             self.root.destroy()
             return
 
         for values in self.added:
-            self.set_row(values)
+            self.set_rows(values)
 
         self.added = []
 
         for index,values in self.edited:
-            self.set_row(values,index)
+            self.set_rows(values,index)
 
         self.edited = []
 
-        self.del_row(self.deleted)
+        self.del_rows(self.deleted)
 
         self.deleted = []
 
@@ -642,11 +639,12 @@ class table(manager):
         self.editedFlag = False
 
         if func is None:
-            for index in range(self.tablesize):
-                print(self.get_row(index))
+            print("save is clicked, below is saved data:")
+            values = self.get_rows(list(range(self.tablesize)))
+            [print(column) for column in self.running]
             self.tree.delete(*self.tree.get_children())
-            for index in range(self.tablesize):
-                self.tree.insert(parent="",index="end",iid=index,values=self.get_row(index))
+            for index,value in enumerate(values.tolist()):
+                self.tree.insert(parent="",index="end",iid=index,values=value)
         else:
             func()
             self.root.destroy()
@@ -820,9 +818,9 @@ if __name__ == "__main__":
     
     window = tk.Tk()
 
-    # gui = table("instructors.csv")
-    # gui.texttocolumn(0,deliminator=",")
-    gui = table(headers=["Full Name","Position","Contact"])
+    gui = table("instructors.csv")
+    gui.texttocolumn(0,deliminator=",")
+    # gui = table(headers=["Full Name","Position","Contact"])
 
     gui.draw(window)
 
