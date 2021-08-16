@@ -1,5 +1,3 @@
-import copy
-
 import datetime
 from dateutil.parser import parse
 
@@ -66,7 +64,7 @@ class manager():
         elif skiplines!=0:
             self._headers = self.title[self.headerline]
 
-        self.headers = copy.copy(self._headers)
+        self.headers = self._headers
 
         nparray = np.array(self._running).T
 
@@ -166,7 +164,7 @@ class manager():
         for index,column in enumerate(self._running):
             self._running[index] = np.array(self._running[index][firstocc:][~match_index[firstocc:]])
 
-        self.headers = copy.copy(self._headers)
+        self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
     def texttocolumn(self,header_index=None,header=None,deliminator=None,maxsplit=None):
@@ -213,7 +211,7 @@ class manager():
         # line = "_"+line if line[0].isnumeric() else line
         # vmatch = np.vectorize(lambda x:bool(re.compile('[Ab]').match(x)))
         
-        self.headers = copy.copy(self._headers)
+        self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
     def columntotext(self,header_new,header_indices=None,headers=None,string=None):
@@ -233,7 +231,7 @@ class manager():
         self._headers.append(header_new)
         self._running.append(column_new)
 
-        self.headers = copy.copy(self._headers)
+        self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
     def astype(self,header_index=None,header=None,dtype=None):
@@ -266,7 +264,7 @@ class manager():
             if header_new is None:
                 header_new = "Col ##"+str(len(self._headers))
             self._headers.append(header_new)
-            self.headers.append(copy.copy(self._headers[-1]))
+            self.headers = self._headers
             self._running.append(column)
             self.running.append(np.asarray(self._running[-1]))
         else:
@@ -284,20 +282,32 @@ class manager():
 
         self.running = [np.asarray(column) for column in self._running]
 
-    def del_columns(self,header_indices=None,headers=None,inplace=False):
+    def get_columns(self,header_indices=None,headers=None):
+
+        return
+
+    def get_rows(self,row_indices):
+
+        if type(row_indices)!=list:
+            row_indices = [row_indices]
+
+        rows = np.array([column[row_indices] for column in self._running]).T
         
+        return rows.tolist()
+
+    def del_columns(self,header_indices=None,headers=None,inplace=False):
+
         if header_indices is None:
             header_indices = [self._headers.index(header) for header in headers]
 
-        header_indices.sort(reverse=True)
-
         if inplace:
-            for index in header_indices:
-                self._running.pop(index)
-                self.running.pop(index)
+            self._headers = [self._headers[index] for index in header_indices]
+            self.headers = self._headers
+            self._running = [self._running[index] for index in header_indices]
+            self.running = [np.asarray(column) for column in self._running]
         else:
-            for index in header_indices:
-                self.running.pop(index)
+            self.headers = [self._headers[index] for index in header_indices]
+            self.running = [np.asarray(self._running[index]) for index in header_indices]
 
     def del_rows(self,row_indices,inplace=False):
 
@@ -312,28 +322,6 @@ class manager():
             self.running = [np.asarray(column) for column in self._running]
         else:
             self.running = [np.asarray(column[keep_index]) for column in self._running]
-
-    def get_columns(self,header_indices=None,headers=None,inplace=False):
-
-        if header_indices is None:
-            header_indices = [self._headers.index(header) for header in headers]
-
-        if inplace:
-            self._headers = [self._headers[index] for index in header_indices]
-            self.headers = [copy.copy(header) for header in self._headers]
-            self._running = [self._running[index] for index in header_indices]
-            self.running = [np.asarray(column) for column in self._running]
-        else:
-            self.headers = [copy.copy(self._headers[index]) for index in header_indices]
-            self.running = [np.asarray(self._running[index]) for index in header_indices]
-
-    def get_rows(self,row_indices,inplace=False):
-
-        if inplace:
-            self._running = [column[row_indices] for column in self._running]
-            self.running = [np.asarray(column) for column in self._running]
-        else:
-            self.running = [np.asarray(column[row_indices]) for column in self._running]
 
     def sort(self,header_indices=None,headers=None,reverse=False,inplace=False,returnFlag=False):
 
