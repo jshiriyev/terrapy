@@ -1,5 +1,6 @@
 import copy
 
+import datetime
 from dateutil.parser import parse
 
 import inspect
@@ -142,7 +143,7 @@ class manager():
         if regex is None and regex_builtin=="INC_HEADERS":
             regex = r'^[A-Z]+$'                         #for strings with only capital letters no digits
         elif regex is None and regex_builtin=="INC_DATES":
-            regex = r'^\d{1,2} [A-Z]{3} \d{2}\d{2}?$'   #for strings with [1 or 2 digits][space][3 capital letters][space][2 or 4 digits], e.g. DATES
+            regex = r'^\d{1,2} [A-Z]{3} \d{2}\d{2}? $'   #for strings with [1 or 2 digits][space][3 capital letters][space][2 or 4 digits], e.g. DATES
 
         vmatch = np.vectorize(lambda x: bool(re.compile(regex).match(x)))
 
@@ -252,6 +253,26 @@ class manager():
 
         self.running[header_index] = np.asarray(self._running[header_index])
 
+    def upper(self,header_index=None,header=None):
+
+        if header_index is None:
+            header_index = self._headers.index(header)
+
+        self._running[header_index] = np.char.upper(self._running[header_index])
+
+    def set_column(self,column,header_index=None,header_new=None):
+        
+        if header_index is None:
+            if header_new is None:
+                header_new = "Col ##"+str(len(self._headers))
+            self._headers.append(header_new)
+            self.headers.append(copy.copy(self._headers[-1]))
+            self._running.append(column)
+            self.running.append(np.asarray(self._running[-1]))
+        else:
+            self._running[header_index] = column
+            self.running[header_index] = np.asarray(self._running[header_index])
+
     def set_rows(self,row,row_indices=None):
         
         if row_indices is None:
@@ -262,6 +283,21 @@ class manager():
                 self._running[index][row_indices] = row[index]
 
         self.running = [np.asarray(column) for column in self._running]
+
+    def del_columns(self,header_indices=None,headers=None,inplace=False):
+        
+        if header_indices is None:
+            header_indices = [self._headers.index(header) for header in headers]
+
+        header_indices.sort(reverse=True)
+
+        if inplace:
+            for index in header_indices:
+                self._running.pop(index)
+                self.running.pop(index)
+        else:
+            for index in header_indices:
+                self.running.pop(index)
 
     def del_rows(self,row_indices,inplace=False):
 
@@ -277,6 +313,20 @@ class manager():
         else:
             self.running = [np.asarray(column[keep_index]) for column in self._running]
 
+    def get_columns(self,header_indices=None,headers=None,inplace=False):
+
+        if header_indices is None:
+            header_indices = [self._headers.index(header) for header in headers]
+
+        if inplace:
+            self._headers = [self._headers[index] for index in header_indices]
+            self.headers = [copy.copy(header) for header in self._headers]
+            self._running = [self._running[index] for index in header_indices]
+            self.running = [np.asarray(column) for column in self._running]
+        else:
+            self.headers = [copy.copy(self._headers[index]) for index in header_indices]
+            self.running = [np.asarray(self._running[index]) for index in header_indices]
+
     def get_rows(self,row_indices,inplace=False):
 
         if inplace:
@@ -285,23 +335,16 @@ class manager():
         else:
             self.running = [np.asarray(column[row_indices]) for column in self._running]
 
-    def get_columns(self,header_indices=None,headers=None,inplace=False):
+    def sort(self,header_indices=None,headers=None,reverse=False,inplace=False,returnFlag=False):
 
         if header_indices is None:
-            header_indices = [self._headers.index(header) for header in headers]
+            header_indices = [self.headers.index(header) for header in headers]
 
-        if inplace:
-            self._running = [self.running[index] for index in header_indices]
-            self.running = [np.asarray(column) for column in self._running]
-        else:
-            self.running = [np.asarray(self.running[index]) for index in header_indices]
+        columns = [self._running[index] for index in header_indices]
 
-    def sort(self,header_index=None,header=None,reverse=False,inplace=False,returnFlag=False):
+        columns.reverse()
 
-        if header_index is None:
-            header_index = self.headers.index(header)
-
-        sort_index = np.argsort(self._running[header_index])
+        sort_index = np.lexsort(columns)
 
         if reverse:
             sort_index = np.flip(sort_index)
@@ -843,9 +886,9 @@ if __name__ == "__main__":
     
     window = tk.Tk()
 
-    gui = table("instructors.csv")
-    gui.texttocolumn(0,deliminator=",")
-    # gui = table(headers=["Full Name","Position","Contact"])
+    # gui = table("instructors.csv")
+    # gui.texttocolumn(0,deliminator=",")
+    gui = table(headers=["Full Name","Position","Contact"])
 
     gui.draw(window)
 
