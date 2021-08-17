@@ -282,20 +282,16 @@ class manager():
 
         self.running = [np.asarray(column) for column in self._running]
 
-    def get_columns(self,header_indices=None,headers=None):
-
-        return
-
     def get_rows(self,row_indices):
 
-        if type(row_indices)!=list:
+        if type(row_indices)==int:
             row_indices = [row_indices]
 
-        rows = np.array([column[row_indices] for column in self._running]).T
+        rows = [[column[index] for column in self._running] for index in row_indices]
         
-        return rows.tolist()
+        return rows
 
-    def del_columns(self,header_indices=None,headers=None,inplace=False):
+    def get_columns(self,header_indices=None,headers=None,inplace=False):
 
         if header_indices is None:
             header_indices = [self._headers.index(header) for header in headers]
