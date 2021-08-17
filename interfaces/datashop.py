@@ -727,14 +727,20 @@ class table(manager):
 
         reverseFlag = self.sortReverseFlag[header_index]
 
-        sort_index = np.argsort(self.running[header_index])
+        N = self.running[0].size
+
+        argsort = np.argsort(self.running[header_index])
+        indices = np.arange(N)
+
+        sort_indices = indices[np.argsort(argsort)]
 
         if reverseFlag:
-            sort_index = np.flip(sort_index)
+            sort_indices = N-sort_indices-1
 
-        self.running = [column[sort_index] for column in self.running]
+        # self.running = [column[sort_indices] for column in self.running]
 
-        self.refill()
+        for item,sort_index in enumerate(sort_indices):
+            self.tree.move(item,self.tree.parent(item),sort_index)
 
         self.sortReverseFlag[header_index] = not reverseFlag
 
@@ -743,8 +749,6 @@ class table(manager):
         self.added = []
         self.edited = []
         self.deleted = []
-
-        self.refill()
 
         if func is not None:
             func()
@@ -763,7 +767,7 @@ class table(manager):
         except:
             print("Could not bring back editions ...")
 
-        try:            
+        try:
             self.del_rows(self.added,inplace=True)
         except:
             print("Could not remove additions ...")
