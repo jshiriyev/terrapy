@@ -680,9 +680,9 @@ class table(manager):
         else:
             column_char_count = 0
 
-        char_count = max(header_char_count,column_char_count)
+        char_count = int(max(header_char_count,column_char_count)*1.1)
 
-        width = tkfont.Font(family="Consolas", size=10).measure("u"*char_count)
+        width = tkfont.Font(family="Consolas", size=10).measure("A"*char_count)
 
         column_width_old = self.tree.column(column,"width")
 
