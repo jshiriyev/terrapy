@@ -680,9 +680,9 @@ class table(manager):
         else:
             column_char_count = 0
 
-        char_count = int(max(header_char_count,column_char_count)*1.1)
+        char_count = max(header_char_count,column_char_count)
 
-        width = tkfont.Font(family="Consolas", size=10).measure("A"*char_count)
+        width = tkfont.Font(family="Consolas", size=12).measure("A"*char_count)
 
         column_width_old = self.tree.column(column,"width")
 
@@ -697,7 +697,7 @@ class table(manager):
         self.tree.column(self.columns[-1],width=column_width_last_new)
 
     def moveUp(self,event):
-
+ 
         if not self.tree.selection():
             return
         else:
