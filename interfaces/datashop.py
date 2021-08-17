@@ -19,6 +19,7 @@ import tkinter as tk
 
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import font as tkfont
 
 class manager():
 
@@ -307,11 +308,13 @@ class manager():
 
     def del_rows(self,row_indices,inplace=False):
 
+        all_rows = np.array([np.arange(self._running[0].size)])
+
         row_indices = np.array(row_indices).reshape((-1,1))
 
-        all_rows = np.arange(self._running[0].size)
+        comp_mat = all_rows==row_indices
 
-        keep_index = ~np.any(all_rows==row_indices,axis=0)
+        keep_index = ~np.any(comp_mat,axis=0)
 
         if inplace:
             self._running = [column[keep_index] for column in self._running]
@@ -464,8 +467,6 @@ class table(manager):
             self.headers = self._headers
             self.running = [np.asarray(column) for column in self._running]
 
-        self.editedFlag = False
-
         self.added = []
         self.edited = []
         self.deleted = []
@@ -483,11 +484,10 @@ class table(manager):
         self.sortReverseFlag = [False for column in self.columns]
 
         for idx,(column,header) in enumerate(zip(self.columns,self.headers)):
-            if idx<len(self.headers)-1 :
-                self.tree.column(column,anchor=tk.W,width=100)
-            elif idx==len(self.headers)-1:
-                self.tree.column(column,anchor=tk.W)
-            self.tree.heading(column,text=header,anchor=tk.W,command=lambda x=idx: self.sort_column(x))
+            self.tree.column(column,anchor=tk.W,stretch=tk.NO)
+            self.tree.heading(column,text=header,anchor=tk.W)
+
+        self.tree.column(self.columns[-1],stretch=tk.YES)
 
         self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
@@ -504,6 +504,7 @@ class table(manager):
         # self.button_Add = tk.Button(self.frame,text="Add Item",width=50,command=self.addItem)
         # self.button_Add.pack(side=tk.TOP,ipadx=5,padx=10,pady=(5,1))
 
+        self.tree.bind("<KeyPress-e>",self.editItem)
         self.tree.bind("<Double-1>",self.editItem)
 
         self.tree.bind("<Delete>",self.deleteItem)
@@ -511,10 +512,14 @@ class table(manager):
         self.tree.bind("<KeyPress-j>",self.moveDown)
         self.tree.bind("<KeyPress-k>",self.moveUp)
 
+        self.tree.bind("<Button-1>",self.sort_column)
+
         self.tree.bind("<Control-KeyPress-s>",lambda event: self.saveChanges(func,event))
 
         # self.button_Save = tk.Button(self.frame,text="Save Changes",width=50,command=lambda: self.saveChanges(func))
         # self.button_Save.pack(side=tk.TOP,ipadx=5,padx=10,pady=(10,1))
+
+        self.root.protocol('WM_DELETE_WINDOW',lambda: self.close_no_save(func))
 
         self.refill()
 
@@ -569,26 +574,32 @@ class table(manager):
             value = getattr(self.topAddItem,entry).get()
             values.append(value)
 
+        self.added.append(self.tablesize)
+
         self.set_rows(values)
 
         self.tree.insert(parent="",index="end",iid=self.tablesize,values=values)
 
         self.tablesize += 1
-        
-        self.added.append(values)
-
-        self.editedFlag = True
 
         self.topAddItem.destroy()
 
     def editItem(self,event):
 
+        region = self.tree.identify('region',event.x,event.y)
+
+        if region=="separator":
+            self.autowidth(event)
+            return
+
+        if not(region=="cell" or event.char=="e"):
+            return
+
         if hasattr(self,"topEditItem"):
             if self.topEditItem.winfo_exists():
                 return
-        if not self.tree.identify('item',event.x,event.y):
-            return
-        elif not self.tree.selection():
+
+        if not self.tree.selection():
             return
         else:
             item = self.tree.selection()[0]
@@ -630,13 +641,11 @@ class table(manager):
             value = getattr(self.topEditItem,entry).get()
             values.append(value)
 
+        self.edited.append([int(item),self.tree.item(item)["values"]])
+
         self.set_rows(values,int(item))
 
         self.tree.item(item,values=values)
-
-        self.edited.append([int(item),values]) # index and new values; NEW: CORRECT IT: it must be old value
-
-        self.editedFlag = True
 
         self.topEditItem.destroy()
 
@@ -647,13 +656,45 @@ class table(manager):
         else:
             item = self.tree.selection()[0]
 
+        self.deleted.append([int(item),self.tree.item(item)["values"]])
+
         self.del_rows(int(item),inplace=True)
 
         self.tree.delete(item)
 
-        self.deleted.append(int(item))  # you should also save what is deleted
+    def autowidth(self,event):
 
-        self.editedFlag = True
+        column = self.tree.identify('column',event.x,event.y)
+
+        index = self.columns.index(column)
+
+        if index==len(self.columns)-1:
+            return
+
+        header_char_count = len(self.headers[index])
+
+        vcharcount = np.vectorize(lambda x: len(x))
+
+        if self.running[index].size != 0:
+            column_char_count = vcharcount(self.running[index].astype(str)).max()
+        else:
+            column_char_count = 0
+
+        char_count = max(header_char_count,column_char_count)
+
+        width = tkfont.Font(family="Consolas", size=10).measure("u"*char_count)
+
+        column_width_old = self.tree.column(column,"width")
+
+        self.tree.column(column,width=width)
+
+        column_width_new = self.tree.column(column,"width")
+
+        column_width_last_old = self.tree.column(self.columns[-1],"width")
+
+        column_width_last_new = column_width_last_old+column_width_old-column_width_new
+
+        self.tree.column(self.columns[-1],width=column_width_last_new)
 
     def moveUp(self,event):
 
@@ -673,7 +714,16 @@ class table(manager):
 
         self.tree.move(item,self.tree.parent(item),self.tree.index(item)+1)
 
-    def sort_column(self,header_index):
+    def sort_column(self,event):
+
+        region = self.tree.identify('region',event.x,event.y)
+
+        if region!="heading":
+            return
+
+        column = self.tree.identify('column',event.x,event.y)
+
+        header_index = self.columns.index(column)
 
         reverseFlag = self.sortReverseFlag[header_index]
 
@@ -690,28 +740,39 @@ class table(manager):
 
     def saveChanges(self,func=None,event=None):
 
-        if not self.editedFlag:
-            self.root.destroy()
-            return
-
-        self.editedFlag = False
-
         self.added = []
         self.edited = []
         self.deleted = []
 
-        if func is None:
-            self.refill()
-        else:
+        self.refill()
+
+        if func is not None:
             func()
-            self.root.destroy()
 
-    def exit(self):
+    def close_no_save(self,func=None):
 
-        # exit without save:
-        # bring deleted back
-        # return any edits
-        # delete added ones
+        try:
+            for deleted in self.deleted:
+                self.set_rows(deleted[1])
+        except:
+            print("Could not bring back deleted rows ...")
+
+        try:
+            for edited in self.edited:
+                self.set_rows(edited[1],edited[0])
+        except:
+            print("Could not bring back editions ...")
+
+        try:            
+            self.del_rows(self.added,inplace=True)
+        except:
+            print("Could not remove additions ...")
+
+        try:
+            if func is not None:
+                func()
+        except:
+            print("Could not run the called function ...")
 
         self.root.destroy()
 
@@ -874,6 +935,8 @@ if __name__ == "__main__":
     # gui.texttocolumn(0,deliminator=",")
     gui = table(headers=["Full Name","Position","Contact"])
 
-    gui.draw(window)
+    printer = lambda: [print(name) for name in gui.running[0]]
+
+    gui.draw(window,printer)
 
     window.mainloop()
