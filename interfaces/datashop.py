@@ -467,10 +467,6 @@ class table(manager):
             self.headers = self._headers
             self.running = [np.asarray(column) for column in self._running]
 
-        self.added = []
-        self.edited = []
-        self.deleted = []
-
     def draw(self,window,func=None):
 
         self.root = window
@@ -521,20 +517,24 @@ class table(manager):
 
         self.root.protocol('WM_DELETE_WINDOW',lambda: self.close_no_save(func))
 
+        self.counter = self.running[0].size
+
+        self.iids = list(range(self.counter))
+
+        self.added = []
+        self.edited = []
+        self.deleted = []
+
         self.refill()
 
     def refill(self):
-
-        self.tablesize = self.running[0].size
-
-        self.tree.iid = list(range(self.tablesize))
 
         self.tree.delete(*self.tree.get_children())
 
         rows = np.array(self.running).T.tolist()
 
-        for index,row in enumerate(rows):
-            self.tree.insert(parent="",index="end",iid=index,values=row)
+        for iid,row in zip(self.iids,rows):
+            self.tree.insert(parent="",index="end",iid=iid,values=row)
 
     def addItem(self,event):
 
@@ -576,15 +576,15 @@ class table(manager):
             value = getattr(self.topAddItem,entry).get()
             values.append(value)
 
-        self.added.append(self.tablesize)
+        self.added.append(self.counter)
 
         self.set_rows(values)
 
-        self.tree.iid.append(self.tablesize)
+        self.iids.append(self.counter)
 
-        self.tree.insert(parent="",index="end",iid=self.tablesize,values=values)
+        self.tree.insert(parent="",index="end",iid=self.counter,values=values)
 
-        self.tablesize += 1
+        self.counter += 1
 
         self.topAddItem.destroy()
 
@@ -647,7 +647,7 @@ class table(manager):
 
         self.edited.append([int(item),self.tree.item(item)["values"]])
 
-        self.set_rows(values,self.tree.iid.index(int(item)))
+        self.set_rows(values,self.iids.index(int(item)))
 
         self.tree.item(item,values=values)
 
@@ -662,9 +662,9 @@ class table(manager):
 
         self.deleted.append([int(item),self.tree.item(item)["values"]])
 
-        self.del_rows(self.tree.iid.index(int(item)),inplace=True)
+        self.del_rows(self.iids.index(int(item)),inplace=True)
 
-        self.tree.iid.remove(int(item))
+        self.iids.remove(int(item))
 
         self.tree.delete(item)
 
@@ -726,7 +726,7 @@ class table(manager):
 
         if region!="heading":
             return
-            
+
         column = self.tree.identify('column',event.x,event.y)
 
         header_index = self.columns.index(column)
@@ -736,6 +736,7 @@ class table(manager):
         N = self.running[0].size
 
         argsort = np.argsort(self.running[header_index])
+        
         indices = np.arange(N)
 
         sort_indices = indices[np.argsort(argsort)]
@@ -743,7 +744,7 @@ class table(manager):
         if reverseFlag:
             sort_indices = N-sort_indices-1
 
-        for item,sort_index in zip(self.tree.iid,sort_indices):
+        for item,sort_index in zip(self.iids,sort_indices):
             self.tree.move(item,self.tree.parent(item),sort_index)
 
         self.sortReverseFlag[header_index] = not reverseFlag
@@ -754,7 +755,7 @@ class table(manager):
         self.edited = []
         self.deleted = []
 
-        print(self.tree.iid)
+        print(self.iids)
 
         if func is not None:
             func()
@@ -769,11 +770,11 @@ class table(manager):
 
         try:
             for edited in self.edited:
-                self.set_rows(edited[1],self.tree.iid.index(edited[0]))
+                self.set_rows(edited[1],self.iids.index(edited[0]))
         except:
             print("Could not bring back editions ...")
 
-        added = [self.tree.iid.index(add) for add in self.added]
+        added = [self.iids.index(add) for add in self.added]
 
         try:
             self.del_rows(added,inplace=True)
