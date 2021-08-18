@@ -519,7 +519,7 @@ class table(manager):
 
         self.counter = self.running[0].size
 
-        self.iids = list(range(self.counter))
+        self.iids = np.arange(self.counter)
 
         self.added = []
         self.edited = []
@@ -580,7 +580,7 @@ class table(manager):
 
         self.set_rows(values)
 
-        self.iids.append(self.counter)
+        self.iids = np.append(self.iids,self.counter)
 
         self.tree.insert(parent="",index="end",iid=self.counter,values=values)
 
@@ -647,7 +647,7 @@ class table(manager):
 
         self.edited.append([int(item),self.tree.item(item)["values"]])
 
-        self.set_rows(values,self.iids.index(int(item)))
+        self.set_rows(values,np.argmax(self.iids==int(item)))
 
         self.tree.item(item,values=values)
 
@@ -662,9 +662,9 @@ class table(manager):
 
         self.deleted.append([int(item),self.tree.item(item)["values"]])
 
-        self.del_rows(self.iids.index(int(item)),inplace=True)
+        self.del_rows(np.argmax(self.iids==int(item)),inplace=True)
 
-        self.iids.remove(int(item))
+        self.iids = np.delete(self.iids,np.argmax(self.iids==int(item)))
 
         self.tree.delete(item)
 
@@ -736,16 +736,22 @@ class table(manager):
         N = self.running[0].size
 
         argsort = np.argsort(self.running[header_index])
-        
-        indices = np.arange(N)
-
-        sort_indices = indices[np.argsort(argsort)]
 
         if reverseFlag:
-            sort_indices = N-sort_indices-1
+            argsort = np.flip(argsort)
 
-        for item,sort_index in zip(self.iids,sort_indices):
-            self.tree.move(item,self.tree.parent(item),sort_index)
+        for index,column in enumerate(self.running):
+            self.running[index] = column[argsort]
+
+        self.iids = self.iids[argsort]
+        # indices = np.arange(N)
+
+        # sort_indices = indices[np.argsort(argsort)]
+
+        self.refill()
+
+        # for item,sort_index in zip(self.iids,sort_indices):
+        #     self.tree.move(item,self.tree.parent(item),sort_index)
 
         self.sortReverseFlag[header_index] = not reverseFlag
 
@@ -770,11 +776,11 @@ class table(manager):
 
         try:
             for edited in self.edited:
-                self.set_rows(edited[1],self.iids.index(edited[0]))
+                self.set_rows(edited[1],np.argmax(self.iids==edited[0]))
         except:
             print("Could not bring back editions ...")
 
-        added = [self.iids.index(add) for add in self.added]
+        added = [np.argmax(self.iids==add) for add in self.added]
 
         try:
             self.del_rows(added,inplace=True)
