@@ -946,16 +946,164 @@ class graph(manager):
 
         self.plot.draw()
 
+class tree(manager):
+
+    def __init__(self,dirpath):
+
+        self.dirpath = dirpath
+
+    def draw(self,window):
+
+        self.root = window
+
+        self.scrollbar = ttk.Scrollbar(self.root)
+
+        self.tree = ttk.Treeview(self.root,show="headings tree",selectmode="browse",yscrollcommand=self.scrollbar.set)
+
+        self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+        self.scrollbar.pack(side=tk.LEFT,fill=tk.Y)
+
+        self.scrollbar.config(command=self.tree.yview)
+
+        self.tree.bind("<Button-1>",self.printer)
+
+        self.refill()
+
+    def refill(self):
+
+        iterator = os.walk(self.dirpath)
+
+        counter  = 0
+
+        pathdict = {"parentdirs":[],"treeloc":[]}
+
+        while True:
+
+            print(counter)
+
+            try:
+                root, dirs, files = next(iterator)
+            except:
+                break
+
+            parentdir,childname = os.path.split(root)
+
+            pathdict["parentdirs"].append(parentdir)
+
+            if counter == 0:
+                self.tree.heading("#0",text=childname,anchor=tk.W)
+                pathdict["parentdirs"]
+            else:
+                self.tree.insert("",'end',iid=counter,text=childname)
+
+
+
+
+
+            #     parent = self.tree.insert("",'end',iid=counter,text=childname)
+            # else:
+            #     if not dirs:
+            #         child = self.tree.insert(parent,'end',iid=counter,text=childname)
+            #     else:
+            #         parent = self.tree.insert(parent,'end',iid=counter,text=childname)
+
+            # if not dirs:
+            #     break
+
+            counter += 1
+
+        # foldername = os.path.split(self.dirpath)[1]
+
+        # iterator = os.walk(self.dirpath)
+
+        # root, dirs, files = next(iterator)
+
+        # heading = os.path.split(root)[1]
+
+        # self.tree.heading("#0",text=heading,anchor=tk.W)
+
+        # counter = 0
+
+        # for directory in dirs:
+
+        #     parent = self.tree.insert("",'end',iid=counter,text=directory)
+        #     counter += 1
+
+        #     childir = os.path.join(root,directory)
+
+        #     try:
+        #         listdirs = os.listdir(childir)
+        #     except:
+        #         listdirs = []
+
+        #     for ldir in listdirs:
+        #         child = self.tree.insert(parent,'end',iid=counter,text=ldir)
+        #         counter += 1
+
+
+        # for file in files:
+
+        #     self.tree.insert("",'end',iid=counter,text=file)
+        #     counter += 1
+
+
+
+        # for folder in dirs:
+        #     child = self.tree.insert(parent,'end',iid=counter,text=folder)
+        #     counter += 1
+        #     childpath = os.path.join(root,folder)
+        #     try:
+        #         childroot, childirs, childfiles = next(os.walk(childpath))
+        #     except:
+        #         break
+        #     # print(childroot,childirs,childfiles)
+        #     for directory in childirs:
+        #         self.tree.insert(child,'end',iid=counter,text=directory)
+        #         counter += 1
+        #     for filo in childfiles:
+        #         self.tree.insert(child,'end',iid=counter,text=filo)
+        #         counter += 1
+
+        # for file in files:
+        #     self.tree.insert(parent,'end',iid=counter,text=file)
+        #     counter += 1
+
+        # self.tree.insert(id0,'end',text='PLT 001')
+        # self.tree.insert(id0,'end',text='PLT 002')
+        
+        # idx = self.tree.insert('','end',text='Gum-Deniz')
+
+        # self.tree.insert('widgets', 'end', values='Canvas')
+
+        # self.tree.insert(idx, 'end', text='PLT 001')
+        # self.tree.insert(idx, 'end', text='PLT 002')
+
+    def printer(self,event):
+
+        # print(self.tree.identify("region",event.x,event.y))
+        # print(self.tree.identify("element",event.x,event.y))
+        # print(self.tree.identify("column",event.x,event.y))
+        print(self.tree.item(self.tree.identify("row",event.x,event.y))["text"])
+
+
+
+
 if __name__ == "__main__":
     
     window = tk.Tk()
 
     # gui = table("instructors.csv")
     # gui.texttocolumn(0,deliminator=",")
-    gui = table(headers=["Field Name","Platforms","Wells"])
 
-    printer = lambda: [print(name) for name in gui.running[0]]
+    gui = tree("C:\\Users\\javid.s\\Documents")
 
-    gui.draw(window,printer)
+    gui.draw(window)
+
+    # gui = table(headers=["Field Name","Platforms","Wells"])
+
+    # printer = lambda: [print(name) for name in gui.running[0]]
+
+    # gui.draw(window,printer)
 
     window.mainloop()
