@@ -515,6 +515,23 @@ class tree():
             for file in files:            
                 self.tree.insert(parent,'end',iid=counter,text=file)
                 counter += 1
+
+    def refill2(self):
+        
+        def scantree(path):
+            """Recursively yield DirEntry objects for given directory."""
+            for entry in os.scandir(path):
+                if entry.is_dir(follow_symlinks=False):
+                    yield from scantree(entry.path)  # see below for Python 2.x
+                else:
+                    yield entry
+
+        self.tree.heading("#0",text="")
+
+        self.tree.delete(*self.tree.get_children())
+
+        for entry in scantree(directory):
+            print(entry.path)
             
     def set_path(self,func=None,event=None):
 
