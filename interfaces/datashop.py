@@ -1037,15 +1037,25 @@ class graph(manager):
         self.plot.draw()
 
 if __name__ == "__main__":
+
+    # import time
+
     
     window = tk.Tk()
 
     # gui = table("instructors.csv")
     # gui.texttocolumn(0,deliminator=",")
 
-    # gui = tree("C:\\Users\\javid.s\\Documents")
+    # gui = tree("C:\\Users\\Cavid\\Documents")
 
+    # t0 = time.time()
     # gui.draw(window)
+    # t1 = time.time()
+
+    # total = t1-t0
+    
+
+    # print(total)
 
     gui = table(headers=["Full Name","Position","Contact"])
 
