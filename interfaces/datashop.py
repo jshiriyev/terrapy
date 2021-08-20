@@ -518,21 +518,47 @@ class tree():
 
     def refill2(self):
         
-        def scantree(path):
-            """Recursively yield DirEntry objects for given directory."""
+        def walk(path):
             for entry in os.scandir(path):
-                if entry.is_dir(follow_symlinks=False):
-                    yield from scantree(entry.path)  # see below for Python 2.x
-                else:
+                if entry.is_dir():#follow_symlinks=False # and not entry.name.startswith('.')
+                    yield entry
+                    yield from walk(entry.path)
+                elif entry.is_file():
                     yield entry
 
         self.tree.heading("#0",text="")
 
         self.tree.delete(*self.tree.get_children())
 
-        for entry in scantree(directory):
-            print(entry.path)
+        dirpathname = os.path.split(self.dirpath)[1]
+
+        self.tree.heading("#0",text=dirpathname,anchor=tk.W)
+
+        iterator = walk(self.dirpath)
+
+        parents_name = [self.dirpath]
+        parents_link = [""]
+
+        counter = 0
+
+        while True:
+
+            try:
+                entry = next(iterator)
+            except:
+                break
+
+            entry_parent_path = os.path.split(entry.path)[0]
             
+            parent = parents_link[parents_name.index(entry_parent_path)]
+
+            link = self.tree.insert(parent,'end',iid=counter,text=entry.name)
+            counter += 1
+
+            if entry.is_dir():
+                parents_name.append(entry.path)
+                parents_link.append(link)
+
     def set_path(self,func=None,event=None):
 
         if event is not None:
@@ -1055,7 +1081,7 @@ class graph(manager):
 
 if __name__ == "__main__":
 
-    # import time
+    import time
 
     
     window = tk.Tk()
@@ -1063,21 +1089,21 @@ if __name__ == "__main__":
     # gui = table("instructors.csv")
     # gui.texttocolumn(0,deliminator=",")
 
-    # gui = tree("C:\\Users\\Cavid\\Documents")
+    gui = tree("C:\\Users\\javid.s\\Documents")
 
-    # t0 = time.time()
-    # gui.draw(window)
-    # t1 = time.time()
+    t0 = time.time()
+    gui.draw(window)
+    t1 = time.time()
 
-    # total = t1-t0
+    total = t1-t0
     
 
-    # print(total)
+    print(total)
 
-    gui = table(headers=["Full Name","Position","Contact"])
+    # gui = table(headers=["Full Name","Position","Contact"])
 
-    printer = lambda: [print(name) for name in gui.running[0]]
+    # printer = lambda: [print(name) for name in gui.running[0]]
 
-    gui.draw(window,printer)
+    # gui.draw(window,printer)
 
     window.mainloop()
