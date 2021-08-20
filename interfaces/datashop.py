@@ -90,7 +90,7 @@ class manager():
 
                 try:
                     line = next(text)
-                except:
+                except StopIteration:
                     break
 
                 line = line.split('\n')[0].strip()
@@ -475,7 +475,7 @@ class tree():
 
         self.tree.bind("<Button-1>",lambda event: self.set_path(func,event))
 
-        self.refill()
+        self.refill2()
 
     def refill(self):
 
@@ -494,7 +494,7 @@ class tree():
 
             try:
                 root,dirs,files = next(iterator)
-            except:
+            except StopIteration:
                 break
 
             if counter==0:
@@ -517,26 +517,32 @@ class tree():
                 counter += 1
 
     def refill2(self):
-        
-        def walk(path):
-            for entry in os.scandir(path):
-                if entry.is_dir():#follow_symlinks=False # and not entry.name.startswith('.')
-                    yield entry
-                    yield from walk(entry.path)
-                elif entry.is_file():
-                    yield entry
 
         self.tree.heading("#0",text="")
 
         self.tree.delete(*self.tree.get_children())
+        
+        def walk(path):
 
-        dirpathname = os.path.split(self.dirpath)[1]
+            try:
+                directory = os.scandir(path)
+            except PermissionError:
+                return
 
-        self.tree.heading("#0",text=dirpathname,anchor=tk.W)
+            yield directory
+
+            for entry in directory:
+                    
+                if entry.is_dir(follow_symlinks=False) and not entry.name.startswith('.'):
+                    yield from walk(entry.path)
+
+        dirname = os.path.split(self.dirpath)[1]
+
+        self.tree.heading("#0",text=dirname,anchor=tk.W)
 
         iterator = walk(self.dirpath)
 
-        parents_name = [self.dirpath]
+        parents_name = [root]
         parents_link = [""]
 
         counter = 0
@@ -544,20 +550,33 @@ class tree():
         while True:
 
             try:
-                entry = next(iterator)
-            except:
+                directory = next(iterator)
+            except StopIteration:
                 break
+
+            dirs = []
+            files = []
+
+            for entry in directory:
+                if entry.is_dir():
+                    dirs.append(entry.name)
+                elif entry.is_file() and not entry.name.startswith('.'):
+                    files.append(entry.path)
 
             entry_parent_path = os.path.split(entry.path)[0]
             
             parent = parents_link[parents_name.index(entry_parent_path)]
 
-            link = self.tree.insert(parent,'end',iid=counter,text=entry.name)
-            counter += 1
+            for directory in dirs:
+                link = self.tree.insert(parent,'end',iid=counter,text=directory)
+                counter += 1
 
-            if entry.is_dir():
-                parents_name.append(entry.path)
+                parents_name.append(os.path.join(entry_parent_path,directory))
                 parents_link.append(link)
+
+            for file in files:            
+                self.tree.insert(parent,'end',iid=counter,text=file)
+                counter += 1
 
     def set_path(self,func=None,event=None):
 
@@ -1089,7 +1108,7 @@ if __name__ == "__main__":
     # gui = table("instructors.csv")
     # gui.texttocolumn(0,deliminator=",")
 
-    gui = tree("C:\\Users\\javid.s\\Documents")
+    gui = tree("C:\\Users\\javid.s")
 
     t0 = time.time()
     gui.draw(window)
