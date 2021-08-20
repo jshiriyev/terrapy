@@ -475,7 +475,7 @@ class tree():
 
         self.tree.bind("<Button-1>",lambda event: self.set_path(func,event))
 
-        self.refill2()
+        self.refill()
 
     def refill(self):
 
@@ -510,68 +510,6 @@ class tree():
                 counter += 1
 
                 parents_name.append(os.path.join(root,directory))
-                parents_link.append(link)
-
-            for file in files:            
-                self.tree.insert(parent,'end',iid=counter,text=file)
-                counter += 1
-
-    def refill2(self):
-
-        self.tree.heading("#0",text="")
-
-        self.tree.delete(*self.tree.get_children())
-        
-        def walk(path):
-
-            try:
-                directory = os.scandir(path)
-            except PermissionError:
-                return
-
-            yield directory
-
-            for entry in directory:
-                    
-                if entry.is_dir(follow_symlinks=False) and not entry.name.startswith('.'):
-                    yield from walk(entry.path)
-
-        dirname = os.path.split(self.dirpath)[1]
-
-        self.tree.heading("#0",text=dirname,anchor=tk.W)
-
-        iterator = walk(self.dirpath)
-
-        parents_name = [root]
-        parents_link = [""]
-
-        counter = 0
-
-        while True:
-
-            try:
-                directory = next(iterator)
-            except StopIteration:
-                break
-
-            dirs = []
-            files = []
-
-            for entry in directory:
-                if entry.is_dir():
-                    dirs.append(entry.name)
-                elif entry.is_file() and not entry.name.startswith('.'):
-                    files.append(entry.path)
-
-            entry_parent_path = os.path.split(entry.path)[0]
-            
-            parent = parents_link[parents_name.index(entry_parent_path)]
-
-            for directory in dirs:
-                link = self.tree.insert(parent,'end',iid=counter,text=directory)
-                counter += 1
-
-                parents_name.append(os.path.join(entry_parent_path,directory))
                 parents_link.append(link)
 
             for file in files:            
@@ -1108,7 +1046,7 @@ if __name__ == "__main__":
     # gui = table("instructors.csv")
     # gui.texttocolumn(0,deliminator=",")
 
-    gui = tree("C:\\Users\\javid.s")
+    gui = tree("C:\\Users\\Cavid\\Documents")
 
     t0 = time.time()
     gui.draw(window)
