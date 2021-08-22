@@ -1,25 +1,24 @@
 import datetime
-from dateutil.parser import parse
+
+import dateutil.parser as parser
 
 import inspect
 
 import os
 import re
 
-from matplotlib import pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-import numpy as np
-import openpyxl
-
-import sqlite3
-from sqlite3 import Error as sqlError
-
 import tkinter as tk
 
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import font as tkfont
+
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+import numpy as np
+
+import openpyxl
 
 class manager():
 
@@ -82,16 +81,9 @@ class manager():
 
         self._running = []
 
-        flagContinueLoopFile = True
-
         with open(self.filepath,"r") as text:
 
-            while flagContinueLoopFile:
-
-                try:
-                    line = next(text)
-                except StopIteration:
-                    break
+            for line in text:
 
                 line = line.split('\n')[0].strip()
 
@@ -246,7 +238,7 @@ class manager():
             if type(self._running[header_index][0])==datetime.datetime:
                 vdate = np.vectorize(lambda x: x.strftime(dtype))
             elif any([type(self._running[header_index][0])==class_ for class_ in [str,np.str_,np.str]]):
-                vdate = np.vectorize(lambda x: parse(x).strftime(dtype))
+                vdate = np.vectorize(lambda x: parser.parse(x).strftime(dtype))
 
         self._running[header_index] = vdate(self._running[header_index])
 
