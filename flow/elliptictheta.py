@@ -1,8 +1,8 @@
-import matplotlib.pyplot as plt
-
 import numpy as np
 
-def theta3(distance,time_steps,tol=1e-4,Nmax=100):
+from scipy.special import erf
+
+class kind3():
 
 	# ------------------------------------------------------------------------ #
 	# 
@@ -13,83 +13,158 @@ def theta3(distance,time_steps,tol=1e-4,Nmax=100):
 	#   forms are valid over the whole range of time, but convergence is more
 	#   rapid in the specified regions of the argument exp(-pi^2*t).
 	# 
-	#   order = 1 -> elliptic theta function of third kind
-	#   order = 2 -> integral of elliptic theta function of third kind
-	# 
-	#   N: truncation of summation
-	# 
 	# ------------------------------------------------------------------------ #
 
-	for step in time_steps:
+	def __init__(self,distance,time_steps,tol=1e-4,Nmax=100):
 
-		argument = np.exp(-np.pi**2*step)
+		#   tol:	tolerance criteria to follow in convergnece condition
+		#   Nmax:	truncation of summation if convergence is not achieved
 
-		if argument>1/np.pi:
+		self.distance	= distance
+		self.steps		= time_steps
+		self.tol		= tol
+		self.nmax		= Nmax
 
-			n1 = 0
-			s1 = 0
+	def function(self):
 
-			while True:
+		for step in self.steps:
 
-				n1 += 1
+			argument = np.exp(-2*np.pi**2*step)
 
-				newterm = np.exp(-n1**2*np.pi**2*step)*np.cos(2*n1*np.pi*distance)
+			if argument<1/np.pi:
 
-				s1 += newterm
+				n1 = 0
+				s1 = 0
 
-				if not np.any(np.abs(newterm)>tol*np.abs(s1)):
-					print("Convergence of elliptic theta function is obtained after {} iterations".format(n1))
-					break
+				while True:
 
-				if n1>Nmax:
-					print("Elliptic theta function could not converge ...")
-					break
+					n1 += 1
 
-			yield 1+2*s1
+					newterm = np.exp(-n1**2*np.pi**2*step)*np.cos(2*n1*np.pi*self.distance)
 
-		else:
+					s1 += newterm
 
-			n1 = 0
-			n2 = 0
+					if not np.any(np.abs(newterm)>self.tol*np.abs(s1)):
+						print("Convergence of elliptic theta function is obtained after {} iterations".format(n1))
+						break
 
-			s2 = np.exp(-(distance)**2/step)
+					if n1>self.nmax:
+						print("Elliptic theta function could not converge ...")
+						break
 
-			while True:
+				yield 1+2*s1
 
-				n1 += 1
-				n2 -= 1
+			else:
 
-				newterm1 = np.exp(-(distance+n1)**2/step)
-				newterm2 = np.exp(-(distance+n2)**2/step)
+				n1 = 0
+				n2 = 0
 
-				newterm = newterm1+newterm2
+				s2 = np.exp(-(self.distance)**2/step)
 
-				s2 += newterm
+				while True:
 
-				if not np.any(np.abs(newterm)>tol*np.abs(s2)):
-					print("Convergence of elliptic theta function is obtained after {} iterations".format(n1))
-					break
+					n1 += 1
+					n2 -= 1
 
-				if n1>Nmax:
-					print("Elliptic theta function could not converge ...")
-					break
+					newterm1 = np.exp(-(self.distance+n1)**2/step)
+					newterm2 = np.exp(-(self.distance+n2)**2/step)
 
-			yield 1./np.sqrt(np.pi*step)*s2
+					newterm = newterm1+newterm2
+
+					s2 += newterm
+
+					if not np.any(np.abs(newterm)>self.tol*np.abs(s2)):
+						print("Convergence of elliptic theta function is obtained after {} iterations".format(n1))
+						break
+
+					if n1>self.nmax:
+						print("Elliptic theta function could not converge ...")
+						break
+
+				yield 1./np.sqrt(np.pi*step)*s2
+
+	def integral(self):
+
+		for step in self.steps:
+
+			argument = np.exp(-np.pi**2*step)
+
+			if argument<1/np.pi:
+
+				n1 = 0
+				s1 = 0
+
+				while True:
+
+					n1 += 1
+
+					newterm = 1/n1*np.exp(-n1**2*np.pi**2*step)*np.sin(2*n1*np.pi*self.distance)
+
+					s1 += newterm
+
+					if not np.any(np.abs(newterm)>self.tol*np.abs(s1)):
+						print("Convergence of elliptic theta function integral is obtained after {} iterations".format(n1))
+						break
+
+					if n1>self.nmax:
+						print("Elliptic theta function integral could not converge ...")
+						break
+
+				yield self.distance+1/np.pi*s1
+
+			else:
+
+				n1 = 0
+				n2 = 0
+
+				s2 = erf(self.distance/np.sqrt(step))
+
+				while True:
+
+					n1 += 1
+					n2 -= 1
+
+					newterm1 = erf((self.distance+n1)/(np.sqrt(step)))-erf(n1/np.sqrt(step))
+					newterm2 = erf((self.distance+n2)/(np.sqrt(step)))-erf(n2/np.sqrt(step))
+
+					newterm = newterm1+newterm2
+
+					s2 += newterm
+
+					if not np.any(np.abs(newterm)>self.tol*np.abs(s2)):
+						print("Convergence of elliptic theta function integral is obtained after {} iterations".format(n1))
+						break
+
+					if n1>self.nmax:
+						print("Elliptic theta function integral could not converge ...")
+						break
+
+				yield 1/2*s2
+
 
 if __name__ == "__main__":
 
-	X = np.linspace(0,10,1000,dtype=np.float64)
-	T = np.linspace(0,1,100,dtype=np.float64)[1:]
+	import matplotlib.pyplot as plt
 
-	iterator = theta3(X,T,Nmax=1000)
+	X = np.linspace(0,10,10000,dtype=np.float64)
+	T = np.linspace(0,0.2,20,dtype=np.float64)[1:]
+
+	theta = kind3(X,T,Nmax=1000)
+
+	iterator1 = theta.function()
+	iterator2 = theta.integral()
 
 	for t in T:
 
 		print("Current time step is {}".format(t))
 
-		theta = next(iterator)
+		func = next(iterator1)
+		# intg = next(iterator2)
 
-	plt.plot(X,theta)
+	plt.plot(X,func,label="function")
+	# plt.plot(X,intg,label="integral")
+
+	plt.legend()
 
 	plt.show()
 
