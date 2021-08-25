@@ -1,4 +1,0 @@
-% first row: total run time, day
-% second row: numerical time increment, day
-1e3
-1e-1

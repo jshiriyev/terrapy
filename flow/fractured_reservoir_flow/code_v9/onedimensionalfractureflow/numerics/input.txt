@@ -1,4 +1,0 @@
-1e2	#day	% total run time
-0.1	#day	% numerical time increment
-#day
-1

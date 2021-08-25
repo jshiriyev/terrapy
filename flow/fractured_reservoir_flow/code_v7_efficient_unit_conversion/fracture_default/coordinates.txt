@@ -1,6 +1,0 @@
-% x, y, z coordinates of fracture nodes, ft
-% in 2D solution z coordinate needs to be entered as reservoir depth, ft
-% number of rows needs to be equal to number of node points
-5000 3790 50
-5000 4000 50
-5000 4210 50

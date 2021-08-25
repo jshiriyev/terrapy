@@ -1,5 +1,0 @@
-0.5	#ft	% wellbore radius
-1000	#psi	% either constant bottom hole pressure, psi
-% 1   #bbl/day    % constant flow rate, ex. 25*1.273 bbl/day
-% number of fracture segment containing well
-54

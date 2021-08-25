@@ -1,3 +1,0 @@
-0.5     #ft     % well radius
-1000	#psi
-6 

@@ -1,7 +1,0 @@
-% first row: bottom hole condition type, pressure = 1, flowrate = 2
-% second row: constant bottom hole pressure, psi
-% for constant flow rate you can use 25*1.273 bbl/day
-% third to the last row: index number of nodes on the well, dimensionles
-1
-2000
-2

@@ -1,4 +1,0 @@
-0.5	#ft		% wellbore radius, this is not for the green's approach
-31.825	#bbl/day	% wellbore condition
-% number of nodes containing well point
-4

@@ -1,4 +1,0 @@
-% fracture width, ft
-% number of rows needs to be equal to number of fracture segments
-0.01
-0.01

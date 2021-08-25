@@ -1,7 +1,0 @@
-% [1] wellbore radius
-% [2] constant bottom hole pressure, ex. 2000, psi
-% [2] constant flow rate, ex. 25*1.273, bbl/day
-% [2:end] index number of nodes on the well, dimensionles
-0.5     #ft
-29.5    #bbl/day
-2
