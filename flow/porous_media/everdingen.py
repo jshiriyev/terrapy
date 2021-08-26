@@ -25,12 +25,12 @@ def toarray(x):
 
 class everdingen():
 
-    def __init__(self,RR,rr,tt,num_of_terms=2):
-
-        self.RR = RR
+    def __init__(self,rr,tt,RR,num_of_terms=2):
 
         self.rr = toarray(rr)
         self.tt = toarray(tt)
+
+        self.RR = RR
 
         self.num = num_of_terms
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     # print(tt)
 
-    sol = everdingen(RR=10,rr=np.linspace(1,10,10000),tt=tt,num_of_terms=100) #np.linspace(1,10)
+    sol = everdingen(rr=np.linspace(1,10,10000),tt=tt,RR=10,num_of_terms=100) #np.linspace(1,10)
 
     sol.solve()
 

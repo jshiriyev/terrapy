@@ -7,14 +7,28 @@ sys.path.append(os.path.dirname(os.getcwd()))
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scipy.sparse import csr_matrix as csr
-
-from scipy.sparse.linalg import spsolve as sps
-
-from scipy.special import j0
-from scipy.special import j1
-from scipy.special import y0
-from scipy.special import y1
+# fileDir
+# Length
+# xLength
+# yLength
+# zLength
+# porosity
+# permeability
+# xPermeability
+# yPermeability
+# zPermeability
+# initPressure
+# diffusivity
+# xDiffusivity
+# yDiffusivity
+# zDiffusivity
+# isotropic
+# anisotropic
+# rockCompressibility
+# oilViscosity
+# oilFVF      % formation volume factor
+# oilCompressibility
+# totCompressibility
 
 class singlephase():
 
@@ -47,33 +61,6 @@ class singlephase():
 
         if hydraulic_diffusivity is not None:
             self.eta = hydraulic_diffusivity
-
-    def transient_flow(self,time):
-        """line source solution"""
-
-        well.radius = radius
-
-        t0 = 100.*well_radius**2/self.eta
-        te = 0.25*self.radius**2/self.eta
-
-        if time>t0 and time<te:
-            p = pi-5
-
-    def steady_state_flow(self):
-        pass
-
-    def pseudo_steady_state_flow(self):
-        """solution with shape factor"""
-        pass
-
-    def cartesian_2D(self):
-        """green's solution"""
-        pass
-
-    def cartesian_3D(self):
-        """green's solution"""
-        pass
-    
         
 if __name__ == "__main__":
 
