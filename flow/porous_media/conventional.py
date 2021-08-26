@@ -17,57 +17,62 @@ class radial():
 
     def __init__(self,permeability,porosity,viscosity,compressibility,well_radius,reservoir_radius,thickness):
 
-        self.permeability       = permeability
-        self.porosity           = porosity
-        self.viscosity          = viscosity
-        self.compressibility    = compressibility
+        self.permeability = permeability
+        self.porosity = porosity
+        self.viscosity = viscosity
+        self.compressibility = compressibility
 
-        self.eta                = self.permeability/(self.porosity*self.viscosity*self.compressibility)
+        self.eta = self.permeability/(self.porosity*self.viscosity*self.compressibility)
 
-        self.rw                 = well_radius
-        self.re                 = reservoir_radius
+        self.rw = well_radius
+        self.re = reservoir_radius
 
-        self.thickness          = thickness
+        self.thickness = thickness
 
-    def transient(self,radius,time,flow_rate):
+        self.time_limit_rw = 100.*self.rw**2/self.eta
+        self.time_limit_tr = 0.25*self.re**2/self.eta
+        self.time_limit_ps = 0.1*np.pi*self.re**2/self.eta
 
-        radius = radius.reshape((-1,1))
-        time = time.reshape((1,-1))
+    def solve(self,radius,time,flow_rate):
 
-        Pd = (flow_rate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
-        Ei = expi(-(radius**2)/(4*self.eta*time))
+        self.radius = radius.reshape((-1,1))
 
-        self.deltap = -1/2*Pd*Ei
+        self.time = time.reshape((1,-1))
 
-        early_time_period = 100.*self.rw**2/self.eta
-        late_time_period = 0.25*self.re**2/self.eta
+        self.flow_rate = flow_rate
 
-        finiteWellEffect = (time>early_time_period)[0]
-        finiteBoundaryEffect = (time<late_time_period)[0]
+        self.pdim = (self.flow_rate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
 
-        self.invalidTimeInterval = ~np.logical_and(finiteWellEffect,finiteBoundaryEffect)
+        self.deltap = np.zeros((self.radius.size,self.time.size))
 
-        self.deltap[:,self.invalidTimeInterval] = np.nan
+        self.transient()
+        self.steady()
+        self.pseudosteady()
 
-    def steady(self,radius,flow_rate):
+    def transient(self):
 
-        Pd = (flow_rate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
+        finite_rw = (self.time>self.time_limit_rw)[0]
+        finite_re = (self.time<self.time_limit_tr)[0]
 
-        self.deltap = Pd*np.log(re/radius)
+        valid_tr = np.logical_and(finite_rw,finite_re)
 
-    def pseudosteady(self,radius,time,flow_rate,CA=31.6):
+        Ei = expi(-(self.radius**2)/(4*self.eta*self.time[0,valid_tr]))
 
-        Area = np.pi*self.re**2/4
+        self.deltap[:,valid_tr] = -1/2*self.pdim*Ei
 
-        gamma = 1.781
+    def steady(self):
 
-        Pd = (flow_rate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
+        self.deltap_steady = self.pdim*np.log(self.re/self.radius)
 
-        Cd = 1/2*np.log((4*Area)/(gamma*CA*self.rw**2))
+    def pseudosteady(self):
 
-        Td = 2*np.pi*self.eta*time/Area
+        valid_ps = (self.time>self.time_limit_ps)[0]
 
-        self.deltap = Pd*(Cd+Td)
+        Sd = np.log(self.re/self.radius)
+
+        Td = (self.radius**2+4*self.eta*self.time[0,valid_ps])/(2*self.re**2)
+
+        self.deltap[:,valid_ps] = self.pdim*(Sd+Td-3/4)
         
 if __name__ == "__main__":
 
@@ -75,15 +80,13 @@ if __name__ == "__main__":
 
     pi = 3000*6894.76
 
-    radius = np.logspace(-1,3.5,1000)*0.3048
-
-    # radius = np.array([0.333,1,10,100,1000,3160])*0.3048
+    radius = np.linspace(0.333,3500,1000)*0.3048
 
     well_radius = 0.333*0.3048
 
-    reservoir_radius = 10000*0.3048
-
-    time = np.array([0.1,1,10])*86400
+    reservoir_radius = 3500*0.3048
+    
+    time = np.array([0.1,1,40,100])*86400
 
     permeability = 25*9.869233e-16
 
@@ -97,11 +100,17 @@ if __name__ == "__main__":
 
     ls = radial(permeability,porosity,viscosity,totalCompressibility,well_radius,reservoir_radius,thickness)
 
-    ls.transient(radius,time,q)
+    ls.solve(radius,time,q)
 
-    plt.plot(radius,(pi+ls.deltap[:,0])/6894.76)
-    plt.plot(radius,(pi+ls.deltap[:,1])/6894.76)
-    plt.plot(radius,(pi+ls.deltap[:,2])/6894.76)
+    plt.plot(radius,(pi+ls.deltap[:,0])/6894.76,label="at {} days".format(time[0]/86400))
+    plt.plot(radius,(pi+ls.deltap[:,1])/6894.76,label="at {} days".format(time[1]/86400))
+    plt.plot(radius,(pi+ls.deltap[:,2])/6894.76,label="at {} days".format(time[2]/86400))
+    plt.plot(radius,(pi+ls.deltap[:,3])/6894.76,label="at {} days".format(time[3]/86400))
+
+    plt.xlabel("radius [m]")
+    plt.ylabel("pressure [psi]")
+
+    plt.legend()
 
     plt.show()
 
