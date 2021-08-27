@@ -823,104 +823,54 @@ class graph(manager):
 
         self.root = window
 
-        tk.Grid.rowconfigure(self.root,0,weight=1)
-        tk.Grid.rowconfigure(self.root,1,weight=0)
-        tk.Grid.rowconfigure(self.root,2,weight=0)
+        # configuration of window pane
+        self.pane_NS = ttk.PanedWindow(self.root,orient=tk.VERTICAL,width=1000)
 
-        tk.Grid.columnconfigure(self.root,0,weight=0)
-        tk.Grid.columnconfigure(self.root,1,weight=0)
-        tk.Grid.columnconfigure(self.root,2,weight=1)
+        self.body = ttk.Frame(self.root,height=450)
+        self.foot = tk.Listbox(self.root,height=5)
 
-        self.frame_navigator = tk.Frame(self.root,width=300)
+        self.pane_NS.add(self.body,weight=1)
+        self.pane_NS.add(self.foot,weight=0)
 
-        self.frame_navigator.configure(background="white")
-        self.frame_navigator.pack_propagate(0)
+        self.pane_NS.pack(expand=1,fill=tk.BOTH)
 
-        self.searchbox = AutocompleteEntryListbox(self.frame_navigator,completevalues=[],allow_other_values=False)
-        self.searchbox.pack(side=tk.TOP,fill=tk.BOTH)
+        # configuration of top pane
+        self.pane_EW = ttk.PanedWindow(self.body,orient=tk.HORIZONTAL)
 
-        self.separator1 = ttk.Separator(self.frame_navigator,orient='horizontal',cursor="size_ns")
-        self.separator1.bind("<Button-1>",self.resize)
-        self.separator1.pack(side=tk.TOP,fill=tk.X)
+        self.side = ttk.Frame(self.body)
 
-        self.template_label = ttk.Label(self.frame_navigator,text="Template Name")
-        self.template_label.pack(side=tk.TOP,fill=tk.X)
-
-        self.template_listbox = tk.Listbox(self.frame_navigator,exportselection=False)
-        self.template_listbox.pack(side=tk.TOP,fill=tk.BOTH)
-
-        self.frame_navigator.grid(row=0,column=0,sticky=tk.NS)
-
-        # self.template_listbox.insert(tk.END,"Production History Match")
-        # self.template_listbox.bind('<<ListboxSelect>>',self.set_template)
-
-        # self.button = tk.Button(self.frame_navigator,text="Set Plot Template",command=self.set_template)
-        # self.button.grid(row=1,column=0,sticky=tk.NSEW)
-
-        # self.frame_monitor = tk.Frame(self.root,width=300,height=200)
-        # self.frame_monitor.configure(background="white")
-
-        # tk.Grid.rowconfigure(self.frame_monitor,0,weight=1)
-        # tk.Grid.columnconfigure(self.frame_monitor,0,weight=1)
-
-        self.separator2 = ttk.Separator(self.root,orient='vertical',cursor="size_we")
-        # self.separator2.bind("<B1-Motion>",self.resize) #
-        self.separator2.grid(row=0,column=1,sticky=tk.NS)
-        
         self.figure = plt.Figure()
-        
-        self.plot_canvas = FigureCanvasTkAgg(self.figure,self.root)
-        self.plot = self.plot_canvas.get_tk_widget()
-        self.plot.grid(row=0,column=2,sticky=tk.NSEW)
+        self.canvas = FigureCanvasTkAgg(self.figure,self.body)
 
-        self.separator3 = ttk.Separator(self.root,orient='horizontal',cursor="size_ns")
-        # self.separator3.bind("<B1-Motion>",self.resize)
-        self.separator3.grid(row=1,column=0,columnspan=3,sticky=tk.EW)
-            
-        self.status = tk.Listbox(self.root,height=4) #width=250,height=5
-        self.status.grid(row=2,column=0,columnspan=3,sticky=tk.EW)
+        self.plot = self.canvas.get_tk_widget()
 
-            # self.frame_monitor.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        self.pane_EW.add(self.side,weight=0)
+        self.pane_EW.add(self.plot,weight=1)
 
-    def resize(self,event):
+        self.pane_EW.pack(expand=1,fill=tk.BOTH)
 
-        # print(event.y)
+        # configuration of top left pane
+        self.pane_ns = ttk.PanedWindow(self.side,orient=tk.VERTICAL,width=300)
 
-        # height_A = self.frame_navigator.winfo_height()
+        self.searchbox = AutocompleteEntryListbox(self.side,height=250,padding=0)
+        self.searchbox.config(completevalues=[],allow_other_values=False)
 
-        # height_0 = self.searchbox.winfo_height()
-        # height_1 = self.separator1.winfo_height()
-        # height_2 = self.template_label.winfo_height()
-        # height_3 = self.template_listbox.winfo_height()
+        self.template = ttk.Frame(self.side,height=200)
 
-        # print(self.searchbox.winfo_height())
-        # print(self.template_listbox.winfo_height())
+        self.template_label = ttk.Label(self.template,text="Template Name")
+        self.template_label.pack(side=tk.TOP,expand=0,fill=tk.X)
 
-        # self.template_listbox.config(height=100)
-        # self.searchbox.update()
+        self.template_listbox = tk.Listbox(self.template,exportselection=False)
+        self.template_listbox.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
 
-        # print(self.searchbox.pack_info())
+        self.pane_ns.add(self.searchbox,weight=1)
+        self.pane_ns.add(self.template,weight=1)
 
-        # new_height_0 = self.searchbox.winfo_height()+event.y
-        # new_height_3 = self.template_listbox.winfo_height()-event.y
+        self.pane_ns.pack(expand=1,fill=tk.BOTH)
 
-        # new_y1 = self.template_label.winfo_y()+event.y
-        # new_y2 = self.template_listbox.winfo_y()+event.y
+        self.style = ttk.Style(self.root)
 
-        self.searchbox.config(height=self.searchbox.winfo_height()+20)
-        self.template_listbox.config(height=self.template_listbox.winfo_height()-20)
-
-        # self.searchbox.config(height=new_height_0)
-        # self.template_listbox.config(height=new_height_3)
-
-        # self.searchbox.scale()
-        # self.template_listbox.scale()
-
-        # self.searchbox.update()
-        # self.template_listbox.update()
-
-        # self.template_label.move(y=event.y)
-        # self.template_listbox.move(y=event.y)
+        self.style.theme_use("default")
 
     def set_template(self,event):
 
