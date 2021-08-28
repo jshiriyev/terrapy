@@ -857,20 +857,39 @@ class graph(manager):
 
         self.template = ttk.Frame(self.side,height=200)
 
-        self.template_label = ttk.Label(self.template,text="Template Name")
-        self.template_label.pack(side=tk.TOP,expand=0,fill=tk.X)
+        self.template.rowconfigure(0,weight=0)
+        self.template.rowconfigure(1,weight=1)
+
+        self.template.columnconfigure(0,weight=1)
+        self.template.columnconfigure(1,weight=0)
+        self.template.columnconfigure(2,weight=0)
+
+        self.template_label = ttk.Label(self.template,text="Templates")
+        self.template_label.grid(row=0,column=0,sticky=tk.EW)
+
+        self.buttonAdd = ttk.Button(self.template,text="+",width=3,command=self.add_template)
+        self.buttonAdd.grid(row=0,column=1)
+
+        self.buttonDelete = ttk.Button(self.template,text="-",width=3,command=self.remove_template)
+        self.buttonDelete.grid(row=0,column=2)
+
+        self.buttonEdit = ttk.Button(self.template,text="*",width=3,command=self.edit_template)
+        self.buttonEdit.grid(row=0,column=3)
 
         self.template_listbox = tk.Listbox(self.template,exportselection=False)
-        self.template_listbox.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
+        self.template_listbox.grid(row=1,column=0,columnspan=4,sticky=tk.NSEW)
 
         self.pane_ns.add(self.searchbox,weight=1)
         self.pane_ns.add(self.template,weight=1)
 
         self.pane_ns.pack(expand=1,fill=tk.BOTH)
 
-        self.style = ttk.Style(self.root)
-
-        self.style.theme_use("default")
+    def add_template(self):
+        pass
+    def remove_template(self):
+        pass
+    def edit_template(self):
+        pass
 
     def set_template(self,event):
 
