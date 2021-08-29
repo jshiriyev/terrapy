@@ -867,14 +867,18 @@ class graph(manager):
         self.template_label = ttk.Label(self.template,text="Templates")
         self.template_label.grid(row=0,column=0,sticky=tk.EW)
 
-        self.buttonAdd = ttk.Button(self.template,text="+",width=3,command=self.add_template)
-        self.buttonAdd.grid(row=0,column=1)
+        icon1 = tk.PhotoImage(file=".\\graphics\\Add\\Add-9.png")
+        icon2 = tk.PhotoImage(file=".\\graphics\\Edit\\Edit-9.png")
+        icon3 = tk.PhotoImage(file=".\\graphics\\Delete\\Delete-9.png")
 
-        self.buttonDelete = ttk.Button(self.template,text="-",width=3,command=self.remove_template)
-        self.buttonDelete.grid(row=0,column=2)
+        self.button1 = ttk.Button(self.template,image=icon1,width=3,command=self.add_template)
+        self.button1.grid(row=0,column=1)
 
-        self.buttonEdit = ttk.Button(self.template,text="*",width=3,command=self.edit_template)
-        self.buttonEdit.grid(row=0,column=3)
+        self.button2 = ttk.Button(self.template,image=icon2,width=3,command=self.edit_template)
+        self.button2.grid(row=0,column=2)
+
+        self.button3 = ttk.Button(self.template,image=icon3,width=3,command=self.remove_template)
+        self.button3.grid(row=0,column=3)
 
         self.template_listbox = tk.Listbox(self.template,exportselection=False)
         self.template_listbox.grid(row=1,column=0,columnspan=4,sticky=tk.NSEW)
