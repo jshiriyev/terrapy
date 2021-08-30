@@ -827,9 +827,11 @@ class graph(manager):
         self.pane_NS = ttk.PanedWindow(self.root,orient=tk.VERTICAL,width=1000)
 
         self.body = ttk.Frame(self.root,height=450)
-        self.foot = tk.Listbox(self.root,height=5)
 
         self.pane_NS.add(self.body,weight=1)
+
+        self.foot = tk.Listbox(self.root,height=5)
+
         self.pane_NS.add(self.foot,weight=0)
 
         self.pane_NS.pack(expand=1,fill=tk.BOTH)
@@ -839,12 +841,13 @@ class graph(manager):
 
         self.side = ttk.Frame(self.body)
 
+        self.pane_EW.add(self.side,weight=0)
+
         self.figure = plt.Figure()
         self.canvas = FigureCanvasTkAgg(self.figure,self.body)
 
         self.plot = self.canvas.get_tk_widget()
 
-        self.pane_EW.add(self.side,weight=0)
         self.pane_EW.add(self.plot,weight=1)
 
         self.pane_EW.pack(expand=1,fill=tk.BOTH)
@@ -854,6 +857,8 @@ class graph(manager):
 
         self.searchbox = AutocompleteEntryListbox(self.side,height=250,padding=0)
         self.searchbox.config(completevalues=[],allow_other_values=False)
+
+        self.pane_ns.add(self.searchbox,weight=1)
 
         self.template = ttk.Frame(self.side,height=200)
 
@@ -867,23 +872,22 @@ class graph(manager):
         self.template_label = ttk.Label(self.template,text="Templates")
         self.template_label.grid(row=0,column=0,sticky=tk.EW)
 
-        icon1 = tk.PhotoImage(file=".\\graphics\\Add\\Add-9.png")
-        icon2 = tk.PhotoImage(file=".\\graphics\\Edit\\Edit-9.png")
-        icon3 = tk.PhotoImage(file=".\\graphics\\Delete\\Delete-9.png")
+        self.icon1 = tk.PhotoImage(file=".\\graphics\\Add\\Add-9.png")
+        self.icon2 = tk.PhotoImage(file=".\\graphics\\Edit\\Edit-9.png")
+        self.icon3 = tk.PhotoImage(file=".\\graphics\\Delete\\Delete-9.png")
 
-        self.button1 = ttk.Button(self.template,image=icon1,width=3,command=self.add_template)
+        self.button1 = ttk.Button(self.template,image=self.icon1) #,command=self.add_template
         self.button1.grid(row=0,column=1)
 
-        self.button2 = ttk.Button(self.template,image=icon2,width=3,command=self.edit_template)
+        self.button2 = ttk.Button(self.template,image=self.icon2) #,command=self.edit_template
         self.button2.grid(row=0,column=2)
 
-        self.button3 = ttk.Button(self.template,image=icon3,width=3,command=self.remove_template)
+        self.button3 = ttk.Button(self.template,image=self.icon3) #,command=self.remove_template
         self.button3.grid(row=0,column=3)
 
         self.template_listbox = tk.Listbox(self.template,exportselection=False)
         self.template_listbox.grid(row=1,column=0,columnspan=4,sticky=tk.NSEW)
 
-        self.pane_ns.add(self.searchbox,weight=1)
         self.pane_ns.add(self.template,weight=1)
 
         self.pane_ns.pack(expand=1,fill=tk.BOTH)
