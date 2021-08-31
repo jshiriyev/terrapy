@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.append('C:\\Users\\javid.s\\Documents\\bhospy')
+
 import tkinter as tk
 
 from tkinter import ttk
@@ -8,7 +13,7 @@ from ttkwidgets.autocomplete import AutocompleteEntryListbox
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from data import manager
+from interfaces.data import manager
 
 class graph(manager):
 

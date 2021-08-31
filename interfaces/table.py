@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.append('C:\\Users\\javid.s\\Documents\\bhospy')
+
 import numpy as np
 
 import tkinter as tk
@@ -8,7 +13,7 @@ from tkinter import font as tkfont
 
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
-from data import manager
+from interfaces.data import manager
 
 class table(manager):
 
