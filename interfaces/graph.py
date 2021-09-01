@@ -105,6 +105,8 @@ class graph(manager):
 
     def setPlotArea(self,item=None,event=None):
 
+        if not self.tempListbox.curselection(): return
+
         if hasattr(self,"axes"):
             [self.figure.delaxes(axis) for axis in self.axes]
 
@@ -125,7 +127,7 @@ class graph(manager):
 
         self.canvas.draw()
 
-    def setTopTemplate(self,buttonname="Add Template",item=None):
+    def setTopTemplate(self,item=None):
 
         if hasattr(self,"topTemplate"):
             if self.topTemplate.winfo_exists(): return
@@ -136,45 +138,44 @@ class graph(manager):
 
         self.topTemplate.resizable(0,0)
 
-        self.topTemplate.frame = tk.Frame(self.topTemplate,width=250,height=50)
+        self.style = ttk.Style(self.topTemplate)
 
-        self.topTemplate.frame.rowconfigure(0,weight=1)
-        self.topTemplate.frame.rowconfigure(1,weight=0)
-        self.topTemplate.frame.rowconfigure(2,weight=0)
-        self.topTemplate.frame.rowconfigure(3,weight=0)
-        self.topTemplate.frame.rowconfigure(4,weight=0)
-        self.topTemplate.frame.rowconfigure(5,weight=0)
+        self.style.configure("TNotebook.Tab",width=20,anchor=tk.CENTER)
 
-        self.topTemplate.frame.columnconfigure(0,weight=1)
-        self.topTemplate.frame.columnconfigure(1,weight=1)
-        self.topTemplate.frame.columnconfigure(2,weight=0)
-        self.topTemplate.frame.columnconfigure(3,weight=1)
+        self.topTempNotebook = ttk.Notebook(self.topTemplate,width=450,height=100)
 
-        self.topTemplate.tempnameLabel = ttk.Label(self.topTemplate.frame,text="Template Name")
-        self.topTemplate.tempnameLabel.grid(row=0,column=0,columnspan=4)
+        self.topTempTemplateFrame = tk.Frame(self.topTempNotebook,width=250,height=50)
 
-        self.topTemplate.tempname = ttk.Entry(self.topTemplate.frame)
-        self.topTemplate.tempname.grid(row=1,column=0,columnspan=4,pady=(0,10),sticky=tk.EW)
+        self.topTempTemplateFrame.columnconfigure(0,weight=0)
+        self.topTempTemplateFrame.columnconfigure(1,weight=1)
 
-        self.topTemplate.tempname.focus()
+        self.topTempTemplateFrame.tempnameLabel = ttk.Label(self.topTempTemplateFrame,text="Template Name")
+        self.topTempTemplateFrame.tempnameLabel.grid(row=0,column=0,padx=(30,10),pady=(30,10))
 
-        self.topTemplate.separator0 = ttk.Separator(self.topTemplate.frame,orient=tk.HORIZONTAL)
-        self.topTemplate.separator0.grid(row=2,column=0,columnspan=4,sticky=tk.EW)
+        self.topTempTemplateFrame.tempname = ttk.Entry(self.topTempTemplateFrame)
+        self.topTempTemplateFrame.tempname.grid(row=0,column=1,padx=10,pady=(30,10),sticky=tk.EW)
 
-        self.topTemplate.plotgrid = ttk.Label(self.topTemplate.frame,text="Grids")
-        self.topTemplate.plotgrid.grid(row=3,column=0,sticky=tk.EW,padx=(0,10),pady=10)
+        self.topTempTemplateFrame.tempname.focus()
 
-        self.topTemplate.xnumgrid = ttk.Entry(self.topTemplate.frame,width=10,validate="key",validatecommand=self.integerVC)
-        self.topTemplate.xnumgrid.grid(row=3,column=1,sticky=tk.EW,pady=10)
+        self.topTempTemplateFrame.xgridlabel = ttk.Label(self.topTempTemplateFrame,text="Grids in Y")
+        self.topTempTemplateFrame.xgridlabel.grid(row=1,column=0,sticky=tk.EW,padx=(30,10),pady=10)
 
-        self.topTemplate.cross = ttk.Label(self.topTemplate.frame,text="x")
-        self.topTemplate.cross.grid(row=3,column=2,pady=10)
+        self.topTempTemplateFrame.xnumgrid = ttk.Entry(self.topTempTemplateFrame,width=10,validate="key",validatecommand=self.integerVC)
+        self.topTempTemplateFrame.xnumgrid.grid(row=1,column=1,sticky=tk.EW,padx=10,pady=10)
 
-        self.topTemplate.ynumgrid = ttk.Entry(self.topTemplate.frame,width=10,validate="key",validatecommand=self.integerVC)
-        self.topTemplate.ynumgrid.grid(row=3,column=3,sticky=tk.EW,pady=10)
+        self.topTempTemplateFrame.ygridlabel = ttk.Label(self.topTempTemplateFrame,text="Grids in X")
+        self.topTempTemplateFrame.ygridlabel.grid(row=2,column=0,sticky=tk.EW,padx=(30,10),pady=(10,30))
 
-        self.topTemplate.separator1 = ttk.Separator(self.topTemplate.frame,orient=tk.HORIZONTAL)
-        self.topTemplate.separator1.grid(row=4,column=0,columnspan=4,sticky=tk.EW)
+        self.topTempTemplateFrame.ynumgrid = ttk.Entry(self.topTempTemplateFrame,width=10,validate="key",validatecommand=self.integerVC)
+        self.topTempTemplateFrame.ynumgrid.grid(row=2,column=1,sticky=tk.EW,padx=10,pady=(10,30))
+        
+        self.topTempNotebook.add(self.topTempTemplateFrame,text="Template Options",compound=tk.CENTER)
+
+        self.topTempLineFrame = tk.Frame(self.topTempNotebook,width=250,height=50)
+
+        self.topTempNotebook.add(self.topTempLineFrame,text="Line Options",compound=tk.CENTER)
+
+        self.topTempNotebook.pack(side=tk.TOP,expand=1,fill=tk.BOTH,padx=(0,1))
 
         if item is not None:
 
@@ -182,16 +183,16 @@ class graph(manager):
             xnumgrid = self.temps.get("xnumgrid")[item]
             ynumgrid = self.temps.get("ynumgrid")[item]
 
-            self.topTemplate.tempname.insert(0,tempname)
-            self.topTemplate.xnumgrid.insert(0,xnumgrid)
-            self.topTemplate.ynumgrid.insert(0,ynumgrid)
+            self.topTempTemplateFrame.tempname.insert(0,tempname)
+            self.topTempTemplateFrame.xnumgrid.insert(0,xnumgrid)
+            self.topTempTemplateFrame.ynumgrid.insert(0,ynumgrid)
 
-        self.topTemplate.button = tk.Button(self.topTemplate.frame,text=buttonname,command=lambda: self.btnTopTempClicked(item))
-        self.topTemplate.button.grid(row=5,column=0,columnspan=4,sticky=tk.EW,pady=10)
+        buttonname = "Add Template" if item is None else "Edit Template"
+
+        self.topTemplate.button = ttk.Button(self.topTemplate,text=buttonname,width=20,command=lambda: self.btnTopTempClicked(item))
+        self.topTemplate.button.pack(side=tk.TOP,anchor=tk.E,padx=(0,1),pady=(1,1))
 
         self.topTemplate.button.bind('<Return>',lambda event: self.btnTopTempClicked(item,event))
-
-        self.topTemplate.frame.place(relx=0.5,rely=0.5,anchor=tk.CENTER)
 
         self.topTemplate.mainloop()
 
@@ -205,7 +206,7 @@ class graph(manager):
         else:
             titles = self.temps.get("title")
 
-        title = self.topTemplate.tempname.get()
+        title = self.topTempTemplateFrame.tempname.get()
 
         if title in titles:
             tk.messagebox.showerror("Error","You have a template with the same name!",parent=self.topTemplate)
@@ -224,14 +225,14 @@ class graph(manager):
         self.temps.get("title").insert(item,title)
 
         try:
-            xnumgrid = int(self.topTemplate.xnumgrid.get())
+            xnumgrid = int(self.topTempTemplateFrame.xnumgrid.get())
         except ValueError:
             xnumgrid = 1
 
         self.temps.get("xnumgrid").insert(item,xnumgrid)
 
         try:
-            ynumgrid = int(self.topTemplate.ynumgrid.get())
+            ynumgrid = int(self.topTempTemplateFrame.ynumgrid.get())
         except ValueError:
             ynumgrid = 1
 
@@ -243,7 +244,7 @@ class graph(manager):
 
     def addTemp(self):
 
-        self.setTopTemplate(buttonname="Add Template")
+        self.setTopTemplate()
 
     def editTemp(self):
 
@@ -253,7 +254,7 @@ class graph(manager):
 
         item = self.temps.get("title").index(tempname)
 
-        self.setTopTemplate(buttonname="Edit Template",item=item)
+        self.setTopTemplate(item=item)
 
     def delTemp(self):
 
@@ -269,7 +270,15 @@ class graph(manager):
         self.temps.get("xnumgrid").pop(item)
         self.temps.get("ynumgrid").pop(item)
 
-    def set_template(self,event):
+class templateobject():
+
+    def __init__(self):
+
+        self.title = title
+        self.xnumgrid = xnumgrid
+        self.ynumgrid = ynumgrid
+
+    def tempHistMatch(self,event):
 
         if not self.tempListbox.curselection(): return
         
@@ -313,7 +322,7 @@ class graph(manager):
         self.status.insert(tk.END,status)
         self.status.see(tk.END)
         
-    def set_lines(self,event):
+    def tempHistMatchSetLines(self,event):
 
         if not self.listbox.curselection(): return
 

@@ -56,7 +56,7 @@ class schedule():
         self.classroom = table(headers=["Type","Capacity"])
         self.connectivity = table(headers=["Instructor Name","Course ID","Semester","Classroom"])
 
-        self.frame_notebook = ttk.Notebook(self.root)        
+        self.frame_notebook = ttk.Notebook(self.root)
         self.frame0 = self.set_frame_notebook_sheet()
         self.frame0.pack(fill='both',expand=True)
         self.frame_notebook.add(self.frame0,text="Instructor's Name",compound=tk.RIGHT)
