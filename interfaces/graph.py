@@ -1,7 +1,4 @@
 import os
-import sys
-
-sys.path.append('C:\\Users\\javid.s\\Documents\\bhospy')
 
 import tkinter as tk
 
@@ -13,6 +10,9 @@ from ttkwidgets.autocomplete import AutocompleteEntryListbox
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+if __name__ == "__main__":
+    import setup
+
 from interfaces.data import manager
 
 class graph(manager):
@@ -20,6 +20,8 @@ class graph(manager):
     def __init__(self,filepath=None,**kwargs):
 
         super().__init__(filepath,**kwargs)
+
+        self.fdir = os.path.dirname(__file__)
 
     def draw(self,window):
 
@@ -79,9 +81,9 @@ class graph(manager):
         self.tempLabel = ttk.Label(self.template,text="Templates")
         self.tempLabel.grid(row=0,column=0,sticky=tk.EW)
 
-        self.iconAdd = tk.PhotoImage(file=".\\graphics\\Add\\Add-9.png")
-        self.iconEdt = tk.PhotoImage(file=".\\graphics\\Edit\\Edit-9.png")
-        self.iconDel = tk.PhotoImage(file=".\\graphics\\Delete\\Delete-9.png")
+        self.iconAdd = tk.PhotoImage(file=self.fdir+"\\graphics\\Add\\Add-9.png")
+        self.iconEdt = tk.PhotoImage(file=self.fdir+"\\graphics\\Edit\\Edit-9.png")
+        self.iconDel = tk.PhotoImage(file=self.fdir+"\\graphics\\Delete\\Delete-9.png")
 
         self.buttonAdd = ttk.Button(self.template,image=self.iconAdd,command=self.addTemp)
         self.buttonAdd.grid(row=0,column=1)
