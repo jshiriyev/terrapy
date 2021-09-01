@@ -16,12 +16,12 @@ if __name__ == "__main__":
 from interfaces.data import manager
 
 class graph(manager):
-
+    
     def __init__(self,filepath=None,**kwargs):
 
         super().__init__(filepath,**kwargs)
 
-        self.fdir = os.path.dirname(__file__)
+        self.dirname = os.path.dirname(__file__)
 
     def draw(self,window):
 
@@ -81,9 +81,9 @@ class graph(manager):
         self.tempLabel = ttk.Label(self.template,text="Templates")
         self.tempLabel.grid(row=0,column=0,sticky=tk.EW)
 
-        self.iconAdd = tk.PhotoImage(file=self.fdir+"\\graphics\\Add\\Add-9.png")
-        self.iconEdt = tk.PhotoImage(file=self.fdir+"\\graphics\\Edit\\Edit-9.png")
-        self.iconDel = tk.PhotoImage(file=self.fdir+"\\graphics\\Delete\\Delete-9.png")
+        self.iconAdd = tk.PhotoImage(file=self.dirname+"\\graphics\\Add\\Add-9.png")
+        self.iconEdt = tk.PhotoImage(file=self.dirname+"\\graphics\\Edit\\Edit-9.png")
+        self.iconDel = tk.PhotoImage(file=self.dirname+"\\graphics\\Delete\\Delete-9.png")
 
         self.buttonAdd = ttk.Button(self.template,image=self.iconAdd,command=self.addTemp)
         self.buttonAdd.grid(row=0,column=1)
@@ -200,6 +200,17 @@ class graph(manager):
         if event is not None and event.widget!=self.topTemplate.button:
             return
 
+        if item is not None:
+            titles = [name for index,name in enumerate(self.temps.get("title")) if index!=item]
+        else:
+            titles = self.temps.get("title")
+
+        title = self.topTemplate.tempname.get()
+
+        if title in titles:
+            tk.messagebox.showerror("Error","You have a template with the same name!",parent=self.topTemplate)
+            return
+
         if item is None:
             item = len(self.temps.get("title"))
         else:
@@ -207,12 +218,10 @@ class graph(manager):
             self.temps.get("title").pop(item)
             self.temps.get("xnumgrid").pop(item)
             self.temps.get("ynumgrid").pop(item)
-
-        tempname = self.topTemplate.tempname.get()
         
-        self.tempListbox.insert(item,tempname)
+        self.tempListbox.insert(item,title)
 
-        self.temps.get("title").insert(item,tempname)
+        self.temps.get("title").insert(item,title)
 
         try:
             xnumgrid = int(self.topTemplate.xnumgrid.get())
