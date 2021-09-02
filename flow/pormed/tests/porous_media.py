@@ -1,5 +1,3 @@
-import os
-import sys
 import unittest
 
 import numpy as np
@@ -7,12 +5,12 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from objects import Core
-from objects import Formation
-from objects import Fracture
-from objects import RegularCartesian
-from objects import RegularRadial
-from objects import IrregularCartesian
+from flow.pormed.objects import Core
+from flow.pormed.objects import Formation
+from flow.pormed.objects import Fracture
+from flow.pormed.objects import RegularCartesian
+from flow.pormed.objects import RegularRadial
+from flow.pormed.objects import IrregularCartesian
 
 class TestCore(unittest.TestCase):
 

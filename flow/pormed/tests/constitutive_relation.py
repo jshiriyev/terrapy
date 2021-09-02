@@ -1,22 +1,15 @@
-import os
-import sys
 import unittest
-
-sys.path.append(os.path.dirname(os.getcwd()))
 
 import numpy as np
 
-from porous_media import relative_permeability
-from porous_media import fluid
-from porous_media import core_singlephase
-from porous_media import core_multiphase
-from porous_media import formation_singlephase
-from porous_media import computational_singlephase
-from porous_media import formation_complex_fracture_singlephase
+if __name__ == "__main__":
+    import setup
+
+from flow.pormed.constitutiverel import relative_permeability
 
 class TestRelativePermeability(unittest.TestCase):
     
-    def oil_water_imbibition(self):
+    def test_oil_water_imbibition(self):
 
         """
         Reservoir Engineering Handbook Second Edition Tarek Ahmed
@@ -36,7 +29,7 @@ class TestRelativePermeability(unittest.TestCase):
         np.testing.assert_array_almost_equal(kro,RP.kro,decimal=3)
         np.testing.assert_array_almost_equal(krw,RP.krw,decimal=3)
 
-    def gas_oil_imbibition(self):
+    def test_gas_oil_imbibition(self):
 
         """
         Reservoir Engineering Handbook Second Edition Tarek Ahmed

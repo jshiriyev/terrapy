@@ -1,11 +1,8 @@
-import io
-import os
-import sys
-
-sys.path.append(os.path.dirname(os.getcwd()))
-
 import matplotlib.pyplot as plt
 import numpy as np
+
+if __name__ == "__main__":
+    import setup
 
 class relative_permeability():
 
@@ -223,11 +220,10 @@ class relative_permeability():
 
         return kro,krw,krg
     
-        
 if __name__ == "__main__":
 
     import unittest
 
-    from tests import test_porous_media
+    from flow.pormed.tests.constitutive_relation import TestRelativePermeability
 
-    unittest.main(test_porous_media)
+    unittest.main()

@@ -1,15 +1,12 @@
-import io
-import os
-import sys
-
-sys.path.append(os.path.dirname(os.getcwd()))
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 from scipy.sparse import csr_matrix as csr
 
 from scipy.sparse.linalg import spsolve as sps
+
+if __name__ == "__main__":
+    import setup
 
 class singlephase():
     

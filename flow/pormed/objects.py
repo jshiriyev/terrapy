@@ -1,12 +1,8 @@
-import io
-import os
-import sys
+import matplotlib.pyplot as plt
+import numpy as np
 
 if __name__ == "__main__":
     import setup
-
-import matplotlib.pyplot as plt
-import numpy as np
 
 # % The fracture segment is defined as a plane joining two node points
 # % (point1 and point2). The heigth of fracture plane is taken the same

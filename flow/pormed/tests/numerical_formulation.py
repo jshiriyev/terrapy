@@ -1,15 +1,11 @@
-import os
-import sys
 import unittest
-
-sys.path.append(os.path.dirname(os.getcwd()))
 
 import numpy as np
 
-from porous_media import core_singlephase
-from porous_media import core_multiphase
-from porous_media import formation_singlephase
-from porous_media import computational_singlephase
+if __name__ == "__main__":
+    import setup
+
+from flow.pormed import computational
 
 class TestFiniteDifference(unittest.TestCase):
     

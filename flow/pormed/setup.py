@@ -5,7 +5,7 @@ path = __file__
 
 while True:
 
-    if os.path.basename(path)=="porous_media": break
+    if os.path.basename(path)=="bhospy": break
     
     path = os.path.dirname(path)
 
