@@ -2,12 +2,17 @@ import os
 import sys
 import unittest
 
-sys.path.append(os.path.dirname(os.getcwd()))
-
 import numpy as np
 
-from porous_media import core_singlephase
-from porous_media import core_multiphase
+if __name__ == "__main__":
+    import setup
+
+from objects import Core
+from objects import Formation
+from objects import Fracture
+from objects import RegularCartesian
+from objects import RegularRadial
+from objects import IrregularCartesian
 
 class TestCore(unittest.TestCase):
 
@@ -46,7 +51,7 @@ class TestRegularCartesianMesh(unittest.TestCase):
 
     def mesh2D(self):
         
-        grids = computational_singlephase()
+        grids = RegularCartesian()
 
         num_x = 5
         num_y = 6
@@ -76,7 +81,7 @@ class TestRegularCartesianMesh(unittest.TestCase):
 
     def mesh3D(self):
 
-        grids = computational_singlephase()
+        grids = RegularCartesian()
 
         num_x = 4
         num_y = 3
