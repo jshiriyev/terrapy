@@ -134,7 +134,7 @@ class graph(manager):
 
         self.topTemplate = tk.Toplevel()
 
-        self.topTemplate.geometry("250x200")
+        self.topTemplate.geometry("700x400")
 
         self.topTemplate.resizable(0,0)
 
@@ -142,38 +142,49 @@ class graph(manager):
 
         self.style.configure("TNotebook.Tab",width=20,anchor=tk.CENTER)
 
-        self.topTempNotebook = ttk.Notebook(self.topTemplate,width=450,height=100)
+        self.topTempNotebook = ttk.Notebook(self.topTemplate)
 
-        self.topTempTemplateFrame = tk.Frame(self.topTempNotebook,width=250,height=50)
+        self.topTempNotebookTemplate = tk.Frame(self.topTempNotebook)
 
-        self.topTempTemplateFrame.columnconfigure(0,weight=0)
-        self.topTempTemplateFrame.columnconfigure(1,weight=1)
+        self.topTempNotebookTemplateFrame0 = tk.Frame(self.topTempNotebookTemplate,borderwidth=2,relief=tk.GROOVE)
 
-        self.topTempTemplateFrame.tempnameLabel = ttk.Label(self.topTempTemplateFrame,text="Template Name")
-        self.topTempTemplateFrame.tempnameLabel.grid(row=0,column=0,padx=(30,10),pady=(30,10))
+        self.topTempNotebookTemplateFrame0.tempnameLabel = ttk.Label(self.topTempNotebookTemplateFrame0,text="Template Name")
+        self.topTempNotebookTemplateFrame0.tempnameLabel.grid(row=0,column=0,padx=(10,10),pady=(20,2))
 
-        self.topTempTemplateFrame.tempname = ttk.Entry(self.topTempTemplateFrame)
-        self.topTempTemplateFrame.tempname.grid(row=0,column=1,padx=10,pady=(30,10),sticky=tk.EW)
+        self.topTempNotebookTemplateFrame0.tempname = ttk.Entry(self.topTempNotebookTemplateFrame0,width=30)
+        self.topTempNotebookTemplateFrame0.tempname.grid(row=0,column=1,padx=(10,20),pady=(20,2),sticky=tk.EW)
 
-        self.topTempTemplateFrame.tempname.focus()
+        self.topTempNotebookTemplateFrame0.tempname.focus()
 
-        self.topTempTemplateFrame.xgridlabel = ttk.Label(self.topTempTemplateFrame,text="Grids in Y")
-        self.topTempTemplateFrame.xgridlabel.grid(row=1,column=0,sticky=tk.EW,padx=(30,10),pady=10)
+        self.topTempNotebookTemplateFrame0.legendLabel = ttk.Label(self.topTempNotebookTemplateFrame0,text="Legend Position")
+        self.topTempNotebookTemplateFrame0.legendLabel.grid(row=1,column=0,padx=(10,10),pady=(2,2))
 
-        self.topTempTemplateFrame.xnumgrid = ttk.Entry(self.topTempTemplateFrame,width=10,validate="key",validatecommand=self.integerVC)
-        self.topTempTemplateFrame.xnumgrid.grid(row=1,column=1,sticky=tk.EW,padx=10,pady=10)
+        self.topTempNotebookTemplateFrame0.legend = ttk.Entry(self.topTempNotebookTemplateFrame0,width=30)
+        self.topTempNotebookTemplateFrame0.legend.grid(row=1,column=1,padx=(10,20),pady=(2,2),sticky=tk.EW)
 
-        self.topTempTemplateFrame.ygridlabel = ttk.Label(self.topTempTemplateFrame,text="Grids in X")
-        self.topTempTemplateFrame.ygridlabel.grid(row=2,column=0,sticky=tk.EW,padx=(30,10),pady=(10,30))
+        self.topTempNotebookTemplateFrame0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
 
-        self.topTempTemplateFrame.ynumgrid = ttk.Entry(self.topTempTemplateFrame,width=10,validate="key",validatecommand=self.integerVC)
-        self.topTempTemplateFrame.ynumgrid.grid(row=2,column=1,sticky=tk.EW,padx=10,pady=(10,30))
+        self.topTempNotebookTemplateFrame1 = tk.Frame(self.topTempNotebookTemplate)
+
+        self.topTempNotebookTemplateFrame1.xgridlabel = ttk.Label(self.topTempNotebookTemplateFrame1,text="Grids in Y")
+        self.topTempNotebookTemplateFrame1.xgridlabel.grid(row=0,column=0,sticky=tk.EW,padx=(10,10),pady=(20,2))
+
+        self.topTempNotebookTemplateFrame1.xnumgrid = ttk.Entry(self.topTempNotebookTemplateFrame1,width=10,validate="key",validatecommand=self.integerVC)
+        self.topTempNotebookTemplateFrame1.xnumgrid.grid(row=0,column=1,sticky=tk.EW,padx=(10,2),pady=(20,2))
+
+        self.topTempNotebookTemplateFrame1.ygridlabel = ttk.Label(self.topTempNotebookTemplateFrame1,text="Grids in X")
+        self.topTempNotebookTemplateFrame1.ygridlabel.grid(row=1,column=0,sticky=tk.EW,padx=(10,10),pady=(2,2))
+
+        self.topTempNotebookTemplateFrame1.ynumgrid = ttk.Entry(self.topTempNotebookTemplateFrame1,width=10,validate="key",validatecommand=self.integerVC)
+        self.topTempNotebookTemplateFrame1.ynumgrid.grid(row=1,column=1,sticky=tk.EW,padx=(10,2),pady=(2,2))
+
+        self.topTempNotebookTemplateFrame1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
         
-        self.topTempNotebook.add(self.topTempTemplateFrame,text="Template Options",compound=tk.CENTER)
+        self.topTempNotebook.add(self.topTempNotebookTemplate,text="Template Options",compound=tk.CENTER)
 
-        self.topTempLineFrame = tk.Frame(self.topTempNotebook,width=250,height=50)
+        self.topTempNotebookLine = tk.Frame(self.topTempNotebook)
 
-        self.topTempNotebook.add(self.topTempLineFrame,text="Line Options",compound=tk.CENTER)
+        self.topTempNotebook.add(self.topTempNotebookLine,text="Line Options",compound=tk.CENTER)
 
         self.topTempNotebook.pack(side=tk.TOP,expand=1,fill=tk.BOTH,padx=(0,1))
 
@@ -189,14 +200,14 @@ class graph(manager):
 
         buttonname = "Add Template" if item is None else "Edit Template"
 
-        self.topTemplate.button = ttk.Button(self.topTemplate,text=buttonname,width=20,command=lambda: self.btnTopTempClicked(item))
+        self.topTemplate.button = ttk.Button(self.topTemplate,text=buttonname,width=20,command=lambda: self.topTempButtonApply(item))
         self.topTemplate.button.pack(side=tk.TOP,anchor=tk.E,padx=(0,1),pady=(1,1))
 
-        self.topTemplate.button.bind('<Return>',lambda event: self.btnTopTempClicked(item,event))
+        self.topTemplate.button.bind('<Return>',lambda event: self.topTempButtonApply(item,event))
 
         self.topTemplate.mainloop()
 
-    def btnTopTempClicked(self,item=None,event=None):
+    def topTempButtonApply(self,item=None,event=None):
 
         if event is not None and event.widget!=self.topTemplate.button:
             return
@@ -206,10 +217,13 @@ class graph(manager):
         else:
             titles = self.temps.get("title")
 
-        title = self.topTempTemplateFrame.tempname.get()
+        title = self.topTempNotebookTemplateFrame0.tempname.get()
 
         if title in titles:
             tk.messagebox.showerror("Error","You have a template with the same name!",parent=self.topTemplate)
+            return
+        elif title.strip()=="":
+            tk.messagebox.showerror("Error","You have not named the template!",parent=self.topTemplate)
             return
 
         if item is None:
@@ -225,14 +239,14 @@ class graph(manager):
         self.temps.get("title").insert(item,title)
 
         try:
-            xnumgrid = int(self.topTempTemplateFrame.xnumgrid.get())
+            xnumgrid = int(self.topTempNotebookTemplateFrame1.xnumgrid.get())
         except ValueError:
             xnumgrid = 1
 
         self.temps.get("xnumgrid").insert(item,xnumgrid)
 
         try:
-            ynumgrid = int(self.topTempTemplateFrame.ynumgrid.get())
+            ynumgrid = int(self.topTempNotebookTemplateFrame1.ynumgrid.get())
         except ValueError:
             ynumgrid = 1
 
