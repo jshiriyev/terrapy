@@ -1,5 +1,7 @@
 import os
 
+import numpy as np
+
 import tkinter as tk
 
 from tkinter import ttk
@@ -8,9 +10,8 @@ from tkinter import font as tkfont
 
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
-import numpy as np
-
-import openpyxl
+if __name__ == "__main__":
+    import setup
 
 class tree():
 

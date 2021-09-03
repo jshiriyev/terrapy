@@ -11,9 +11,8 @@ import numpy as np
 
 import openpyxl
 
-import sqlite3
-
-from sqlite3 import Error as sqlError
+if __name__ == "__main__":
+    import setup
 
 class dataset():
 
@@ -374,62 +373,6 @@ class dataset():
             wb.save(filepath)
             return
 
-class database():
-
-    def __init__(self):
-
-        pass
-
-    def read_database():
-
-        self.conn = None
-
-        try:
-            self.conn = sqlite3.connect(self.filepath)
-        except Error:
-            print(Error)
-        return
-
-    def write_database():
-
-        # _set_database_table(self,sqlite_table):
-
-        # instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
-        #                                     id integer PRIMARY KEY,
-        #                                     first_name text NOT NULL,
-        #                                     last_name text NOT NULL,
-        #                                     patronym text NOT NULL,
-        #                                     position text NOT NULL,
-        #                                     status text NOT NULL,
-        #                                     email text NOT NULL UNIQUE,
-        #                                     phone integer NOT NULL UNIQUE);"""
-
-        self.sqlite_table = sqlite_table
-
-        try:
-            self.cursor = self.conn.cursor()
-            self.cursor.execute(self.sqlite_table)
-            self.conn.commit()
-        except Error:
-            print(Error)
-
-        # _insert_database_table(self,sqlite_table_insert,table_row):
-
-        # instructor_table_insert = """ INSERT INTO instructors(
-        #                                     id,
-        #                                     first_name,
-        #                                     last_name,
-        #                                     patronym,
-        #                                     position,
-        #                                     status,
-        #                                     email,
-        #                                     phone)
-        #                                     VALUES(?,?,?,?,?,?,?,?)"""
-
-        self.sqlite_table_insert = sqlite_table_insert
-        self.cursor.execute(self.sqlite_table_insert,table_row)
-        self.conn.commit()
-
 def cyrilictolatin(string):
 
     """best it can be done with regular expressions"""
@@ -502,104 +445,84 @@ def cyrilictolatin(string):
 
     return string
 
-# function vtkwrite(frac,time,sol)
-    
-#     % deleteing files in results file
-    
-#     delete 'results\*.fig'
-#     delete 'results\*.vtk'
-#     delete 'results\*.out'
-    
-#     % conversion to field units
-    
-#     T = time.tau/setup.convFactorDetermine('time');
-    
-#     Pf = sol.pressure/setup.convFactorDetermine('pressure');
-# %   Qf = sol.fracflux/setup.convFactorDetermine('velocity');
-    
-#     Pw = sol.wellpressure/setup.convFactorDetermine('pressure');
-#     Qw = sol.wellflowrate/setup.convFactorDetermine('flowrate');
-    
-#     % writing time values of well pressure and flowrate
-    
-#     fid = fopen('results\solution.out','w');
-    
-#     fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
-#     fprintf(fid,'WELL PRESSURE AND FLOW-RATE\r\n');
-#     fprintf(fid,'\r\n%-10s\t%-10s\t%-10s\r\n','Time','Pressure','Flow-Rate');
-#     fprintf(fid,'%-10s\t%-10s\t%-10s\r\n','[days]','[psi]','[bbl/day]');
-    
-#     fclose(fid);
-    
-#     dlmwrite('results\solution.out',[T,Pw',Qw'],'-append',...
-#              'delimiter','\t','precision','%-10.3f');
-    
-#     % writing time values of fracture pressure
-    
-#     for j = 1:time.numTimeStep
-    
-#         fid = fopen(['results\fracPressure',num2str(j),'.vtk'],'w');
+def vtkwrite(frac,time,solution):
 
-#         fprintf(fid,'# vtk DataFile Version 1.0\r\n');
-#         fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
-#         fprintf(fid,'ASCII\r\n');
+    pass
 
-#         fprintf(fid,'\r\nDATASET UNSTRUCTURED_GRID\r\n');
-
-#         fprintf(fid,'\r\nPOINTS %d FLOAT\r\n',frac.numAnode*2);
-
-#         for i = 1:frac.numAnode
-#             fprintf(fid,'%f %f %f\r\n',frac.nodeCoord(i,:));
-#         end
-
-#         for i = 1:frac.numAnode
-#             fprintf(fid,'%f %f %f\r\n',[frac.nodeCoord(i,1:2),0]);
-#         end
-
-#         fprintf(fid,'\r\nCELLS %d %d\r\n',frac.numAfrac,5*frac.numAfrac);
-
-#         for i = 1:frac.numAfrac
-#             fprintf(fid,'%d %d %d %d %d\r\n',[4,frac.map(i,:)-1,frac.map(i,:)+frac.numAnode-1]);
-#         end
-
-#         fprintf(fid,'\r\nCELL_TYPES %d\r\n',frac.numAfrac);
-
-#         for i = 1:frac.numAfrac
-#             fprintf(fid,'%d\r\n',8);
-#         end
-
-#         fprintf(fid,'\r\nCELL_DATA %d\r\n',frac.numAfrac);
-#         fprintf(fid,'SCALARS pressure float\r\n');
-#         fprintf(fid,'LOOKUP_TABLE default\r\n');
-
-#         for i = 1:frac.numAfrac
-#             fprintf(fid,'%f\r\n',Pf(i,j));
-#         end
-
-#         fclose(fid);
+    # # deleteing files in results file
     
-#     end
+    # delete 'results\*.fig'
+    # delete 'results\*.vtk'
+    # delete 'results\*.out'
+    
+    # # conversion to field units
+    
+    # T = time.tau/setup.convFactorDetermine('time');
+    
+    # Pf = sol.pressure/setup.convFactorDetermine('pressure');
+    # # Qf = sol.fracflux/setup.convFactorDetermine('velocity');
+    
+    # Pw = sol.wellpressure/setup.convFactorDetermine('pressure');
+    # Qw = sol.wellflowrate/setup.convFactorDetermine('flowrate');
+    
+    # # writing time values of well pressure and flowrate
+    
+    # fid = fopen('results\solution.out','w');
+    
+    # fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
+    # fprintf(fid,'WELL PRESSURE AND FLOW-RATE\r\n');
+    # fprintf(fid,'\r\n%-10s\t%-10s\t%-10s\r\n','Time','Pressure','Flow-Rate');
+    # fprintf(fid,'%-10s\t%-10s\t%-10s\r\n','[days]','[psi]','[bbl/day]');
+    
+    # fclose(fid);
+    
+    # dlmwrite('results\solution.out',[T,Pw',Qw'],'-append',...
+    #          'delimiter','\t','precision','%-10.3f');
+    
+    # # writing time values of fracture pressure
+    
+    # for j = 1:time.numTimeStep
+    
+    #     fid = fopen(['results\fracPressure',num2str(j),'.vtk'],'w');
 
-# end
+    #     fprintf(fid,'# vtk DataFile Version 1.0\r\n');
+    #     fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
+    #     fprintf(fid,'ASCII\r\n');
+
+    #     fprintf(fid,'\r\nDATASET UNSTRUCTURED_GRID\r\n');
+
+    #     fprintf(fid,'\r\nPOINTS %d FLOAT\r\n',frac.numAnode*2);
+
+    #     for i = 1:frac.numAnode
+    #         fprintf(fid,'%f %f %f\r\n',frac.nodeCoord(i,:));
+    #     end
+
+    #     for i = 1:frac.numAnode
+    #         fprintf(fid,'%f %f %f\r\n',[frac.nodeCoord(i,1:2),0]);
+    #     end
+
+    #     fprintf(fid,'\r\nCELLS %d %d\r\n',frac.numAfrac,5*frac.numAfrac);
+
+    #     for i = 1:frac.numAfrac
+    #         fprintf(fid,'%d %d %d %d %d\r\n',[4,frac.map(i,:)-1,frac.map(i,:)+frac.numAnode-1]);
+    #     end
+
+    #     fprintf(fid,'\r\nCELL_TYPES %d\r\n',frac.numAfrac);
+
+    #     for i = 1:frac.numAfrac
+    #         fprintf(fid,'%d\r\n',8);
+    #     end
+
+    #     fprintf(fid,'\r\nCELL_DATA %d\r\n',frac.numAfrac);
+    #     fprintf(fid,'SCALARS pressure float\r\n');
+    #     fprintf(fid,'LOOKUP_TABLE default\r\n');
+
+    #     for i = 1:frac.numAfrac
+    #         fprintf(fid,'%f\r\n',Pf(i,j));
+    #     end
+
+    #     fclose(fid);
 
 if __name__ == "__main__":
 
     pass
-
-    """DATA"""
-
-    # """DATABASE"""
-
-    # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
-    
-    # DB = database_manager(dbpath)
-
-    # DB.create_table(instructor_table)
-
-    # instructor = (7,"Javid","Shiriyev","Farhad",
-    #             "Senior Lecturer","Hour Based Teaching",
-    #             "cavid.shiriyev@bhos.edu.az","+994508353992")
-
-    # DB.insert_table(instructor_table_insert,instructor)
-    # DB.cursor.close()
-    # DB.conn.close()
