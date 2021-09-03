@@ -15,7 +15,7 @@ import sqlite3
 
 from sqlite3 import Error as sqlError
 
-class manager():
+class dataset():
 
     special_extensions = [".db",".xlsx"]
 
@@ -429,6 +429,78 @@ class database():
         self.sqlite_table_insert = sqlite_table_insert
         self.cursor.execute(self.sqlite_table_insert,table_row)
         self.conn.commit()
+
+def cyrilictolatin(string):
+
+    """best it can be done with regular expressions"""
+    
+    string = string.replace("а","a")
+    string = string.replace("б","b")
+    string = string.replace("ж","c")
+    string = string.replace("ч","ç")
+    string = string.replace("д","d")
+    string = string.replace("е","e")
+    string = string.replace("я","ə")
+    string = string.replace("ф","f")
+    string = string.replace("э","g")
+    string = string.replace("ь","ğ")
+    string = string.replace("щ","h")
+    string = string.replace("х","x")
+    string = string.replace("ы","ı")
+    string = string.replace("и","i")
+    string = string.replace("ъ","j")
+    string = string.replace("к","k")
+    string = string.replace("г","q")
+    string = string.replace("л","l")
+    string = string.replace("м","m")
+    string = string.replace("н","n")
+    string = string.replace("о","o")
+    string = string.replace("ю","ö")
+    string = string.replace("п","p")
+    string = string.replace("р","r")
+    string = string.replace("с","s")
+    string = string.replace("ш","ş")
+    string = string.replace("т","t")
+    string = string.replace("у","u")
+    string = string.replace("ц","ü")
+    string = string.replace("в","v")
+    string = string.replace("й","y")
+    string = string.replace("з","z")
+
+    string = string.replace("А","A")
+    string = string.replace("Б","B")
+    string = string.replace("Ҹ","C")
+    string = string.replace("Ч","Ç")
+    string = string.replace("Д","D")
+    string = string.replace("Е","E")
+    string = string.replace("Я","Ə")
+    string = string.replace("Ф","F")
+    string = string.replace("Ҝ","G")
+    string = string.replace("Ғ","Ğ")
+    string = string.replace("Щ","H")
+    string = string.replace("Х","X")
+    string = string.replace("Ы","I")
+    string = string.replace("И","İ")
+    ##string = string.replace("я","J")
+    string = string.replace("К","K")
+    string = string.replace("Г","Q")
+    ##string = string.replace("я","L")
+    ##string = string.replace("я","M")
+    string = string.replace("Н","N")
+    ##string = string.replace("я","O")
+    ##string = string.replace("я","Ö")
+    string = string.replace("П","P")
+    string = string.replace("Р","R")
+    string = string.replace("С","S")
+    string = string.replace("Ш","Ş")
+    ##string = string.replace("я","T")
+    ##string = string.replace("я","U")
+    ##string = string.replace("я","Ü")
+    string = string.replace("В","V")
+    string = string.replace("Й","Y")
+    string = string.replace("З","Z")
+
+    return string
 
 # function vtkwrite(frac,time,sol)
     
