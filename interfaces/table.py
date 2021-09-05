@@ -11,9 +11,9 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from interfaces.data import manager
+from interfaces.dataset import dataset
 
-class table(manager):
+class table(dataset):
 
     def __init__(self,filepath=None,headers=None,**kwargs):
 

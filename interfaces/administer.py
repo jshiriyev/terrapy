@@ -16,7 +16,10 @@ from tkinter import filedialog
 
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
-from datashop import table
+if __name__ == "__main__":
+    import setup
+
+from interfaces.table import table
 
 class schedule():
 

@@ -11,11 +11,10 @@ import numpy as np
 
 import openpyxl
 
-import sqlite3
+if __name__ == "__main__":
+    import setup
 
-from sqlite3 import Error as sqlError
-
-class manager():
+class dataset():
 
     special_extensions = [".db",".xlsx"]
 
@@ -374,160 +373,156 @@ class manager():
             wb.save(filepath)
             return
 
-class database():
+def cyrilictolatin(string):
 
-    def __init__(self):
-
-        pass
-
-    def read_database():
-
-        self.conn = None
-
-        try:
-            self.conn = sqlite3.connect(self.filepath)
-        except Error:
-            print(Error)
-        return
-
-    def write_database():
-
-        # _set_database_table(self,sqlite_table):
-
-        # instructor_table = """ CREATE TABLE IF NOT EXISTS instructors (
-        #                                     id integer PRIMARY KEY,
-        #                                     first_name text NOT NULL,
-        #                                     last_name text NOT NULL,
-        #                                     patronym text NOT NULL,
-        #                                     position text NOT NULL,
-        #                                     status text NOT NULL,
-        #                                     email text NOT NULL UNIQUE,
-        #                                     phone integer NOT NULL UNIQUE);"""
-
-        self.sqlite_table = sqlite_table
-
-        try:
-            self.cursor = self.conn.cursor()
-            self.cursor.execute(self.sqlite_table)
-            self.conn.commit()
-        except Error:
-            print(Error)
-
-        # _insert_database_table(self,sqlite_table_insert,table_row):
-
-        # instructor_table_insert = """ INSERT INTO instructors(
-        #                                     id,
-        #                                     first_name,
-        #                                     last_name,
-        #                                     patronym,
-        #                                     position,
-        #                                     status,
-        #                                     email,
-        #                                     phone)
-        #                                     VALUES(?,?,?,?,?,?,?,?)"""
-
-        self.sqlite_table_insert = sqlite_table_insert
-        self.cursor.execute(self.sqlite_table_insert,table_row)
-        self.conn.commit()
-
-# function vtkwrite(frac,time,sol)
+    """best it can be done with regular expressions"""
     
-#     % deleteing files in results file
-    
-#     delete 'results\*.fig'
-#     delete 'results\*.vtk'
-#     delete 'results\*.out'
-    
-#     % conversion to field units
-    
-#     T = time.tau/setup.convFactorDetermine('time');
-    
-#     Pf = sol.pressure/setup.convFactorDetermine('pressure');
-# %   Qf = sol.fracflux/setup.convFactorDetermine('velocity');
-    
-#     Pw = sol.wellpressure/setup.convFactorDetermine('pressure');
-#     Qw = sol.wellflowrate/setup.convFactorDetermine('flowrate');
-    
-#     % writing time values of well pressure and flowrate
-    
-#     fid = fopen('results\solution.out','w');
-    
-#     fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
-#     fprintf(fid,'WELL PRESSURE AND FLOW-RATE\r\n');
-#     fprintf(fid,'\r\n%-10s\t%-10s\t%-10s\r\n','Time','Pressure','Flow-Rate');
-#     fprintf(fid,'%-10s\t%-10s\t%-10s\r\n','[days]','[psi]','[bbl/day]');
-    
-#     fclose(fid);
-    
-#     dlmwrite('results\solution.out',[T,Pw',Qw'],'-append',...
-#              'delimiter','\t','precision','%-10.3f');
-    
-#     % writing time values of fracture pressure
-    
-#     for j = 1:time.numTimeStep
-    
-#         fid = fopen(['results\fracPressure',num2str(j),'.vtk'],'w');
+    string = string.replace("а","a")
+    string = string.replace("б","b")
+    string = string.replace("ж","c")
+    string = string.replace("ч","ç")
+    string = string.replace("д","d")
+    string = string.replace("е","e")
+    string = string.replace("я","ə")
+    string = string.replace("ф","f")
+    string = string.replace("э","g")
+    string = string.replace("ь","ğ")
+    string = string.replace("щ","h")
+    string = string.replace("х","x")
+    string = string.replace("ы","ı")
+    string = string.replace("и","i")
+    string = string.replace("ъ","j")
+    string = string.replace("к","k")
+    string = string.replace("г","q")
+    string = string.replace("л","l")
+    string = string.replace("м","m")
+    string = string.replace("н","n")
+    string = string.replace("о","o")
+    string = string.replace("ю","ö")
+    string = string.replace("п","p")
+    string = string.replace("р","r")
+    string = string.replace("с","s")
+    string = string.replace("ш","ş")
+    string = string.replace("т","t")
+    string = string.replace("у","u")
+    string = string.replace("ц","ü")
+    string = string.replace("в","v")
+    string = string.replace("й","y")
+    string = string.replace("з","z")
 
-#         fprintf(fid,'# vtk DataFile Version 1.0\r\n');
-#         fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
-#         fprintf(fid,'ASCII\r\n');
+    string = string.replace("А","A")
+    string = string.replace("Б","B")
+    string = string.replace("Ҹ","C")
+    string = string.replace("Ч","Ç")
+    string = string.replace("Д","D")
+    string = string.replace("Е","E")
+    string = string.replace("Я","Ə")
+    string = string.replace("Ф","F")
+    string = string.replace("Ҝ","G")
+    string = string.replace("Ғ","Ğ")
+    string = string.replace("Щ","H")
+    string = string.replace("Х","X")
+    string = string.replace("Ы","I")
+    string = string.replace("И","İ")
+    ##string = string.replace("я","J")
+    string = string.replace("К","K")
+    string = string.replace("Г","Q")
+    ##string = string.replace("я","L")
+    ##string = string.replace("я","M")
+    string = string.replace("Н","N")
+    ##string = string.replace("я","O")
+    ##string = string.replace("я","Ö")
+    string = string.replace("П","P")
+    string = string.replace("Р","R")
+    string = string.replace("С","S")
+    string = string.replace("Ш","Ş")
+    ##string = string.replace("я","T")
+    ##string = string.replace("я","U")
+    ##string = string.replace("я","Ü")
+    string = string.replace("В","V")
+    string = string.replace("Й","Y")
+    string = string.replace("З","Z")
 
-#         fprintf(fid,'\r\nDATASET UNSTRUCTURED_GRID\r\n');
+    return string
 
-#         fprintf(fid,'\r\nPOINTS %d FLOAT\r\n',frac.numAnode*2);
+def vtkwrite(frac,time,solution):
 
-#         for i = 1:frac.numAnode
-#             fprintf(fid,'%f %f %f\r\n',frac.nodeCoord(i,:));
-#         end
+    pass
 
-#         for i = 1:frac.numAnode
-#             fprintf(fid,'%f %f %f\r\n',[frac.nodeCoord(i,1:2),0]);
-#         end
-
-#         fprintf(fid,'\r\nCELLS %d %d\r\n',frac.numAfrac,5*frac.numAfrac);
-
-#         for i = 1:frac.numAfrac
-#             fprintf(fid,'%d %d %d %d %d\r\n',[4,frac.map(i,:)-1,frac.map(i,:)+frac.numAnode-1]);
-#         end
-
-#         fprintf(fid,'\r\nCELL_TYPES %d\r\n',frac.numAfrac);
-
-#         for i = 1:frac.numAfrac
-#             fprintf(fid,'%d\r\n',8);
-#         end
-
-#         fprintf(fid,'\r\nCELL_DATA %d\r\n',frac.numAfrac);
-#         fprintf(fid,'SCALARS pressure float\r\n');
-#         fprintf(fid,'LOOKUP_TABLE default\r\n');
-
-#         for i = 1:frac.numAfrac
-#             fprintf(fid,'%f\r\n',Pf(i,j));
-#         end
-
-#         fclose(fid);
+    # # deleteing files in results file
     
-#     end
+    # delete 'results\*.fig'
+    # delete 'results\*.vtk'
+    # delete 'results\*.out'
+    
+    # # conversion to field units
+    
+    # T = time.tau/setup.convFactorDetermine('time');
+    
+    # Pf = sol.pressure/setup.convFactorDetermine('pressure');
+    # # Qf = sol.fracflux/setup.convFactorDetermine('velocity');
+    
+    # Pw = sol.wellpressure/setup.convFactorDetermine('pressure');
+    # Qw = sol.wellflowrate/setup.convFactorDetermine('flowrate');
+    
+    # # writing time values of well pressure and flowrate
+    
+    # fid = fopen('results\solution.out','w');
+    
+    # fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
+    # fprintf(fid,'WELL PRESSURE AND FLOW-RATE\r\n');
+    # fprintf(fid,'\r\n%-10s\t%-10s\t%-10s\r\n','Time','Pressure','Flow-Rate');
+    # fprintf(fid,'%-10s\t%-10s\t%-10s\r\n','[days]','[psi]','[bbl/day]');
+    
+    # fclose(fid);
+    
+    # dlmwrite('results\solution.out',[T,Pw',Qw'],'-append',...
+    #          'delimiter','\t','precision','%-10.3f');
+    
+    # # writing time values of fracture pressure
+    
+    # for j = 1:time.numTimeStep
+    
+    #     fid = fopen(['results\fracPressure',num2str(j),'.vtk'],'w');
 
-# end
+    #     fprintf(fid,'# vtk DataFile Version 1.0\r\n');
+    #     fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
+    #     fprintf(fid,'ASCII\r\n');
+
+    #     fprintf(fid,'\r\nDATASET UNSTRUCTURED_GRID\r\n');
+
+    #     fprintf(fid,'\r\nPOINTS %d FLOAT\r\n',frac.numAnode*2);
+
+    #     for i = 1:frac.numAnode
+    #         fprintf(fid,'%f %f %f\r\n',frac.nodeCoord(i,:));
+    #     end
+
+    #     for i = 1:frac.numAnode
+    #         fprintf(fid,'%f %f %f\r\n',[frac.nodeCoord(i,1:2),0]);
+    #     end
+
+    #     fprintf(fid,'\r\nCELLS %d %d\r\n',frac.numAfrac,5*frac.numAfrac);
+
+    #     for i = 1:frac.numAfrac
+    #         fprintf(fid,'%d %d %d %d %d\r\n',[4,frac.map(i,:)-1,frac.map(i,:)+frac.numAnode-1]);
+    #     end
+
+    #     fprintf(fid,'\r\nCELL_TYPES %d\r\n',frac.numAfrac);
+
+    #     for i = 1:frac.numAfrac
+    #         fprintf(fid,'%d\r\n',8);
+    #     end
+
+    #     fprintf(fid,'\r\nCELL_DATA %d\r\n',frac.numAfrac);
+    #     fprintf(fid,'SCALARS pressure float\r\n');
+    #     fprintf(fid,'LOOKUP_TABLE default\r\n');
+
+    #     for i = 1:frac.numAfrac
+    #         fprintf(fid,'%f\r\n',Pf(i,j));
+    #     end
+
+    #     fclose(fid);
 
 if __name__ == "__main__":
 
     pass
-
-    """DATA"""
-
-    # """DATABASE"""
-
-    # dbpath = r"C:\Users\Cavid\Documents\bhospy\interfaces\instructors.db"
-    
-    # DB = database_manager(dbpath)
-
-    # DB.create_table(instructor_table)
-
-    # instructor = (7,"Javid","Shiriyev","Farhad",
-    #             "Senior Lecturer","Hour Based Teaching",
-    #             "cavid.shiriyev@bhos.edu.az","+994508353992")
-
-    # DB.insert_table(instructor_table_insert,instructor)
-    # DB.cursor.close()
-    # DB.conn.close()

@@ -13,9 +13,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 if __name__ == "__main__":
     import setup
 
-from interfaces.data import manager
+from interfaces.dataset import dataset
 
-class graph(manager):
+class graph(dataset):
     
     def __init__(self,filepath=None,**kwargs):
 
