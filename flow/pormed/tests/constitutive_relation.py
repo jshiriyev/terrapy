@@ -5,7 +5,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from flow.pormed.constitutiverel import relative_permeability
+from flow.pormed.constitutiverelation import relative_permeability
 
 class TestRelativePermeability(unittest.TestCase):
     

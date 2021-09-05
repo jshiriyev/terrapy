@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
 class dataset():
 
-    special_extensions = [".db",".xlsx"]
+    special_extensions = [".db",".xlsx"] # should also add .las files
 
     def __init__(self,filepath=None,skiplines=1,headerline=None,comment="--",endline="/",endfile="END",**kwargs):
 
