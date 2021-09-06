@@ -44,7 +44,7 @@ class dataset():
         if any([self.extension==extension for extension in self.special_extensions]):
             self.read_special(**kwargs)
         else:
-            self.read_plain()
+            self.read()
 
         self.title = []
 
@@ -66,7 +66,7 @@ class dataset():
 
         self.running = [np.asarray(column) for column in self._running]
 
-    def read_plain(self):
+    def read(self):
 
         # While looping inside the file it does not read lines:
         # - starting with comment phrase, e.g., comment = "--"
@@ -339,13 +339,7 @@ class dataset():
         else:
             self.running = [np.asarray(column[match_index]) for column in self._running]
 
-    def write_to(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
-
-        output_extension = os.path.splitext(filepath)[1]
-
-        if any([output_extension==extension for extension in self.special_extensions]):
-            self.write_special(filepath,**kwargs)
-            return
+    def write(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
 
         if header_indices is None:
             header_indices = [self._headers.index(header) for header in headers]
@@ -361,91 +355,22 @@ class dataset():
             for line in vprint(*columns):
                 wfile.write(line)
 
-    def write_special(self,filepath,**kwargs):
 
-        if extension == ".xlsx":
-            wb = openpyxl.Workbook()
-            sheet = wb.active
-            if sheet_title is not None:
-                sheet.title = sheet_title
-            for line in running:
-                sheet.append(line)
-            wb.save(filepath)
-            return
+def writexlsx(filepath,**kwargs):
 
-def cyrilictolatin(string):
+    wb = openpyxl.Workbook()
 
-    """best it can be done with regular expressions"""
-    
-    string = string.replace("а","a")
-    string = string.replace("б","b")
-    string = string.replace("ж","c")
-    string = string.replace("ч","ç")
-    string = string.replace("д","d")
-    string = string.replace("е","e")
-    string = string.replace("я","ə")
-    string = string.replace("ф","f")
-    string = string.replace("э","g")
-    string = string.replace("ь","ğ")
-    string = string.replace("щ","h")
-    string = string.replace("х","x")
-    string = string.replace("ы","ı")
-    string = string.replace("и","i")
-    string = string.replace("ъ","j")
-    string = string.replace("к","k")
-    string = string.replace("г","q")
-    string = string.replace("л","l")
-    string = string.replace("м","m")
-    string = string.replace("н","n")
-    string = string.replace("о","o")
-    string = string.replace("ю","ö")
-    string = string.replace("п","p")
-    string = string.replace("р","r")
-    string = string.replace("с","s")
-    string = string.replace("ш","ş")
-    string = string.replace("т","t")
-    string = string.replace("у","u")
-    string = string.replace("ц","ü")
-    string = string.replace("в","v")
-    string = string.replace("й","y")
-    string = string.replace("з","z")
+    sheet = wb.active
 
-    string = string.replace("А","A")
-    string = string.replace("Б","B")
-    string = string.replace("Ҹ","C")
-    string = string.replace("Ч","Ç")
-    string = string.replace("Д","D")
-    string = string.replace("Е","E")
-    string = string.replace("Я","Ə")
-    string = string.replace("Ф","F")
-    string = string.replace("Ҝ","G")
-    string = string.replace("Ғ","Ğ")
-    string = string.replace("Щ","H")
-    string = string.replace("Х","X")
-    string = string.replace("Ы","I")
-    string = string.replace("И","İ")
-    ##string = string.replace("я","J")
-    string = string.replace("К","K")
-    string = string.replace("Г","Q")
-    ##string = string.replace("я","L")
-    ##string = string.replace("я","M")
-    string = string.replace("Н","N")
-    ##string = string.replace("я","O")
-    ##string = string.replace("я","Ö")
-    string = string.replace("П","P")
-    string = string.replace("Р","R")
-    string = string.replace("С","S")
-    string = string.replace("Ш","Ş")
-    ##string = string.replace("я","T")
-    ##string = string.replace("я","U")
-    ##string = string.replace("я","Ü")
-    string = string.replace("В","V")
-    string = string.replace("Й","Y")
-    string = string.replace("З","Z")
+    if sheet_title is not None:
+        sheet.title = sheet_title
 
-    return string
+    for line in running:
+        sheet.append(line)
 
-def vtkwrite(frac,time,solution):
+    wb.save(filepath)
+
+def writevtk(frac,time,solution):
 
     pass
 
@@ -522,6 +447,83 @@ def vtkwrite(frac,time,solution):
     #     end
 
     #     fclose(fid);
+
+def writescheduleinc(fprod,fcomp):
+
+    prod = dataset(fprod,skiplines=1)
+    comp = dataset(fcomp,skiplines=1)
+
+def cyrilictolatin(string):
+
+    """best it can be done with regular expressions"""
+    
+    string = string.replace("а","a")
+    string = string.replace("б","b")
+    string = string.replace("ж","c")
+    string = string.replace("ч","ç")
+    string = string.replace("д","d")
+    string = string.replace("е","e")
+    string = string.replace("я","ə")
+    string = string.replace("ф","f")
+    string = string.replace("э","g")
+    string = string.replace("ь","ğ")
+    string = string.replace("щ","h")
+    string = string.replace("х","x")
+    string = string.replace("ы","ı")
+    string = string.replace("и","i")
+    string = string.replace("ъ","j")
+    string = string.replace("к","k")
+    string = string.replace("г","q")
+    string = string.replace("л","l")
+    string = string.replace("м","m")
+    string = string.replace("н","n")
+    string = string.replace("о","o")
+    string = string.replace("ю","ö")
+    string = string.replace("п","p")
+    string = string.replace("р","r")
+    string = string.replace("с","s")
+    string = string.replace("ш","ş")
+    string = string.replace("т","t")
+    string = string.replace("у","u")
+    string = string.replace("ц","ü")
+    string = string.replace("в","v")
+    string = string.replace("й","y")
+    string = string.replace("з","z")
+
+    string = string.replace("А","A")
+    string = string.replace("Б","B")
+    string = string.replace("Ҹ","C")
+    string = string.replace("Ч","Ç")
+    string = string.replace("Д","D")
+    string = string.replace("Е","E")
+    string = string.replace("Я","Ə")
+    string = string.replace("Ф","F")
+    string = string.replace("Ҝ","G")
+    string = string.replace("Ғ","Ğ")
+    string = string.replace("Щ","H")
+    string = string.replace("Х","X")
+    string = string.replace("Ы","I")
+    string = string.replace("И","İ")
+    ##string = string.replace("я","J")
+    string = string.replace("К","K")
+    string = string.replace("Г","Q")
+    ##string = string.replace("я","L")
+    ##string = string.replace("я","M")
+    string = string.replace("Н","N")
+    ##string = string.replace("я","O")
+    ##string = string.replace("я","Ö")
+    string = string.replace("П","P")
+    string = string.replace("Р","R")
+    string = string.replace("С","S")
+    string = string.replace("Ш","Ş")
+    ##string = string.replace("я","T")
+    ##string = string.replace("я","U")
+    ##string = string.replace("я","Ü")
+    string = string.replace("В","V")
+    string = string.replace("Й","Y")
+    string = string.replace("З","Z")
+
+    return string
 
 if __name__ == "__main__":
 
