@@ -456,7 +456,7 @@ def writevtk(frac,time,solution):
 
     #     fclose(fid);
 
-def writescheduleinc(fprod,fcomp):
+def writescheduleinc(fprod=None,fcomp=None):
 
     import matplotlib.pyplot as plt
 
@@ -472,7 +472,7 @@ def writescheduleinc(fprod,fcomp):
     prods.astype(2,dtype=np.int64)
     prods.astype(3,dtype=np.float64)
 
-    # FOR THE GIVEN WELL
+    # # FOR THE GIVEN WELL
 
     wellname = "Qum_Adasi-351"
 
@@ -482,112 +482,59 @@ def writescheduleinc(fprod,fcomp):
     proddates = prods.running[1]
     compdates = comps.running[1]
 
-    compevents = comps.running[2]
-
+    proddays = prods.running[2]
+    
     prodevents = prods.running[3]
-
-    compintervals = np.array([comps.running[3],comps.running[4]]).T
-
-    flagProdStart = True
-
-    shutdates = []
-
-    for index,proddate in enumerate(proddates):
-
-        prodEND = proddate+relativedelta(months=1)
-        prodEND = datetime.datetime(prodEND.year,prodEND.month,calendar.monthrange(prodEND.year,prodEND.month)[1])
-
-        if flagProdStart:
-            prodSTART = prodEND-relativedelta(days=prods.running[2][index].tolist())
-
-        openintervals = []
-
-        for compdate,compevent,compinterval in zip(compdates,compevents,compintervals):
-
-            if compdate<proddate:
-
-                if compevent=="PERF":
-                    openintervals.append(compinterval.tolist())
-
-                elif compevent=="PLUG":
-                    openintervals.remove(compinterval.tolist())
-
-                continue
-
-            openperfs = len(openintervals)
-
-            if flagProdStart:
-                if compdate<prodSTART:
-                    prodSTART = compdate
-
-            elif compdate>prodEND:
-                break
-
-            elif compdate>proddate and openperfs==0:
-                wefac = relativedelta(days=prods.running[2][index].tolist())
-                shutdates.append(compdate)
-                flagProdStart = True
-                break
-
-
-        if flagProdStart:
-            proddates[index] = prodSTART
-            flagProdStart = False
-
-    shutdates = np.array(shutdates,dtype=datetime.datetime)
-
-    print("proddates")
-    print(type(proddates))
-    print(type(proddates[0]))
-    print(proddates)
-
-    print("prodevents")
-    print(type(prodevents))
-    print(type(prodevents[0]))
-    print(prodevents)
-
-    print("shutdates")
-    print(type(shutdates))
-    print(type(shutdates[0]))
-    print(shutdates)
+    compevents = comps.running[2]
 
     compintervals = np.array([comps.running[3],comps.running[4]]).T
 
     openintervals = []
 
-    openperfs = np.zeros(comps.running[2].shape,dtype=int)
+    openperfs = np.zeros(compevents.shape,dtype=int)
 
-    for idx,(event,interval) in enumerate(zip(comps.running[2],compintervals)):
+    for index,(compevent,interval) in enumerate(zip(compevents,compintervals)):
 
-        if event=="PERF":
+        if compevent=="PERF":
             openintervals.append(interval.tolist())
-        elif event=="PLUG":
-            try:
-               openintervals.remove(interval.tolist())
-            except:
-               print(wellname,"there is a problem with completion files")
+        elif compevent=="PLUG":
+            openintervals.remove(interval.tolist())
                
-        openperfs[idx] = len(openintervals)
+        openperfs[index] = len(openintervals)
 
-        if openperfs[idx]==0:
-           
-            prodafter = comps.running[1][idx]<proddates
-           
-            if idx<comps.running[2].size-1:
-                prodbefore = proddates<comps.running[1][idx+1]
-            elif idx==comps.running[2].size-1:
-                prodbefore = np.ones(len(proddates)).astype(bool)
-               
-            prodnonzero = prods.running[3]>0
+    shutdates = []
 
-            idy = np.logical_and(prodafter,prodbefore)
-            idy = np.logical_and(idy,prodnonzero)
+    flagProdStart = True
 
-            openconflicts = len(prods.running[3][idy])
+    for prodindex,proddate in enumerate(proddates):
 
-            if openconflicts!=0:
-                for date in proddates[idy]:
-                    print(wellname,date,"no open completion to produce")
+        prodEND = proddate+relativedelta(months=1)
+        prodEND = datetime.datetime(prodEND.year,prodEND.month,calendar.monthrange(prodEND.year,prodEND.month)[1])
+
+        if flagProdStart:
+            prodSTART = prodEND-relativedelta(days=proddays[prodindex].tolist())
+        else:
+            prodSTART = proddate
+
+        for compindex,compdate in enumerate(compdates):
+
+            if compdate<prodSTART:
+                continue
+
+            elif compdate>prodSTART and flagProdStart:
+                proddates[prodindex] = compdates[compindex-1]
+                flagProdStart = False
+
+            elif compdate>prodEND:
+                break
+
+            elif openperfs[compdate==compdates]==0:
+                wefac = relativedelta(days=proddays[prodindex].tolist())
+                shutdates.append(compdate)
+                flagProdStart = True
+                break
+
+    shutdates = np.array(shutdates,dtype=datetime.datetime)
 
     prod_and_shut_dates = np.append(proddates,shutdates)
     prod_and_shut_events = np.append(prodevents,np.zeros(shutdates.shape))
