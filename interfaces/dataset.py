@@ -1,6 +1,8 @@
+import calendar
 import datetime
 
-import dateutil.parser as parser
+from dateutil.parser import parse
+from dateutil.relativedelta import relativedelta
 
 import inspect
 
@@ -147,7 +149,7 @@ class dataset():
     def texttocolumn(self,header_index=None,header=None,deliminator=None,maxsplit=None):
 
         if header_index is None:
-            header_index = self._header.index(header)
+            header_index = self._headers.index(header)
 
         header_string = self._headers[header_index]
         # header_string = re.sub(deliminator+'+',deliminator,header_string)
@@ -211,19 +213,25 @@ class dataset():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
-    def astype(self,header_index=None,header=None,dtype=None):
+    def astype(self,header_index=None,header=None,dtype=None,datestring=False,shiftmonths=0):
 
         if header_index is None:
             header_index = self._headers.index(header)
 
-        if inspect.isclass(dtype):
-            vdate = np.vectorize(lambda x: dtype(x))
-        elif type(dtype)==str:
-            if type(self._running[header_index][0])==datetime.datetime:
-                vdate = np.vectorize(lambda x: x.strftime(dtype))
-            elif any([type(self._running[header_index][0])==class_ for class_ in [str,np.str_,np.str]]):
-                vdate = np.vectorize(lambda x: parser.parse(x).strftime(dtype))
+        if datestring:
 
+            def shifting(string):
+                date = parse(string)+relativedelta(months=shiftmonths)
+                return datetime.datetime(date.year,date.month,calendar.monthrange(date.year,date.month)[1])
+
+            if shiftmonths != 0:
+                vdate = np.vectorize(lambda x: shifting(x))
+            else:
+                vdate = np.vectorize(lambda x: parse(x))
+            
+        else:
+            vdate = np.vectorize(lambda x: dtype(x))
+            
         self._running[header_index] = vdate(self._running[header_index])
 
         self.running[header_index] = np.asarray(self._running[header_index])
@@ -450,8 +458,168 @@ def writevtk(frac,time,solution):
 
 def writescheduleinc(fprod,fcomp):
 
-    prod = dataset(fprod,skiplines=1)
-    comp = dataset(fcomp,skiplines=1)
+    import matplotlib.pyplot as plt
+
+    prods = dataset(fprod,skiplines=1)
+    comps = dataset(fcomp,skiplines=1)
+
+    prods.texttocolumn(0,"\t",maxsplit=7)
+    comps.texttocolumn(0,"\t",maxsplit=6)
+
+    prods.astype(header="Date",dtype=np.datetime64,datestring=True,shiftmonths=-1)
+    comps.astype(header="DATE",dtype=np.datetime64,datestring=True)
+
+    prods.astype(2,dtype=np.int64)
+    prods.astype(3,dtype=np.float64)
+
+    # FOR THE GIVEN WELL
+
+    wellname = "Qum_Adasi-351"
+
+    prods.filter(0,keywords=[wellname])
+    comps.filter(0,keywords=[wellname])
+
+    proddates = prods.running[1]
+    compdates = comps.running[1]
+
+    compevents = comps.running[2]
+
+    prodevents = prods.running[3]
+
+    compintervals = np.array([comps.running[3],comps.running[4]]).T
+
+    flagProdStart = True
+
+    shutdates = []
+
+    for index,proddate in enumerate(proddates):
+
+        prodEND = proddate+relativedelta(months=1)
+        prodEND = datetime.datetime(prodEND.year,prodEND.month,calendar.monthrange(prodEND.year,prodEND.month)[1])
+
+        if flagProdStart:
+            prodSTART = prodEND-relativedelta(days=prods.running[2][index].tolist())
+
+        openintervals = []
+
+        for compdate,compevent,compinterval in zip(compdates,compevents,compintervals):
+
+            if compdate<proddate:
+
+                if compevent=="PERF":
+                    openintervals.append(compinterval.tolist())
+
+                elif compevent=="PLUG":
+                    openintervals.remove(compinterval.tolist())
+
+                continue
+
+            openperfs = len(openintervals)
+
+            if flagProdStart:
+                if compdate<prodSTART:
+                    prodSTART = compdate
+
+            elif compdate>prodEND:
+                break
+
+            elif compdate>proddate and openperfs==0:
+                wefac = relativedelta(days=prods.running[2][index].tolist())
+                shutdates.append(compdate)
+                flagProdStart = True
+                break
+
+
+        if flagProdStart:
+            proddates[index] = prodSTART
+            flagProdStart = False
+
+    shutdates = np.array(shutdates,dtype=datetime.datetime)
+
+    print("proddates")
+    print(type(proddates))
+    print(type(proddates[0]))
+    print(proddates)
+
+    print("prodevents")
+    print(type(prodevents))
+    print(type(prodevents[0]))
+    print(prodevents)
+
+    print("shutdates")
+    print(type(shutdates))
+    print(type(shutdates[0]))
+    print(shutdates)
+
+    compintervals = np.array([comps.running[3],comps.running[4]]).T
+
+    openintervals = []
+
+    openperfs = np.zeros(comps.running[2].shape,dtype=int)
+
+    for idx,(event,interval) in enumerate(zip(comps.running[2],compintervals)):
+
+        if event=="PERF":
+            openintervals.append(interval.tolist())
+        elif event=="PLUG":
+            try:
+               openintervals.remove(interval.tolist())
+            except:
+               print(wellname,"there is a problem with completion files")
+               
+        openperfs[idx] = len(openintervals)
+
+        if openperfs[idx]==0:
+           
+            prodafter = comps.running[1][idx]<proddates
+           
+            if idx<comps.running[2].size-1:
+                prodbefore = proddates<comps.running[1][idx+1]
+            elif idx==comps.running[2].size-1:
+                prodbefore = np.ones(len(proddates)).astype(bool)
+               
+            prodnonzero = prods.running[3]>0
+
+            idy = np.logical_and(prodafter,prodbefore)
+            idy = np.logical_and(idy,prodnonzero)
+
+            openconflicts = len(prods.running[3][idy])
+
+            if openconflicts!=0:
+                for date in proddates[idy]:
+                    print(wellname,date,"no open completion to produce")
+
+    prod_and_shut_dates = np.append(proddates,shutdates)
+    prod_and_shut_events = np.append(prodevents,np.zeros(shutdates.shape))
+
+    sortindex = np.argsort(prod_and_shut_dates)
+
+    fig = plt.figure(tight_layout=True)
+
+    ax0 = fig.add_subplot()
+    ax1 = ax0.twinx()
+
+    ax0.scatter(proddates,prodevents)
+
+    ax0.step(prod_and_shut_dates[sortindex],prod_and_shut_events[sortindex],'b',where='post')
+    ax1.step(compdates,openperfs,'r--',where='post')
+
+    ax0.set_ylabel('Oil Production [m3/day]')
+    ax1.set_ylabel('Open Perforation Intervals',rotation=270)
+
+    ax0.yaxis.set_label_coords(-0.1,0.5)
+    ax1.yaxis.set_label_coords(1.10,0.5)
+
+    ax0.set_ylim(ymin=0)
+    ax1.set_ylim(ymin=0)
+
+    ax1.set_yticks(range(0,max(openperfs)+1))
+
+    for tick in ax0.get_xticklabels():
+        tick.set_rotation(45)
+           
+    plt.show()
+
 
 def cyrilictolatin(string):
 
