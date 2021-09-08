@@ -456,9 +456,10 @@ def writevtk(frac,time,solution):
 
     #     fclose(fid);
 
-def writescheduleinc(fprod=None,fcomp=None):
+def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
-    import matplotlib.pyplot as plt
+    if wellname is not None:
+        import matplotlib.pyplot as plt
 
     prods = dataset(fprod,skiplines=1)
     comps = dataset(fcomp,skiplines=1)
@@ -469,104 +470,179 @@ def writescheduleinc(fprod=None,fcomp=None):
     prods.astype(header="Date",dtype=np.datetime64,datestring=True,shiftmonths=-1)
     comps.astype(header="DATE",dtype=np.datetime64,datestring=True)
 
+    prodwells = set(prods.running[0])
+    compwells = set(comps.running[0])
+
+    if wellname is None:
+        for well in prodwells.difference(compwells):
+            print("{:13s} has no completion data".format(well))
+
     prods.astype(2,dtype=np.int64)
     prods.astype(3,dtype=np.float64)
 
-    # # FOR THE GIVEN WELL
+    prodwells = list(prodwells)
 
-    wellname = "Qum_Adasi-351"
+    if wellname is None:    
+        windexS = 0
+        windexE = len(prodwells)
+    else:
+        windexS = prodwells.index(wellname)
+        windexE = windexS+1
 
-    prods.filter(0,keywords=[wellname])
-    comps.filter(0,keywords=[wellname])
+    for well in prodwells[windexS:windexE]:
 
-    proddates = prods.running[1]
-    compdates = comps.running[1]
+        prods.filter(0,keywords=[well],inplace=False)
+        comps.filter(0,keywords=[well],inplace=False)
 
-    proddays = prods.running[2]
-    
-    prodevents = prods.running[3]
-    compevents = comps.running[2]
+        proddates = prods.running[1]
+        compdates = comps.running[1]
 
-    compintervals = np.array([comps.running[3],comps.running[4]]).T
+        proddays = prods.running[2]
+        
+        prodevents = prods.running[3]
+        compevents = comps.running[2]
 
-    openintervals = []
+        compintervals = np.array([comps.running[3],comps.running[4]]).T
 
-    openperfs = np.zeros(compevents.shape,dtype=int)
+        openintervals = []
 
-    for index,(compevent,interval) in enumerate(zip(compevents,compintervals)):
+        openperfs = np.zeros(compevents.shape,dtype=int)
 
-        if compevent=="PERF":
-            openintervals.append(interval.tolist())
-        elif compevent=="PLUG":
-            openintervals.remove(interval.tolist())
-               
-        openperfs[index] = len(openintervals)
+        for index,(compevent,interval) in enumerate(zip(compevents,compintervals)):
 
-    shutdates = []
+            if compevent=="PERF":
+                openintervals.append(interval.tolist())
+            elif compevent=="PLUG":
+                openintervals.remove(interval.tolist())
+                   
+            openperfs[index] = len(openintervals)
 
-    flagProdStart = True
+        if wellname is not None:
 
-    for prodindex,proddate in enumerate(proddates):
+            fg1 = plt.figure(num=1,tight_layout=True)
 
-        prodEND = proddate+relativedelta(months=1)
-        prodEND = datetime.datetime(prodEND.year,prodEND.month,calendar.monthrange(prodEND.year,prodEND.month)[1])
+            ax0 = fg1.add_subplot()
+            ax1 = ax0.twinx()
 
-        if flagProdStart:
-            prodSTART = prodEND-relativedelta(days=proddays[prodindex].tolist())
-        else:
-            prodSTART = proddate
+            ax0.scatter(proddates,prodevents)
 
-        for compindex,compdate in enumerate(compdates):
+            ax0.step(proddates,prodevents,'b',where='post')
+            ax1.step(compdates,openperfs,'r--',where='post')
 
-            if compdate<prodSTART:
-                continue
+            ax0.set_title("BEFORE CORRECTIONS")
+            ax0.set_ylabel('Oil Production [m3/day]')
+            ax1.set_ylabel('Open Perforation Intervals',rotation=270)
 
-            elif compdate>prodSTART and flagProdStart:
-                proddates[prodindex] = compdates[compindex-1]
-                flagProdStart = False
+            ax0.yaxis.set_label_coords(-0.1,0.5)
+            ax1.yaxis.set_label_coords(1.10,0.5)
 
-            elif compdate>prodEND:
-                break
+            ax0.set_ylim(ymin=0)
+            ax1.set_ylim(ymin=0)
 
-            elif openperfs[compdate==compdates]==0:
-                wefac = relativedelta(days=proddays[prodindex].tolist())
-                shutdates.append(compdate)
-                flagProdStart = True
-                break
+            ax1.set_yticks(range(0,max(openperfs)+1))
 
-    shutdates = np.array(shutdates,dtype=datetime.datetime)
+            for tick in ax0.get_xticklabels():
+                tick.set_rotation(45)
 
-    prod_and_shut_dates = np.append(proddates,shutdates)
-    prod_and_shut_events = np.append(prodevents,np.zeros(shutdates.shape))
+        shutdates = []
 
-    sortindex = np.argsort(prod_and_shut_dates)
+        prodopendays = np.empty(proddays.shape,dtype=int)
 
-    fig = plt.figure(tight_layout=True)
+        flagProdStart = True
 
-    ax0 = fig.add_subplot()
-    ax1 = ax0.twinx()
+        for prodindex,proddate in enumerate(proddates):
 
-    ax0.scatter(proddates,prodevents)
+            prodEND = proddate+relativedelta(months=1)
+            prodDAY = calendar.monthrange(prodEND.year,prodEND.month)[1]
+            prodEND = datetime.datetime(prodEND.year,prodEND.month,prodDAY)
 
-    ax0.step(prod_and_shut_dates[sortindex],prod_and_shut_events[sortindex],'b',where='post')
-    ax1.step(compdates,openperfs,'r--',where='post')
+            if flagProdStart:
+                prodSTART = prodEND-relativedelta(days=proddays[prodindex].tolist())
+            else:
+                prodSTART = proddate
 
-    ax0.set_ylabel('Oil Production [m3/day]')
-    ax1.set_ylabel('Open Perforation Intervals',rotation=270)
+            for compindex,compdate in enumerate(compdates):
 
-    ax0.yaxis.set_label_coords(-0.1,0.5)
-    ax1.yaxis.set_label_coords(1.10,0.5)
+                if compdate<prodSTART:
+                    pass
 
-    ax0.set_ylim(ymin=0)
-    ax1.set_ylim(ymin=0)
+                elif compdate>prodEND:
+                    prodopendays[prodindex] = prodDAY
+                    break
 
-    ax1.set_yticks(range(0,max(openperfs)+1))
+                elif flagProdStart:
+                    if np.any(openperfs[compdate==compdates]==0):
+                        prodopendays[prodindex] = compdate.day
+                        flagProdStart = True
+                        shutdates.append(compdate)
+                    elif compdates[compindex-1]<proddate:
+                        prodopendays[prodindex] = prodEND.day
+                        flagProdStart = False
+                    else:
+                        prodopendays[prodindex] = prodEND.day-compdates[compindex-1].day
+                        proddates[prodindex] = compdates[compindex-1]
+                        flagProdStart = False
+                    break
+                    
+                elif np.any(openperfs[compdate==compdates]==0):
+                    prodopendays[prodindex] = compdate.day
+                    flagProdStart = True
+                    shutdates.append(compdate)
+                    break
 
-    for tick in ax0.get_xticklabels():
-        tick.set_rotation(45)
-           
-    plt.show()
+        wefacs = proddays/prodopendays
 
+        shutdates = np.array(shutdates,dtype=datetime.datetime)
+
+        shutindex = 0
+
+        for (wefac,prodday,prodopenday,proddate) in zip(wefacs,proddays,prodopendays,proddates):
+
+            if np.argmax(proddate<shutdates)-1 == shutindex:
+                print("{:%Y-%m-%d}: {:13s} production is shut.".format(shutdates[shutindex],well))
+                shutindex += 1
+
+            if wefac>1:
+                print("{:%Y-%m-%d}: {:13s} efficiency is {:.6f} [{:2d} out of {:2d} days]. WARNING: WEFAC IS LARGER THAN UNIT".format(proddate,well,wefac,prodday,prodopenday))
+            else:
+                print("{:%Y-%m-%d}: {:13s} efficiency is {:.6f} [{:2d} out of {:2d} days].".format(proddate,well,wefac,prodday,prodopenday))
+
+        print("{:%Y-%m-%d}: {:13s} production is shut.".format(shutdates[-1],well))
+
+        prodshutdates = np.append(proddates,shutdates)
+        prodshutevents = np.append(prodevents,np.zeros(shutdates.shape))
+
+        sortindex = np.argsort(prodshutdates)
+
+        if wellname is not None:
+
+            fg2 = plt.figure(num=2,tight_layout=True)
+
+            ax0 = fg2.add_subplot()
+            ax1 = ax0.twinx()
+
+            ax0.scatter(proddates,prodevents)
+
+            ax0.step(prodshutdates[sortindex],prodshutevents[sortindex],'b',where='post')
+            ax1.step(compdates,openperfs,'r--',where='post')
+
+            ax0.set_title("AFTER CORRECTIONS")
+
+            ax0.set_ylabel('Oil Production [m3/day]')
+            ax1.set_ylabel('Open Perforation Intervals',rotation=270)
+
+            ax0.yaxis.set_label_coords(-0.1,0.5)
+            ax1.yaxis.set_label_coords(1.10,0.5)
+
+            ax0.set_ylim(ymin=0)
+            ax1.set_ylim(ymin=0)
+
+            ax1.set_yticks(range(0,max(openperfs)+1))
+
+            for tick in ax0.get_xticklabels():
+                tick.set_rotation(45)
+                   
+            plt.show()
 
 def cyrilictolatin(string):
 
