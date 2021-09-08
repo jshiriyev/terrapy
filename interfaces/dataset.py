@@ -546,66 +546,60 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
         shutdates = []
 
-        prodopendays = np.empty(proddays.shape,dtype=int)
+        compdays = np.empty(proddays.shape,dtype=int)
 
-        flagProdStart = True
+        for index,(proddate,prodevent) in enumerate(zip(proddates,prodevents)):
 
-        for prodindex,proddate in enumerate(proddates):
+            prodSTART = proddate
 
-            prodEND = proddate+relativedelta(months=1)
-            prodDAY = calendar.monthrange(prodEND.year,prodEND.month)[1]
-            prodEND = datetime.datetime(prodEND.year,prodEND.month,prodDAY)
+            prodEND = prodSTART+relativedelta(months=1)
 
-            if flagProdStart:
-                prodSTART = prodEND-relativedelta(days=proddays[prodindex].tolist())
+            prodDAYS = calendar.monthrange(prodEND.year,prodEND.month)[1]
+
+            prodEND = datetime.datetime(prodEND.year,prodEND.month,prodDAYS)
+
+            compindex0 = np.sum(compdates<prodSTART)-1
+            compindex1 = np.sum(compdates<prodEND)
+
+            compOPEN = openperfs[compindex0:compindex1]
+
+            if np.sum(compdates<prodSTART)==0:
+                print("Production has been defined before completion")
+            elif prodevent==0:
+                print("Zero production has been observed")
+            elif compOPEN[0]==0 and compOPEN[-1]==0:
+                "production starts and is shut"
+                proddates[index] = compdates[compindex0+1]
+                compdays[index] = compdates[compindex1-1].day-compdates[compindex0+1].day
+                shutdates.append(compdates[compindex1-1])
+            elif compOPEN[0]==0:
+                "production starts"
+                proddates[index] = compdates[compindex0+1]
+                compdays[index] = prodEND.days-compdates[compindex0+1].day
+            elif compOPEN[-1]==0:
+                "prodcution is shut"
+                compdays[index] = compdates[compindex1-1].day-prodSTART.days
+                shutdates.append(compdates[compindex1-1])
             else:
-                prodSTART = proddate
+                "production continues normally"
+                compdays[index] = prodDAYS
 
-            for compindex,compdate in enumerate(compdates):
-
-                if compdate<prodSTART:
-                    pass
-
-                elif compdate>prodEND:
-                    prodopendays[prodindex] = prodDAY
-                    break
-
-                elif flagProdStart:
-                    if np.any(openperfs[compdate==compdates]==0):
-                        prodopendays[prodindex] = compdate.day
-                        flagProdStart = True
-                        shutdates.append(compdate)
-                    elif compdates[compindex-1]<proddate:
-                        prodopendays[prodindex] = prodEND.day
-                        flagProdStart = False
-                    else:
-                        prodopendays[prodindex] = prodEND.day-compdates[compindex-1].day
-                        proddates[prodindex] = compdates[compindex-1]
-                        flagProdStart = False
-                    break
-                    
-                elif np.any(openperfs[compdate==compdates]==0):
-                    prodopendays[prodindex] = compdate.day
-                    flagProdStart = True
-                    shutdates.append(compdate)
-                    break
-
-        wefacs = proddays/prodopendays
+        wefacs = proddays/compdays
 
         shutdates = np.array(shutdates,dtype=datetime.datetime)
 
         shutindex = 0
 
-        for (wefac,prodday,prodopenday,proddate) in zip(wefacs,proddays,prodopendays,proddates):
+        for (proddate,wefac,prodday,compday) in zip(proddates,wefacs,proddays,compdays):
 
             if np.argmax(proddate<shutdates)-1 == shutindex:
                 print("{:%Y-%m-%d}: {:13s} production is shut.".format(shutdates[shutindex],well))
                 shutindex += 1
 
             if wefac>1:
-                print("{:%Y-%m-%d}: {:13s} efficiency is {:.6f} [{:2d} out of {:2d} days]. WARNING: WEFAC IS LARGER THAN UNIT".format(proddate,well,wefac,prodday,prodopenday))
+                print("{:%Y-%m-%d}: {:13s} efficiency is {:.6f} [{:2d} out of {:2d} days]. WARNING: WEFAC IS LARGER THAN UNIT".format(proddate,well,wefac,prodday,compday))
             else:
-                print("{:%Y-%m-%d}: {:13s} efficiency is {:.6f} [{:2d} out of {:2d} days].".format(proddate,well,wefac,prodday,prodopenday))
+                print("{:%Y-%m-%d}: {:13s} efficiency is {:.6f} [{:2d} out of {:2d} days].".format(proddate,well,wefac,prodday,compday))
 
         print("{:%Y-%m-%d}: {:13s} production is shut.".format(shutdates[-1],well))
 
