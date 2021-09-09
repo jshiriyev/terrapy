@@ -584,6 +584,11 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
             injtotal = prods.running[6][index]
 
+            try:
+                flagNoPostProd = True if proddates[index+1]-relativedelta(months=1)>prodEND else False
+            except IndexError:
+                flagNoPostProd = True
+
             if wellname is not None:
                 print("{:%Y-%m-%d}: {:13s}".format(proddate,well))
 
@@ -630,7 +635,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                 flagNoPrevProd = False
                 if wellname is not None:
                     print("[C4] Plugged and Perforated, there is no production in the previous month")
-            elif any(compOPEN==0) and not flagNoPrevProd:
+            elif any(compOPEN==0) and flagNoPostProd:
                 for plugDATE in plugDATES:
                     if plugDATE.day>=prodday: break
                 if plugDATE.day>=prodday:
@@ -638,10 +643,10 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                     shutdates.append(plugDATE)
                 else:
                     compdays[index] = prodEND.day
-                    shutdates.append(prodEND)   
+                    shutdates.append(prodEND)
                 flagNoPrevProd = True
                 if wellname is not None:
-                    print("[C4] Plugged and Perforated, there is production in the previous month")
+                    print("[C4] Plugged and Perforated, there is production in the previous month and no production in the next month")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
             else:
                 compdays[index] = prodDAYS
