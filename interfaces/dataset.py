@@ -9,6 +9,8 @@ import inspect
 import os
 import re
 
+import warnings
+
 import numpy as np
 
 import openpyxl
@@ -479,6 +481,9 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
     prods.astype(2,dtype=np.int64)
     prods.astype(3,dtype=np.float64)
+    prods.astype(4,dtype=np.float64)
+    prods.astype(5,dtype=np.float64)
+    prods.astype(6,dtype=np.float64)
 
     prodwells = list(prodwells)
 
@@ -536,8 +541,8 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
             ax0.yaxis.set_label_coords(-0.1,0.5)
             ax1.yaxis.set_label_coords(1.10,0.5)
 
-            ax0.set_ylim(ymin=0)
-            ax1.set_ylim(ymin=0)
+            ax0.set_ylim(ymin=0,ymax=max(prodevents)*1.1)
+            ax1.set_ylim(ymin=0,ymax=max(openperfs)+0.5)
 
             ax1.set_yticks(range(0,max(openperfs)+1))
 
@@ -548,7 +553,9 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
         compdays = np.empty(proddays.shape,dtype=int)
 
-        for index,(proddate,prodevent) in enumerate(zip(proddates,prodevents)):
+        flagNoPrevProd = True
+
+        for index,(proddate,prodday,prodevent) in enumerate(zip(proddates,proddays,prodevents)):
 
             prodSTART = proddate
 
@@ -558,50 +565,99 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
             prodEND = datetime.datetime(prodEND.year,prodEND.month,prodDAYS)
 
-            compindex0 = np.sum(compdates<prodSTART)-1
+            if np.sum(compdates<prodSTART)==0:
+                compindex0 = 0
+            else:
+                compindex0 = np.sum(compdates<prodSTART)-1
+
             compindex1 = np.sum(compdates<prodEND)
 
             compOPEN = openperfs[compindex0:compindex1]
 
-            if np.sum(compdates<prodSTART)==0:
-                print("Production has been defined before completion")
-            elif prodevent==0:
-                print("Zero production has been observed")
+            compDATES = compdates[compindex0:compindex1]
+            compEVENTS = compevents[compindex0:compindex1]
+
+            perfDATES = compDATES[compEVENTS=="PERF"]
+            plugDATES = compDATES[compEVENTS=="PLUG"]
+
+            prodtotal = prods.running[3][index]+prods.running[4][index]+prods.running[5][index]
+
+            injtotal = prods.running[6][index]
+
+            if wellname is not None:
+                print("{:%Y-%m-%d}: {:13s}".format(proddate,well))
+
+            if np.sum(compdates<prodEND)==0:
+                warnings.warn("Production has been defined before completion")
+            elif prodtotal==0 and injtotal==0:
+                warnings.warn("Zero production and injection has been observed")
             elif compOPEN[0]==0 and compOPEN[-1]==0:
-                "production starts and is shut"
-                proddates[index] = compdates[compindex0+1]
-                compdays[index] = compdates[compindex1-1].day-compdates[compindex0+1].day
-                shutdates.append(compdates[compindex1-1])
-            elif compOPEN[0]==0:
-                "production starts"
-                proddates[index] = compdates[compindex0+1]
-                compdays[index] = prodEND.days-compdates[compindex0+1].day
+                proddates[index] = perfDATES[0]
+                compdays[index] = plugDATES[-1].day-perfDATES[0].day
+                shutdates.append(plugDATES[-1])
+                flagNoPrevProd = True
+                if wellname is not None:
+                    print("[C1] Peforated and Plugged")
+                    print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
+            elif compOPEN[0]==0 and flagNoPrevProd:
+                proddates[index] = perfDATES[0]
+                compdays[index] = prodEND.day-perfDATES[0].day
+                flagNoPrevProd = False
+                if wellname is not None:
+                    print("[C2] Perforated and Open, there is no previous production")
+            elif compOPEN[0]==0 and not flagNoPrevProd:
+                proddates[index] = perfDATES[0]
+                compdays[index] = prodEND.day-perfDATES[0].day
+                shutdates.append(plugDATES[0])
+                flagNoPrevProd = False
+                if wellname is not None:
+                    print("[C2] Perforated and Open, there is previous production")
+                    print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
             elif compOPEN[-1]==0:
-                "prodcution is shut"
-                compdays[index] = compdates[compindex1-1].day-prodSTART.days
-                shutdates.append(compdates[compindex1-1])
+                for plugDATE in plugDATES:
+                    if plugDATE.day>=prodday: break
+                compdays[index] = plugDATE.day
+                shutdates.append(plugDATE)
+                flagNoPrevProd = True
+                if wellname is not None:
+                    print("[C3] Open and Plugged")
+                    print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
+            elif any(compOPEN==0) and flagNoPrevProd:
+                for perfDATE in np.flip(perfDATES):
+                    if prodEND.day-perfDATE.day>=prodday: break
+                proddates[index] = perfDATE
+                compdays[index] = prodEND.day-perfDATE.day
+                flagNoPrevProd = False
+                if wellname is not None:
+                    print("[C4] Plugged and Perforated, there is no production in the previous month")
+            elif any(compOPEN==0) and not flagNoPrevProd:
+                for plugDATE in plugDATES:
+                    if plugDATE.day>=prodday: break
+                if plugDATE.day>=prodday:
+                    compdays[index] = plugDATE.day
+                    shutdates.append(plugDATE)
+                else:
+                    compdays[index] = prodEND.day
+                    shutdates.append(prodEND)   
+                flagNoPrevProd = True
+                if wellname is not None:
+                    print("[C4] Plugged and Perforated, there is production in the previous month")
+                    print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
             else:
-                "production continues normally"
                 compdays[index] = prodDAYS
+                flagNoPrevProd = False
+                if wellname is not None:
+                    print("[C0] No completion event")
+
+            if wellname is not None:
+                print("Production efficiency is [{:2d} out of {:2d} days].".format(prodday,compdays[index]))
+
+            if prodday/compdays[index]>1:
+                warnings.warn("{:%Y-%m-%d}: {:13s} efficiency is more than unit [{:2d} out of {:2d} days].".format(proddate,well,prodday,compdays[index]))
 
         wefacs = proddays/compdays
 
         shutdates = np.array(shutdates,dtype=datetime.datetime)
-
-        shutindex = 0
-
-        for (proddate,wefac,prodday,compday) in zip(proddates,wefacs,proddays,compdays):
-
-            if np.argmax(proddate<shutdates)-1 == shutindex:
-                print("{:%Y-%m-%d}: {:13s} production is shut.".format(shutdates[shutindex],well))
-                shutindex += 1
-
-            if wefac>1:
-                print("{:%Y-%m-%d}: {:13s} efficiency is {:.6f} [{:2d} out of {:2d} days]. WARNING: WEFAC IS LARGER THAN UNIT".format(proddate,well,wefac,prodday,compday))
-            else:
-                print("{:%Y-%m-%d}: {:13s} efficiency is {:.6f} [{:2d} out of {:2d} days].".format(proddate,well,wefac,prodday,compday))
-
-        print("{:%Y-%m-%d}: {:13s} production is shut.".format(shutdates[-1],well))
 
         prodshutdates = np.append(proddates,shutdates)
         prodshutevents = np.append(prodevents,np.zeros(shutdates.shape))
@@ -628,8 +684,8 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
             ax0.yaxis.set_label_coords(-0.1,0.5)
             ax1.yaxis.set_label_coords(1.10,0.5)
 
-            ax0.set_ylim(ymin=0)
-            ax1.set_ylim(ymin=0)
+            ax0.set_ylim(ymin=0,ymax=max(prodevents)*1.1)
+            ax1.set_ylim(ymin=0,ymax=max(openperfs)+0.5)
 
             ax1.set_yticks(range(0,max(openperfs)+1))
 
