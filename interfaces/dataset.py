@@ -609,7 +609,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
             elif compOPEN[0]==0 and flagNoPostProd:
                 proddates[index] = perfDATES[0]
                 compdays[index] = prodEND.day-perfDATES[0].day
-                shutdates.append(prodEND.day)
+                shutdates.append(prodEND)
                 flagNoPrevProd = True
                 if wellname is not None:
                     print("[C2] Perforated and Open, no post production")
