@@ -496,6 +496,8 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
     for well in prodwells[windexS:windexE]:
 
+        print("{:13s} is on progress...".format(well))
+
         prods.filter(0,keywords=[well],inplace=False)
         comps.filter(0,keywords=[well],inplace=False)
 
@@ -604,21 +606,21 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                 if wellname is not None:
                     print("[C1] Peforated and Plugged")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-            elif compOPEN[0]==0 and flagNoPrevProd:
+            elif compOPEN[0]==0 and flagNoPostProd:
                 proddates[index] = perfDATES[0]
                 compdays[index] = prodEND.day-perfDATES[0].day
-                flagNoPrevProd = False
+                shutdates.append(prodEND.day)
+                flagNoPrevProd = True
                 if wellname is not None:
-                    print("[C2] Perforated and Open, there is no previous production")
-            elif compOPEN[0]==0 and not flagNoPrevProd:
-                proddates[index] = perfDATES[0]
-                compdays[index] = prodEND.day-perfDATES[0].day
-                shutdates.append(plugDATES[0])
-                flagNoPrevProd = False
-                if wellname is not None:
-                    print("[C2] Perforated and Open, there is previous production")
+                    print("[C2] Perforated and Open, no post production")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-            elif compOPEN[-1]==0:
+            elif compOPEN[0]==0:
+                proddates[index] = perfDATES[0]
+                compdays[index] = prodEND.day-perfDATES[0].day
+                flagNoPrevProd = False
+                if wellname is not None:
+                    print("[C2] Perforated and Open")
+            elif compOPEN[-1]==0 and plugDATES[-1].day>=prodday:
                 for plugDATE in plugDATES:
                     if plugDATE.day>=prodday: break
                 compdays[index] = plugDATE.day
@@ -627,33 +629,46 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                 if wellname is not None:
                     print("[C3] Open and Plugged")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-            elif any(compOPEN==0) and flagNoPrevProd:
-                for perfDATE in np.flip(perfDATES):
+            elif any(compOPEN==0) and not flagNoPrevProd and plugDATES[-1].day>=prodday:
+                for plugDATE in plugDATES:
+                    if plugDATE.day>=prodday: break
+                compdays[index] = plugDATE.day
+                shutdates.append(plugDATE)
+                flagNoPrevProd = True
+                if wellname is not None:
+                    print("[C4] Plugged and Perforated, no post production")
+                    print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
+            elif any(compOPEN==0) and flagNoPrevProd and not flagNoPostProd and prodEND.day-perfDATES[1].day>=prodday:
+                for perfDATE in np.flip(perfDATES[1:]):
                     if prodEND.day-perfDATE.day>=prodday: break
                 proddates[index] = perfDATE
                 compdays[index] = prodEND.day-perfDATE.day
                 flagNoPrevProd = False
                 if wellname is not None:
-                    print("[C4] Plugged and Perforated, there is no production in the previous month")
-            elif any(compOPEN==0) and flagNoPostProd:
-                for plugDATE in plugDATES:
-                    if plugDATE.day>=prodday: break
-                if plugDATE.day>=prodday:
-                    compdays[index] = plugDATE.day
-                    shutdates.append(plugDATE)
-                else:
-                    compdays[index] = prodEND.day
-                    shutdates.append(prodEND)
+                    print("[C4] Plugged and Perforated, no previous production")
+            elif any(compOPEN==0) and flagNoPrevProd and flagNoPostProd and prodEND.day-perfDATES[1].day>=prodday:
+                for perfDATE in np.flip(perfDATES[1:]):
+                    if prodEND.day-perfDATE.day>=prodday: break
+                proddates[index] = perfDATE
+                compdays[index] = prodEND.day-perfDATE.day
+                shutdates.append(prodEND)
                 flagNoPrevProd = True
                 if wellname is not None:
-                    print("[C4] Plugged and Perforated, there is production in the previous month and no production in the next month")
+                    print("[C4] Plugged and Perforated, no previous production,")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-            else:
+            elif not flagNoPostProd:
                 compdays[index] = prodDAYS
                 flagNoPrevProd = False
                 if wellname is not None:
                     print("[C0] No completion event")
-
+            else:
+                compdays[index] = prodDAYS
+                shutdates.append(prodEND)
+                flagNoPrevProd = True
+                if wellname is not None:
+                    print("[C0] No completion event, no post production")
+                    print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
+            
             if wellname is not None:
                 print("Production efficiency is [{:2d} out of {:2d} days].".format(prodday,compdays[index]))
 
