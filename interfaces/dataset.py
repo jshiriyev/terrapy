@@ -596,8 +596,10 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
             if np.sum(compdates<prodEND)==0:
                 warnings.warn("Production has been defined before completion")
+                break
             elif prodtotal==0 and injtotal==0:
                 warnings.warn("Zero production and injection has been observed")
+                break
             elif compOPEN[0]==0 and compOPEN[-1]==0:
                 proddates[index] = perfDATES[0]
                 compdays[index] = plugDATES[-1].day-perfDATES[0].day
@@ -674,6 +676,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
             if prodday/compdays[index]>1:
                 warnings.warn("{:%Y-%m-%d}: {:13s} efficiency is more than unit [{:2d} out of {:2d} days].".format(proddate,well,prodday,compdays[index]))
+                break
 
         wefacs = proddays/compdays
 
