@@ -13,8 +13,6 @@ import warnings
 
 import numpy as np
 
-import openpyxl
-
 if __name__ == "__main__":
     import setup
 
@@ -47,6 +45,7 @@ class dataset():
 
         if any([self.extension==extension for extension in self.special_extensions]):
             self.read_special(**kwargs)
+            return
         else:
             self.read()
 
@@ -105,15 +104,32 @@ class dataset():
 
         if self.extension == ".xlsx":
 
+            import openpyxl
+
             wb = openpyxl.load_workbook(self.filepath,read_only=True)
 
-            lines = wb[sheetname].iter_rows(min_row=min_row,min_col=min_col,
+            self._headers = wb[sheetname].iter_rows(min_row=self.headerline+1,min_col=min_col,
+                max_row=self.headerline+1,max_col=max_col,values_only=True)
+
+            columns = wb[sheetname].iter_cols(min_row=min_row+self.skiplines,min_col=min_col,
                 max_row=max_row,max_col=max_col,values_only=True)
 
-            self._running = [list(line) for line in lines]
+            self._running = [np.array(column) for column in columns]:
 
             wb._archive.close()
-            return
+
+        elif self.extension == ".las":
+
+            import lasio
+
+            las = lasio.read(self.filepath)
+
+            self._headers = las.keys()
+
+            self._running = [np.asarray(column) for column in las.data.transpose()]:
+
+        self.headers = self._headers
+        self.running = [np.asarray(column) for column in self._running]
 
     def set_subheaders(self,header_index=None,header=None,regex=None,regex_builtin="INC_HEADERS",title="SUB-HEADERS"):
 
