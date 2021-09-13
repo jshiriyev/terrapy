@@ -114,7 +114,7 @@ class dataset():
             columns = wb[sheetname].iter_cols(min_row=min_row+self.skiplines,min_col=min_col,
                 max_row=max_row,max_col=max_col,values_only=True)
 
-            self._running = [np.array(column) for column in columns]:
+            self._running = [np.array(column) for column in columns]
 
             wb._archive.close()
 
@@ -126,7 +126,7 @@ class dataset():
 
             self._headers = las.keys()
 
-            self._running = [np.asarray(column) for column in las.data.transpose()]:
+            self._running = [np.asarray(column) for column in las.data.transpose()]
 
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
@@ -529,7 +529,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
         openintervals = []
 
-        openperfs = np.zeros(compevents.shape,dtype=int)
+        openperfs = []
 
         for index,(compevent,interval) in enumerate(zip(compevents,compintervals)):
 
@@ -538,7 +538,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
             elif compevent=="PLUG":
                 openintervals.remove(interval.tolist())
                    
-            openperfs[index] = len(openintervals)
+            openperfs.append(len(openintervals))
 
         if wellname is not None:
 
@@ -575,32 +575,30 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
 
         for index,(proddate,prodday,prodevent) in enumerate(zip(proddates,proddays,prodevents)):
 
-            prodSTART = proddate
+            prodSTART = proddate+relativedelta(days=1)
 
-            prodEND = prodSTART+relativedelta(months=1)
+            monthDays = calendar.monthrange(prodSTART.year,prodSTART.month)[1]
 
-            prodDAYS = calendar.monthrange(prodEND.year,prodEND.month)[1]
-
-            prodEND = datetime.datetime(prodEND.year,prodEND.month,prodDAYS)
+            prodEND = datetime.datetime(prodSTART.year,prodSTART.month,monthDays)
 
             if np.sum(compdates<prodSTART)==0:
-                compindex0 = 0
+                compIndexSTART = 0
             else:
-                compindex0 = np.sum(compdates<prodSTART)-1
+                compIndexSTART = np.sum(compdates<prodSTART)-1
 
-            compindex1 = np.sum(compdates<prodEND)
+            compIndexEND = np.sum(compdates<=prodEND)
 
-            compOPEN = openperfs[compindex0:compindex1]
+            compOPEN = openperfs[compIndexSTART:compIndexEND]
 
-            compDATES = compdates[compindex0:compindex1]
-            compEVENTS = compevents[compindex0:compindex1]
+            compEVENTS = compevents[compIndexSTART:compIndexEND]
 
+            compDATES = compdates[compIndexSTART:compIndexEND]
             perfDATES = compDATES[compEVENTS=="PERF"]
             plugDATES = compDATES[compEVENTS=="PLUG"]
 
-            prodtotal = prods.running[3][index]+prods.running[4][index]+prods.running[5][index]
+            prodTOTAL = prods.running[3][index]+prods.running[4][index]+prods.running[5][index]
 
-            injtotal = prods.running[6][index]
+            injTOTAL = prods.running[6][index]
 
             try:
                 flagNoPostProd = True if proddates[index+1]-relativedelta(months=1)>prodEND else False
@@ -610,13 +608,22 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
             if wellname is not None:
                 print("{:%Y-%m-%d}: {:13s}".format(proddate,well))
 
+            if np.sum(compdates<prodSTART)==0:
+                flagCompShutSTART = True
+            else:
+                flagCompShutSTART = compOPEN[0]==0
+
+            flagCompShutEND = compOPEN[-1]==0
+
+            flagPlugPerf = any([openperforation==0 for openperforation in compOPEN[1:-1]])
+
             if np.sum(compdates<prodEND)==0:
                 warnings.warn("Production has been defined before completion")
                 break
-            elif prodtotal==0 and injtotal==0:
+            elif prodTOTAL==0 and injTOTAL==0:
                 warnings.warn("Zero production and injection has been observed")
                 break
-            elif compOPEN[0]==0 and compOPEN[-1]==0:
+            elif flagCompShutSTART and flagCompShutEND:
                 proddates[index] = perfDATES[0]
                 compdays[index] = plugDATES[-1].day-perfDATES[0].day
                 shutdates.append(plugDATES[-1])
@@ -624,7 +631,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                 if wellname is not None:
                     print("[C1] Peforated and Plugged")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-            elif compOPEN[0]==0 and flagNoPostProd:
+            elif flagCompShutSTART and flagNoPostProd:
                 proddates[index] = perfDATES[0]
                 compdays[index] = prodEND.day-perfDATES[0].day
                 shutdates.append(prodEND)
@@ -632,13 +639,13 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                 if wellname is not None:
                     print("[C2] Perforated and Open, no post production")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-            elif compOPEN[0]==0:
+            elif flagCompShutSTART:
                 proddates[index] = perfDATES[0]
                 compdays[index] = prodEND.day-perfDATES[0].day
                 flagNoPrevProd = False
                 if wellname is not None:
                     print("[C2] Perforated and Open")
-            elif compOPEN[-1]==0 and plugDATES[-1].day>=prodday:
+            elif flagCompShutEND and plugDATES[-1].day>=prodday:
                 for plugDATE in plugDATES:
                     if plugDATE.day>=prodday: break
                 compdays[index] = plugDATE.day
@@ -647,7 +654,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                 if wellname is not None:
                     print("[C3] Open and Plugged")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-            elif any(compOPEN==0) and not flagNoPrevProd and plugDATES[-1].day>=prodday:
+            elif flagPlugPerf and not flagNoPrevProd and plugDATES[-1].day>=prodday:
                 for plugDATE in plugDATES:
                     if plugDATE.day>=prodday: break
                 compdays[index] = plugDATE.day
@@ -656,7 +663,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                 if wellname is not None:
                     print("[C4] Plugged and Perforated, no post production")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-            elif any(compOPEN==0) and flagNoPrevProd and not flagNoPostProd and prodEND.day-perfDATES[1].day>=prodday:
+            elif flagPlugPerf and flagNoPrevProd and not flagNoPostProd and prodEND.day-perfDATES[1].day>=prodday:
                 for perfDATE in np.flip(perfDATES[1:]):
                     if prodEND.day-perfDATE.day>=prodday: break
                 proddates[index] = perfDATE
@@ -664,7 +671,7 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                 flagNoPrevProd = False
                 if wellname is not None:
                     print("[C4] Plugged and Perforated, no previous production")
-            elif any(compOPEN==0) and flagNoPrevProd and flagNoPostProd and prodEND.day-perfDATES[1].day>=prodday:
+            elif flagPlugPerf and flagNoPrevProd and flagNoPostProd and prodEND.day-perfDATES[1].day>=prodday:
                 for perfDATE in np.flip(perfDATES[1:]):
                     if prodEND.day-perfDATE.day>=prodday: break
                 proddates[index] = perfDATE
@@ -675,12 +682,12 @@ def writescheduleinc(fprod=None,fcomp=None,wellname=None):
                     print("[C4] Plugged and Perforated, no previous production,")
                     print("Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
             elif not flagNoPostProd:
-                compdays[index] = prodDAYS
+                compdays[index] = monthDays
                 flagNoPrevProd = False
                 if wellname is not None:
                     print("[C0] No completion event")
             else:
-                compdays[index] = prodDAYS
+                compdays[index] = monthDays
                 shutdates.append(prodEND)
                 flagNoPrevProd = True
                 if wellname is not None:
