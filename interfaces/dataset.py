@@ -1,6 +1,6 @@
 import calendar
-import datetime
 
+from datetime import datetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 
@@ -242,7 +242,7 @@ class dataset():
 
             def shifting(string):
                 date = parse(string)+relativedelta(months=shiftmonths)
-                return datetime.datetime(date.year,date.month,calendar.monthrange(date.year,date.month)[1])
+                return datetime(date.year,date.month,calendar.monthrange(date.year,date.month)[1])
 
             if shiftmonths != 0:
                 vdate = np.vectorize(lambda x: shifting(x))
@@ -476,9 +476,27 @@ def writevtk(frac,time,solution):
 
     #     fclose(fid);
 
-class schedule():
+class schedule(dataset):
 
     def __init__(self,fprod,fcomp):
+
+        super().__init__(None)
+
+        # KEYWORDS = [DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN]
+
+        self.strdates = " {:%d %b %Y} /"#.format(date)
+        self.strcompdat = " '{:13s}' 1* {} {} MD {} 2* 0.14 /"#.format(wellname,top,bottom,status)
+        self.strcompord = " '{:13s}' INPUT /"#.format(wellname)
+        self.strprodhist = " '{:13s}' OPEN ORAT {} {} {} /"#.format(wellname,oilrate,waterrate,gasrate)
+        self.strinjdhist = " '{:13s}' WATER OPEN {} 7* RATE /"#.format(wellname,waterrate)
+        self.strwefac = " '{:13s}' {} /"#.format(wellname,efficiency)
+        self.strwopen = " '{:13s}' SHUT 3* /"#.format(wellname)
+
+        self._headers = ["DATE","KEYWORD","DETAILS"]
+        self._running = [np.array([]) for _ in self._headers]
+
+        self.headers = self._headers
+        self.running = [np.asarray(column) for column in self._running]
 
         self.fprod = fprod
         self.fcomp = fcomp
@@ -489,7 +507,10 @@ class schedule():
         self.prods.texttocolumn(0,"\t",maxsplit=7)
         self.comps.texttocolumn(0,"\t",maxsplit=6)
 
-        self.prodwellnames = set(self.prods.running[0])
+        self.prods.get_columns(headers=["WELL","DATE","DAYS","OPROD","WPROD","GPROD","WINJ"],inplace=True)
+        self.comps.get_columns(headers=["WELL","DATE","EVENT","TOP","BOTTOM"],inplace=True)
+
+        self.prodwellnames = np.unique(self.prods.running[0])
 
         self.prods.astype(1,dtype=np.datetime64,datestring=True,shiftmonths=-1)
         self.prods.astype(2,dtype=np.int64)
@@ -498,224 +519,345 @@ class schedule():
         self.prods.astype(5,dtype=np.float64)
         self.prods.astype(6,dtype=np.float64)
 
-        self.compwellnames = set(self.comps.running[0])
+        self.compwellnames = np.unique(self.comps.running[0])
 
         self.comps.astype(1,dtype=np.datetime64,datestring=True)
         self.comps.astype(3,dtype=np.float64)
         self.comps.astype(4,dtype=np.float64)
 
-    def testproductions(self):
-
-        producedtotal = self.prods.running[3]+self.prods.running[4]+self.prods.running[5]
-        injectedtotal = self.prods.running[6]
-
-        producedmonthcounts = np.sum(producedtotal!=0)
-        injectedmonthcounts = np.sum(injectedtotal!=0)
-
-        operatedmonthcounts = self.prods.running[3].size
-
-        if producedmonthcounts+injectedmonthcounts>operatedmonthcounts:
-            warning.warn("Some production dates has injection data as well.")
-
-        for wellname in self.prodwellnames:
-
-            well = self.getwell(wellname)
-
-            if any(well.prodtotal==0) and any(well.injtotal==0):
-                warnings.warn("{:13s} zero production and injection has been observed.".format(well.name))
-
-        self.prods.running[3][injectedtotal>0] = 0
-        self.prods.running[4][injectedtotal>0] = -self.prods.running[6][injectedtotal>0]
-        self.prods.running[5][injectedtotal>0] = 0
-
-    def testcompletions(self):
-        # completion data should be sorted, first perforation of the interval and then plug
-        # there must be more than two completion scenarios (perf and plug)
-        # completion should also be sorted based on date
-        pass
-
-    def testcross(self):
-
-        for wellname in self.prodwellnames.difference(self.compwellnames):
-            print("{:13s} has production but no completion data".format(wellname))
-
-        for wellname in self.compwellnames.difference(self.prodwellnames):
-            print("{:13s} has completion but no production data".format(wellname))
-
-        for wellname in self.prodwellnames:
-
-            well = self.getwell(wellname)
-
-            if np.sum(well.compdates<well.proddates)==0:
-                warnings.warn("{:13s} production has been defined before completion".format(well.name))
-
     def getwell(self,wellname):
 
         self.prods.filter(0,keywords=[wellname],inplace=False)
-        self.comps.filter(0,=[wellname],inplace=False)
+        self.comps.filter(0,keywords=[wellname],inplace=False)
 
         class well: pass
 
         well.name = wellname
 
-        well.proddates = self.prods.running[1]
-        well.proddays = self.prods.running[2]
+        producedtotal = self.prods.running[3]+self.prods.running[4]+self.prods.running[5]
 
-        well.prodoil = self.prods.running[3]
-        well.prodwater = self.prods.running[4]
-        well.prodgas = self.prods.running[5]
+        well.proddates = self.prods.running[1][producedtotal>0]
 
-        well.shutdates = []
+        well.proddays = self.prods.running[2][producedtotal>0]
+
+        well.prodoil = self.prods.running[3][producedtotal>0]
+        well.prodwater = self.prods.running[4][producedtotal>0]
+        well.prodgas = self.prods.running[5][producedtotal>0]
+
+        injectedtotal = self.prods.running[6]
+
+        well.injddates = self.prods.running[1][injectedtotal>0]
+        well.injddays = self.prods.running[2][injectedtotal>0]
+
+        well.injdoil = np.zeros(self.prods.running[6][injectedtotal>0].shape)
+        well.injdwater = self.prods.running[6][injectedtotal>0]
+        well.injdgas = np.zeros(self.prods.running[6][injectedtotal>0].shape)
 
         well.compdates = self.comps.running[1]
-        well.compevents = self.comps.running[2]
 
+        well.compevents = self.comps.running[2]
         well.compuppers = self.comps.running[3]
         well.complowers = self.comps.running[4]
 
-        well.compopendays = np.empty(well.proddays.shape)
-
-        well.compopenintervals = []
-
         well.compopencounts = []
+
+        compopenintervals = []
 
         for compevent,compupper,complower in zip(well.compevents,well.compuppers,well.complowers):
 
             if compevent=="PERF":
-                well.compopenintervals.append([compupper,complower])
+                compopenintervals.append([compupper,complower])
             elif compevent=="PLUG":
-                well.compopenintervals.remove([compupper,complower])
+                compopenintervals.remove([compupper,complower])
                    
-            well.compopencounts.append(len(well.compopenintervals))
+            well.compopencounts.append(len(compopenintervals))
 
         return well
 
-    def testwells(self):
+    def productioncheck(self):
+
+        # warnings.filterwarnings("ignore",'.*',UserWarning)
+
+        if any(self.prods.running[3]<0):
+            for index in np.where(self.self.prods.running[3]<0)[0]:
+                well = self.prods.running[0][index]
+                date = self.prods.running[1][index]
+                warnings.warn("{:%d %b %Y} {:13s} oil production has negative entry.".format(date,well))
+
+        if any(self.prods.running[4]<0):
+            for index in np.where(self.self.prods.running[4]<0)[0]:
+                well = self.prods.running[0][index]
+                date = self.prods.running[1][index]
+                warnings.warn("{:%d %b %Y} {:13s} water production has negative entry.".format(date,well))
+
+        if any(self.prods.running[5]<0):
+            for index in np.where(self.self.prods.running[5]<0)[0]:
+                well = self.prods.running[0][index]
+                date = self.prods.running[1][index]
+                warnings.warn("{:%d %b %Y} {:13s} gas production has negative entry.".format(date,well))
+
+        if any(self.prods.running[6]<0):
+            for index in np.where(self.self.prods.running[6]<0)[0]:
+                well = self.prods.running[0][index]
+                date = self.prods.running[1][index]
+                warnings.warn("{:%d %b %Y} {:13s} water injection has negative entry.".format(date,well))
+
+        producedtotal = self.prods.running[3]+self.prods.running[4]+self.prods.running[5]
+
+        producedmonthcounts = np.sum(producedtotal!=0)
+
+        injectedtotal = self.prods.running[6]
+
+        injectedmonthcounts = np.sum(injectedtotal!=0)
+
+        totalmonthcounts = self.prods.running[3].size
+
+        if any(producedtotal+injectedtotal==0):
+            for index in np.where(producedtotal+injectedtotal==0)[0]:
+                well = self.prods.running[0][index]
+                date = self.prods.running[1][index]
+                warnings.warn("{:%d %b %Y} {:13s} has zero production and injection.".format(date,well))
+
+        if producedmonthcounts+injectedmonthcounts>totalmonthcounts:
+            for index in np.where(np.logical_and(producedtotal!=0,injectedtotal!=0))[0]:
+                well = self.prods.running[0][index]
+                date = self.prods.running[1][index]
+                warning.warn("{:%d %b %Y} {:13s} has both production and injection data.".format(date,well))
+
+        # production dates must be the last day of month
+
+    def completioncheck(self):
+        # completion data should be sorted, first perforation of the interval and then plug
+        # there must be more than two completion scenarios (perf and plug)
+        # completion top must be smaller than bottom
+        # they must be positive values
+
+        for wellname in self.compwellnames:
+
+            well = self.getwell(wellname)
+
+            for compdate,compevent,compupper,complower in zip(well.compdates,well.compevents,well.compuppers,well.complowers):
+
+                if compevent == "PERF":
+                    bottom = complower
+                    status = "OPEN"
+                elif compevent == "PLUG":
+                    bottom = "1*"
+                    status = "SHUT"
+
+                self.set_rows([compdate,"COMPDATMD",self.strcompdat.format(well.name,compupper,bottom,status)])
+                self.set_rows([compdate,"COMPORD",self.strcompord.format(well.name)])
+
+    def crosscheck(self):
+
+        warnNOPROD = "{:13s} has completion but no production data."
+        warnNOCOMP = "{:13s} has production but no completion data."
+
+        warnCROSS = "{:13s} production has been defined before completion."
+        warnWEFAC = "{:%Y-%m-%d}: {:13s} efficiency is more than unit [{:2d} out of {:2d} days]."
+
+        for wellname in np.setdiff1d(self.prodwellnames,self.compwellnames):
+            warnings.warn(warnNOCOMP.format(wellname))
+
+        for wellname in np.setdiff1d(self.compwellnames,self.prodwellnames):
+            warnings.warn(warnNOPROD.format(wellname))
 
         for wellname in self.prodwellnames:
 
             well = self.getwell(wellname)
 
-            print("{:13s} is on progress...".format(well.name))
+            try:
+                proddatemin = well.proddates.min()
+            except ValueError:
+                proddatemin = datetime(3000,1,1)
+
+            try:
+                injddatemin = well.injddates.min()
+            except ValueError:
+                injddatemin = datetime(3000,1,1)
+
+            opdatemin = min(proddatemin,injddatemin)
+
+            date = opdatemin+relativedelta(months=1)
+
+            days = calendar.monthrange(date.year,date.month)[1]
+
+            date = datetime(date.year,date.month,days)
+
+            if well.compdates.min()>=date:
+                warnings.warn(warnCROSS.format(well.name))
+
+        for wellname in self.prodwellnames:
 
             flagNoPrevProd = True
 
-            for index,(proddate,prodday) in enumerate(zip(well.proddates,well.proddays)):
+            well = self.getwell(wellname)
 
-                prodmonthSTARTday = proddate+relativedelta(days=1)
+            # print("{:13s} check is in progress ...".format(well.name))
 
-                prodmonthdayscount = calendar.monthrange(prodmonthSTARTday.year,prodmonthSTARTday.month)[1]
+            for operation in ["production","injection"]:
 
-                prodmonthENDday = datetime.datetime(prodmonthSTARTday.year,prodmonthSTARTday.month,prodmonthdayscount)
+                if operation == "production":
+                    welldata = zip(well.proddates,well.proddays,well.prodoil,well.prodwater,well.prodgas)
+                elif operation == "injection":
+                    welldata = zip(well.injddates,well.injddays,well.injdoil,well.injdwater,well.injdgas)
 
-                if np.sum(well.compdates<prodmonthSTARTday)==0:
-                    compSTARTindex = 0
-                else:
-                    compSTARTindex = np.sum(well.compdates<prodmonthSTARTday)-1
+                for index,(date,day,oil,water,gas) in enumerate(welldata):
 
-                compENDindex = np.sum(well.compdates<=prodmonthENDday)
+                    prodmonthSTARTday = date+relativedelta(days=1)
 
-                compopencounts = well.compopencounts[compSTARTindex:compENDindex]
+                    prodmonthdaycount = calendar.monthrange(prodmonthSTARTday.year,prodmonthSTARTday.month)[1]
 
-                compevents = well.compevents[compSTARTindex:compENDindex]
+                    prodmonthENDday = datetime(prodmonthSTARTday.year,prodmonthSTARTday.month,prodmonthdaycount)
 
-                compdates = well.compdates[compSTARTindex:compENDindex]
+                    if np.sum(well.compdates<prodmonthSTARTday)==0:
+                        compSTARTindex = 0
+                    else:
+                        compSTARTindex = np.sum(well.compdates<prodmonthSTARTday)-1
 
-                perfdates = compdates[compevents=="PERF"]
-                plugdates = compdates[compevents=="PLUG"]
+                    compENDindex = np.sum(well.compdates<=prodmonthENDday)
 
-                try:
-                    flagNoPostProd = True if well.proddates[index+1]-relativedelta(months=1)>prodmonthENDday else False
-                except IndexError:
-                    flagNoPostProd = True
+                    compopencounts = well.compopencounts[compSTARTindex:compENDindex]
 
-                print("{:%d %b %Y} - {:%d %b %Y} {:13s}".format(prodmonthSTARTday,prodmonthENDday,well.name))
+                    compevents = well.compevents[compSTARTindex:compENDindex]
 
-                if np.sum(well.compdates<prodmonthSTARTday)==0:
-                    flagCompShutSTART = True
-                else:
-                    flagCompShutSTART = compopencounts[0]==0
+                    compdates = well.compdates[compSTARTindex:compENDindex]
 
-                flagCompShutEND = compopencounts[-1]==0
+                    perfdates = compdates[compevents=="PERF"]
+                    plugdates = compdates[compevents=="PLUG"]
 
-                flagPlugPerf = any([compopencount==0 for compopencount in compopencounts[1:-1]])
+                    try:
+                        flagNoPostProd = True if well.proddates[index+1]-relativedelta(months=1)>prodmonthENDday else False
+                    except IndexError:
+                        flagNoPostProd = True
 
-                if flagCompShutSTART and flagCompShutEND:
-                    well.proddates[index] = perfdates[0]
-                    well.compopendays[index] = plugdates[-1].day-perfdates[0].day
-                    well.shutdates.append(plugdates[-1])
-                    flagNoPrevProd = True
-                    print(" - Peforated and Plugged")
-                    print(" - Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-                elif flagCompShutSTART and flagNoPostProd:
-                    well.proddates[index] = perfdates[0]
-                    well.compopendays[index] = prodmonthENDday.day-perfdates[0].day
-                    well.shutdates.append(prodmonthENDday)
-                    flagNoPrevProd = True
-                    print(" - Perforated and Open, no post production")
-                    print(" - Production is shut on {:%Y-%m-%d}.".format(shutdates[-1]))
-                elif flagCompShutSTART:
-                    well.proddates[index] = perfdates[0]
-                    well.compopendays[index] = prodmonthENDday.day-perfdates[0].day
-                    flagNoPrevProd = False
-                    print(" - Perforated and Open")
-                elif flagCompShutEND and plugdates[-1].day>=prodday:
-                    for plugdate in plugdates:
-                        if plugdate.day>=prodday: break
-                    well.compopendays[index] = plugdate.day
-                    well.shutdates.append(plugdate)
-                    flagNoPrevProd = True
-                    print(" - Open and Plugged")
-                    print(" - Production is shut on {:%Y-%m-%d}.".format(well.shutdates[-1]))
-                elif flagPlugPerf and not flagNoPrevProd and plugdates[-1].day>=prodday:
-                    for plugdate in plugdates:
-                        if plugdate.day>=prodday: break
-                    well.compopendays[index] = plugdate.day
-                    well.shutdates.append(plugdate)
-                    flagNoPrevProd = True
-                    print(" - Plugged and Perforated, no post production")
-                    print(" - Production is shut on {:%Y-%m-%d}.".format(well.shutdates[-1]))
-                elif flagPlugPerf and flagNoPrevProd and not flagNoPostProd and prodmonthENDday.day-perfdates[1].day>=prodday:
-                    for perfdate in np.flip(perfdates[1:]):
-                        if prodmonthENDday.day-perfdate.day>=prodday: break
-                    well.proddates[index] = perfdate
-                    well.compopendays[index] = prodmonthENDday.day-perfdate.day
-                    flagNoPrevProd = False
-                    print(" - Plugged and Perforated, no previous production")
-                elif flagPlugPerf and flagNoPrevProd and flagNoPostProd and prodmonthENDday.day-perfdates[1].day>=prodday:
-                    for perfdate in np.flip(perfdates[1:]):
-                        if prodmonthENDday.day-perfdate.day>=prodday: break
-                    well.proddates[index] = perfdate
-                    well.compopendays[index] = prodmonthENDday.day-perfdate.day
-                    well.shutdates.append(prodmonthENDday)
-                    flagNoPrevProd = True
-                    print(" - Plugged and Perforated, no previous production,")
-                    print(" - Production is shut on {:%Y-%m-%d}.".format(well.shutdates[-1]))
-                elif not flagNoPostProd:
-                    well.compopendays[index] = prodmonthdayscount
-                    flagNoPrevProd = False
-                    print(" - No completion event")
-                else:
-                    well.compopendays[index] = prodmonthdayscount
-                    well.shutdates.append(prodmonthENDday)
-                    flagNoPrevProd = True
-                    print(" - No completion event, no post production")
-                    print(" - Production is shut on {:%Y-%m-%d}.".format(well.shutdates[-1]))
-                
-                print(" - Production efficiency is [{:2d} out of {:2d} days].".format(prodday,well.compopendays[index]))
+                    # print("{:13s} {:%d %b %Y} - {:%d %b %Y}".format(well.name,prodmonthSTARTday,prodmonthENDday))
 
-            well.shutdates = np.array(well.shutdates,dtype=datetime.datetime)
+                    if np.sum(well.compdates<prodmonthSTARTday)==0:
+                        flagCompShutSTART = True
+                    else:
+                        flagCompShutSTART = compopencounts[0]==0
 
-            self.testefficiency(well)
+                    flagCompShutEND = compopencounts[-1]==0
 
-    def testefficiency(self,well):
+                    flagPlugPerf = any([compopencount==0 for compopencount in compopencounts[1:-1]])
 
-        for proddate,prodday,compopenday in zip(well.proddates,well.proddays,well.compopendays):
+                    if flagCompShutSTART and flagCompShutEND:
+                        compday = plugdates[-1].day-perfdates[0].day
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([perfdates[0],"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([perfdates[0],"WEFAC",self.strwefac.format(well.name,prodeff)])
+                        self.set_rows([plugdates[-1],"WELOPEN",self.strwopen.format(well.name)])
+                        flagNoPrevProd = True
+                        # print("{:13s} Peforated and Plugged".format(well.name))
+                        # print("{:13s} Production is shut on {:%Y-%m-%d}.".format(well.name,shutdates[-1]))
+                    elif flagCompShutSTART and flagNoPostProd:
+                        compday = prodmonthENDday.day-perfdates[0].day
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([perfdates[0],"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([perfdates[0],"WEFAC",self.strwefac.format(well.name,prodeff)])
+                        flagNoPrevProd = True
+                        # print("{:13s} Perforated and Open, no post production".format(well.name))
+                        # print("{:13s} Production is shut on {:%Y-%m-%d}.".format(well.name,shutdates[-1]))
+                    elif flagCompShutSTART:
+                        compday = prodmonthENDday.day-perfdates[0].day
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([perfdates[0],"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([perfdates[0],"WEFAC",self.strwefac.format(well.name,prodeff)])                    
+                        flagNoPrevProd = False
+                        # print("{:13s} Perforated and Open".format(well.name))
+                    elif flagCompShutEND and plugdates[-1].day>=day:
+                        for plugdate in plugdates:
+                            if plugdate.day>=day: break
+                        compday = plugdate.day
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([date,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([date,"WEFAC",self.strwefac.format(well.name,prodeff)])  
+                        self.set_rows([plugdate,"WELOPEN",self.strwopen.format(well.name)])
+                        flagNoPrevProd = True
+                        # print("{:13s} Open and Plugged".format(well.name))
+                        # print("{:13s} Production is shut on {:%Y-%m-%d}.".format(well.name,well.shutdates[-1]))
+                    elif flagPlugPerf and not flagNoPrevProd and plugdates[-1].day>=day:
+                        for plugdate in plugdates:
+                            if plugdate.day>=day: break
+                        compday = plugdate.day
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([date,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([date,"WEFAC",self.strwefac.format(well.name,prodeff)]) 
+                        self.set_rows([plugdate,"WELOPEN",self.strwopen.format(well.name)])
+                        flagNoPrevProd = True
+                        # print("{:13s} Plugged and Perforated, no post production".format(well.name))
+                        # print("{:13s} Production is shut on {:%Y-%m-%d}.".format(well.name,well.shutdates[-1]))
+                    elif flagPlugPerf and flagNoPrevProd and not flagNoPostProd and prodmonthENDday.day-perfdates[1].day>=day:
+                        for perfdate in np.flip(perfdates[1:]):
+                            if prodmonthENDday.day-perfdate.day>=day: break
+                        compday = prodmonthENDday.day-perfdate.day
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([perfdate,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([perfdate,"WEFAC",self.strwefac.format(well.name,prodeff)]) 
+                        flagNoPrevProd = False
+                        # print("{:13s} Plugged and Perforated, no previous production".format(well.name))
+                    elif flagPlugPerf and flagNoPrevProd and flagNoPostProd and prodmonthENDday.day-perfdates[1].day>=day:
+                        for perfdate in np.flip(perfdates[1:]):
+                            if prodmonthENDday.day-perfdate.day>=day: break
+                        compday = prodmonthENDday.day-perfdate.day
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([perfdate,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([perfdate,"WEFAC",self.strwefac.format(well.name,prodeff)]) 
+                        self.set_rows([prodmonthENDday,"WELOPEN",self.strwopen.format(well.name)])
+                        flagNoPrevProd = True
+                        # print("{:13s} Plugged and Perforated, no previous production".format(well.name))
+                        # print("{:13s} Production is shut on {:%Y-%m-%d}.".format(well.name,well.shutdates[-1]))
+                    elif not flagNoPostProd:
+                        compday = prodmonthdaycount
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([date,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([date,"WEFAC",self.strwefac.format(well.name,prodeff)])
+                        flagNoPrevProd = False
+                        # print("{:13s} No completion event".format(well.name))
+                    else:
+                        compday = prodmonthdaycount
+                        prodeff = day/compday
+                        if operation == "production":
+                            self.set_rows([date,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
+                        elif operation == "injection":
+                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                        self.set_rows([date,"WEFAC",self.strwefac.format(well.name,prodeff)]) 
+                        self.set_rows([prodmonthENDday,"WELOPEN",self.strwopen.format(well.name)])
+                        flagNoPrevProd = True
+                        # print("{:13s} No completion event, no post production".format(well.name))
+                        # print("{:13s} Production is shut on {:%Y-%m-%d}.".format(well.name,well.shutdates[-1]))
 
-            if prodday/compopenday>1:
-                warnings.warn("{:%Y-%m-%d}: {:13s} efficiency is more than unit [{:2d} out of {:2d} days].".format(proddate,well.name,prodday,compopenday))
+                    if prodeff>1:
+                        warnings.warn(warnCROSS.format(prodmonthENDday,well.name,day,compday))
 
-        well.wefacs = well.proddays/well.compopendays
+                    # print("{:13s} Production efficiency is [{:2d} out of {:2d} days].".format(well.name,day,well.compopendays[index]))
+
+            print("{:13s} check is complete.".format(well.name))
 
     def plotwell(self,wellname,fignum):
 
@@ -757,7 +899,74 @@ class schedule():
 
     def write(self,filepath):
 
-        pass
+        with open(filepath,"w",encoding='utf-8') as wfile:
+
+            compdat = self.running[1]=="COMPDATMD"
+            compord = self.running[1]=="COMPORD"
+            prodhst = self.running[1]=="WCONHIST"
+            injdhst = self.running[1]=="WCONINJH"
+            wefffac = self.running[1]=="WEFAC"
+            welopen = self.running[1]=="WELOPEN"
+
+            for date in np.unique(self.running[0]):
+
+                currentdate = self.running[0]==date
+
+                currentcont = self.running[1][currentdate]
+
+                wfile.write("\n\n")
+                wfile.write("DATES\n")
+                wfile.write(self.strdates.format(date))
+                wfile.write("\n")
+                wfile.write("/\n\n")
+
+                if any(currentcont=="COMPDATMD"):
+                    indices = np.logical_and(currentdate,compdat)
+                    wfile.write("COMPDATMD\n")
+                    for detail in self.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="COMPORD"):
+                    indices = np.logical_and(currentdate,compord)
+                    wfile.write("COMPORD\n")
+                    for detail in self.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="WCONHIST"):
+                    indices = np.logical_and(currentdate,prodhst)
+                    wfile.write("WCONHIST\n")
+                    for detail in self.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="WCONINJH"):
+                    indices = np.logical_and(currentdate,injdhst)
+                    wfile.write("WCONINJH\n")
+                    for detail in self.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="WEFAC"):
+                    indices = np.logical_and(currentdate,wefffac)
+                    wfile.write("WEFAC\n")
+                    for detail in self.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="WELOPEN"):
+                    indices = np.logical_and(currentdate,welopen)
+                    wfile.write("WELOPEN\n")
+                    for detail in self.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
 
 def cyrilictolatin(string):
 
