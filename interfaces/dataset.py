@@ -783,7 +783,7 @@ class schedule(dataset):
                         if operation == "production":
                             self.set_rows([date,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
                         elif operation == "injection":
-                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                            self.set_rows([date,"WCONINJH",self.strinjdhist.format(well.name,water)])
                         self.set_rows([date,"WEFAC",self.strwefac.format(well.name,prodeff)])  
                         self.set_rows([plugdate,"WELOPEN",self.strwopen.format(well.name)])
                         flagNoPrevProd = True
@@ -797,7 +797,7 @@ class schedule(dataset):
                         if operation == "production":
                             self.set_rows([date,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
                         elif operation == "injection":
-                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                            self.set_rows([date,"WCONINJH",self.strinjdhist.format(well.name,water)])
                         self.set_rows([date,"WEFAC",self.strwefac.format(well.name,prodeff)]) 
                         self.set_rows([plugdate,"WELOPEN",self.strwopen.format(well.name)])
                         flagNoPrevProd = True
@@ -811,7 +811,7 @@ class schedule(dataset):
                         if operation == "production":
                             self.set_rows([perfdate,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
                         elif operation == "injection":
-                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                            self.set_rows([perfdate,"WCONINJH",self.strinjdhist.format(well.name,water)])
                         self.set_rows([perfdate,"WEFAC",self.strwefac.format(well.name,prodeff)]) 
                         flagNoPrevProd = False
                         # print("{:13s} Plugged and Perforated, no previous production".format(well.name))
@@ -823,7 +823,7 @@ class schedule(dataset):
                         if operation == "production":
                             self.set_rows([perfdate,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
                         elif operation == "injection":
-                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                            self.set_rows([perfdate,"WCONINJH",self.strinjdhist.format(well.name,water)])
                         self.set_rows([perfdate,"WEFAC",self.strwefac.format(well.name,prodeff)]) 
                         self.set_rows([prodmonthENDday,"WELOPEN",self.strwopen.format(well.name)])
                         flagNoPrevProd = True
@@ -835,7 +835,7 @@ class schedule(dataset):
                         if operation == "production":
                             self.set_rows([date,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
                         elif operation == "injection":
-                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                            self.set_rows([date,"WCONINJH",self.strinjdhist.format(well.name,water)])
                         self.set_rows([date,"WEFAC",self.strwefac.format(well.name,prodeff)])
                         flagNoPrevProd = False
                         # print("{:13s} No completion event".format(well.name))
@@ -845,7 +845,7 @@ class schedule(dataset):
                         if operation == "production":
                             self.set_rows([date,"WCONHIST",self.strprodhist.format(well.name,oil,water,gas)])
                         elif operation == "injection":
-                            self.set_rows([perfdates[0],"WCONINJH",self.strinjdhist.format(well.name,water)])
+                            self.set_rows([date,"WCONINJH",self.strinjdhist.format(well.name,water)])
                         self.set_rows([date,"WEFAC",self.strwefac.format(well.name,prodeff)]) 
                         self.set_rows([prodmonthENDday,"WELOPEN",self.strwopen.format(well.name)])
                         flagNoPrevProd = True
