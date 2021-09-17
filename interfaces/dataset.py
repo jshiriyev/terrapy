@@ -520,6 +520,9 @@ class schedule(dataset):
         self.prods.get_columns(headers=["WELL","DATE","DAYS","OPROD","WPROD","GPROD","WINJ"],inplace=True)
         self.comps.get_columns(headers=["WELL","DATE","EVENT","TOP","BOTTOM"],inplace=True)
 
+        self.prods.sort(header_indices=[1],inplace=True)
+        self.comps.sort(header_indices=[1],inplace=True)
+
         self.prodwellnames = np.unique(self.prods.running[0])
 
         self.prods.astype(1,dtype=np.datetime64,datestring=True,shiftmonths=-1)
@@ -575,18 +578,36 @@ class schedule(dataset):
         well.compuppers = self.comps.running[3]
         well.complowers = self.comps.running[4]
 
-        well.compopencounts = []
+        well.compupdatedates = np.unique(well.compdates)
 
-        compopenintervals = []
+        compcounts = np.insert(np.cumsum(np.sum(well.compdates==well.compupdatedates.reshape((-1,1)),axis=1)),0,0)
 
-        for compevent,compupper,complower in zip(well.compevents,well.compuppers,well.complowers):
+        well.compupdatecounts = np.empty(well.compupdatedates.shape,dtype=int)
 
-            if compevent=="PERF":
-                compopenintervals.append([compupper,complower])
-            elif compevent=="PLUG":
-                compopenintervals.remove([compupper,complower])
-                   
-            well.compopencounts.append(len(compopenintervals))
+        compopenintervals = np.empty((0,2))
+
+        for index,date in enumerate(well.compupdatedates):
+
+            compevents = well.compevents[compcounts[index]:compcounts[index+1]]
+            compuppers = well.compuppers[compcounts[index]:compcounts[index+1]]
+            complowers = well.complowers[compcounts[index]:compcounts[index+1]]
+
+            perfevents = compevents=="PERF"
+
+            perfintervals = np.array([compuppers[perfevents],complowers[perfevents]]).T
+
+            compopenintervals = np.concatenate((compopenintervals,perfintervals),axis=0)
+
+            plugevents = compevents=="PLUG"
+
+            pluguppermatch = np.any(compopenintervals[:,0]==compuppers[plugevents].reshape((-1,1)),axis=0)
+            pluglowermatch = np.any(compopenintervals[:,1]==complowers[plugevents].reshape((-1,1)),axis=0)
+
+            plugmatch = np.where(np.logical_and(pluguppermatch,pluglowermatch))[0]
+
+            compopenintervals = np.delete(compopenintervals,plugmatch,0)
+
+            well.compupdatecounts[index] = compopenintervals.shape[0]
 
         return well
 
@@ -618,8 +639,7 @@ class schedule(dataset):
 
         flagNoPrevProd = True
 
-        if flagShow:
-            print("{} check is in progress ...".format(well.name))
+        print("{} check is in progress ...".format(well.name))
 
         opdata = zip(well.opdates,well.opdays,well.opstatus,well.oil,well.water,well.gas)
 
@@ -633,35 +653,33 @@ class schedule(dataset):
 
             prodmonthENDday = datetime(prodmonthSTARTday.year,prodmonthSTARTday.month,prodmonthdaycount)
 
-            if np.sum(well.compdates<prodmonthSTARTday)==0:
+            if np.sum(well.compupdatedates<prodmonthSTARTday)==0:
                 compSTARTindex = 0
             else:
-                compSTARTindex = np.sum(well.compdates<prodmonthSTARTday)-1
+                compSTARTindex = np.sum(well.compupdatedates<prodmonthSTARTday)-1
 
-            compENDindex = np.sum(well.compdates<=prodmonthENDday)
+            compENDindex = np.sum(well.compupdatedates<=prodmonthENDday)
 
-            compopencounts = well.compopencounts[compSTARTindex:compENDindex]
+            compupdatecounts = well.compupdatecounts[compSTARTindex:compENDindex]
 
-            compevents = well.compevents[compSTARTindex:compENDindex]
+            compupdatedates = well.compupdatedates[compSTARTindex:compENDindex]
 
-            compdates = well.compdates[compSTARTindex:compENDindex]
-
-            perfdates = compdates[compevents=="PERF"]
-            plugdates = compdates[compevents=="PLUG"]
+            perfdates = compupdatedates[compupdatecounts!=0]
+            plugdates = compupdatedates[compupdatecounts==0]
 
             try:
                 flagNoPostProd = True if well.opdates[index+1]-relativedelta(months=1)>prodmonthENDday else False
             except IndexError:
                 flagNoPostProd = True
 
-            if np.sum(well.compdates<prodmonthSTARTday)==0:
+            if np.sum(well.compupdatedates<prodmonthSTARTday)==0:
                 flagCompShutSTART = True
             else:
-                flagCompShutSTART = compopencounts[0]==0
+                flagCompShutSTART = compupdatecounts[0]==0
 
-            flagCompShutEND = compopencounts[-1]==0
+            flagCompShutEND = compupdatecounts[-1]==0
 
-            flagPlugPerf = any([compopencount==0 for compopencount in compopencounts[1:-1]])
+            flagPlugPerf = any([compopencount==0 for compopencount in compupdatecounts[1:-1]])
 
             if flagCompShutSTART and flagCompShutEND:
                 compday = plugdates[-1].day-perfdates[0].day
@@ -676,7 +694,7 @@ class schedule(dataset):
                 shutdates.append(plugdates[-1])
                 flagNoPrevProd = True
                 if flagShow:
-                    print("{:%d %b %Y} Peforated and Plugged: OPEN ({:%d %b %Y}) and SHUT ({:%d %b %Y}) WEFAC ({:.3f})".format(prodmonthENDday,pefdates[0],plugdates[-1],prodeff))
+                    print("{:%d %b %Y} Peforated and Plugged: OPEN ({:%d %b %Y}) and SHUT ({:%d %b %Y}) WEFAC ({:.3f})".format(prodmonthENDday,perfdates[0],plugdates[-1],prodeff))
 
             elif flagCompShutSTART:
                 compday = prodmonthENDday.day-perfdates[0].day
@@ -753,11 +771,11 @@ class schedule(dataset):
                     if flagShow:
                         print("{:%d %b %Y} Plugged and Perforated: OPEN ({:%d %b %Y}) and CONT WEFAC ({:.3f})".format(prodmonthENDday,perfdate,prodeff))
                 elif not flagNoPrevProd and flagNoPostProd:
-                    # shut the well at the proper plug day
+                    # try shut the well at the proper plug day if not successful shut it at the end of month
                     for plugdate in plugdates:
                         if plugdate.day>=day: break
                     if not plugdate.day>=day:
-                        warnings.warn(warnWPLUG.format(prodmonthENDday,well.name))
+                        plugdate = prodmonthENDday
                     compday = plugdate.day
                     prodeff = day/compday
                     if status == "production":
@@ -818,7 +836,8 @@ class schedule(dataset):
 
             well.shutdates = np.array(shutdates)
 
-        print("{} check is complete.".format(well.name))
+        if flagShow:
+            print("{} check is complete.".format(well.name))
 
         if flagReturn:
 
@@ -844,7 +863,7 @@ class schedule(dataset):
         ax1.scatter(well.opdates,well.total)
 
         ax1.step(well.opdates,well.total,'b',where='post')
-        ax2.step(well.compdates,well.compopencounts,'r--',where='post')
+        ax2.step(well.compupdatedates,well.compupdatecounts,'r--',where='post')
 
         ax1.set_ylabel('Total Production or Injection [m3/day]')
         ax2.set_yticks([])
@@ -852,7 +871,7 @@ class schedule(dataset):
         ax1.set_title("BEFORE CORRECTIONS")
 
         ax1.set_ylim(ymin=0,ymax=max(well.total)*1.1)
-        ax2.set_ylim(ymin=0,ymax=max(well.compopencounts)+0.5)
+        ax2.set_ylim(ymin=0,ymax=max(well.compupdatecounts)+0.5)
 
         for tick in ax1.get_xticklabels():
             tick.set_rotation(45)
@@ -865,7 +884,7 @@ class schedule(dataset):
         ax3.scatter(well.opdates,well.total)
 
         ax3.step(well.opdates,well.total,'b',where='post')
-        ax4.step(well.compdates,well.compopencounts,'r--',where='post')
+        ax4.step(well.compupdatedates,well.compupdatecounts,'r--',where='post')
 
         ax3.set_yticks([])
         ax4.set_ylabel('Open Perforation Intervals',rotation=270)
@@ -875,9 +894,9 @@ class schedule(dataset):
         ax4.yaxis.set_label_coords(1.05,0.5)
 
         ax3.set_ylim(ymin=0,ymax=max(well.total)*1.1)
-        ax4.set_ylim(ymin=0,ymax=max(well.compopencounts)+0.5)
+        ax4.set_ylim(ymin=0,ymax=max(well.compupdatecounts)+0.5)
 
-        ax4.set_yticks(range(0,max(well.compopencounts)+1))
+        ax4.set_yticks(range(0,max(well.compupdatecounts)+1))
 
         for tick in ax3.get_xticklabels():
             tick.set_rotation(45)
@@ -936,7 +955,7 @@ class schedule(dataset):
 
     def completioncheck(self):
         # completion data should be sorted, first perforation of the interval and then plug
-        # there must be more than two completion scenarios (perf and plug)
+        # for the future there can be more than two completion scenarios (perf and plug)
         # completion top must be smaller than bottom
         # they must be positive values
 
@@ -974,7 +993,7 @@ class schedule(dataset):
 
             date = datetime(date.year,date.month,days)
 
-            if well.compdates.min()>=date:
+            if well.compupdatedates.min()>=date:
                 warnings.warn(warnCROSS.format(well.name))
 
         for wellname in self.prodwellnames:
