@@ -64,7 +64,7 @@ from interfaces.dataset import dataset
 # oilCompressibility
 # totCompressibility
 
-class Pipe():
+class Pipes():
 
     def __init__(self):
 
@@ -251,13 +251,13 @@ class FormationRectangular():
         self.center[:,1] = np.tile(ycenter.repeat(self.num_x),self.num_z)
         self.center[:,2] = zcenter.repeat(self.num_x*self.num_y)
 
-class Fracture():
+class Fractures():
 
     def __init__(self):
 
         pass
 
-class Well(dataset):
+class Wells(dataset):
     #previously known as schedule
 
     def __init__(self,fprod,fcomp):
@@ -864,6 +864,12 @@ if __name__ == "__main__":
 
     import unittest
 
+    from tests import pipes
     from tests import porous_media
+    from tests import fractures
+    from tests import wells
 
+    unittest.main(pipes)
     unittest.main(porous_media)
+    unittest.main(fractures)
+    unittest.main(wells)

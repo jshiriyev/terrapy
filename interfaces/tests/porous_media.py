@@ -5,12 +5,9 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from interfaces.items import Pipe
 from interfaces.items import Core
 from interfaces.items import FormationCylindrical
 from interfaces.items import FormationRectangular
-from interfaces.items import Fracture
-from interfaces.items import Well
 
 class TestCore(unittest.TestCase):
 
@@ -21,25 +18,6 @@ class TestCore(unittest.TestCase):
         pass
 
     def multiphase(self):
-        pass
-
-class TestFormationFlow(unittest.TestCase):
-
-    def geometry(self):
-        pass
-
-    def singlephase(self):
-        pass
-
-    def multiphase(self):
-        pass
-
-class TestComplexFracture(unittest.TestCase):
-
-    def geometry(self):
-        pass
-
-    def singlephase(self):
         pass
 
 class TestRegularCartesianMesh(unittest.TestCase):
