@@ -4,64 +4,6 @@ import matplotlib.pyplot as plt
 
 from scipy import optimize
 
-class item():
-
-    def __init__(self):
-
-        pass
-
-    def set_pipe(self,inner_diameter=None,outer_diameter=None,length=1,roughness=None):
-        
-        self.ID = inner_diameter
-        self.OD = outer_diameter
-        self.length = length
-        self.roughness = roughness
-
-        """cross sectional area"""
-        self.csa = np.pi*self.ID**2/4
-
-        """
-        hydraulic_radius: the ratio of the cross-sectional area of a channel or pipe
-        in which a fluid is flowing to the wetted perimeter of the conduit
-        """
-        self.hydraulic_radius = self.ID/4
-
-        self.roughness_relative = self.roughness/self.ID
-
-    def set_pipe2(self,inner_diameter=None,outer_diameter=None,length=1,roughness=None):
-
-        self.ID2 = inner_diameter
-        self.OD2 = outer_diameter
-        self.length2 = length
-        self.roughness2 = roughness
-
-        """cross sectional area"""
-        self.csa2 = np.pi*(self.ID2**2-self.OD**2)/4
-
-        """
-        hydraulic_radius: the ratio of the cross-sectional area of a channel or pipe
-        in which a fluid is flowing to the wetted perimeter of the conduit
-        """
-        self.hydraulic_radius2 = (self.ID2-self.OD)/4
-
-        self.roughness_relative2 = self.roughness2/self.ID2
-
-    def set_nodes(self,zloc=None,elevation=[0,0]):
-
-        """
-        Nodes are the locations where the measurements are available, and
-        coordinates are selected in such a way that:
-        - r-axis shows radial direction
-        - \theta-axis shows angular direction
-        - z-axis shows lengthwise direction
-        """
-
-        if zloc is None:
-            self.zloc = [0,self.length]
-
-        self.elevation = elevation
-        
-
 class single_phase(item):
 
     def __init__(self):

@@ -5,12 +5,12 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from flow.pormed.objects import Core
-from flow.pormed.objects import Formation
-from flow.pormed.objects import Fracture
-from flow.pormed.objects import RegularCartesian
-from flow.pormed.objects import RegularRadial
-from flow.pormed.objects import IrregularCartesian
+from interfaces.items import Pipe
+from interfaces.items import Core
+from interfaces.items import FormationCylindrical
+from interfaces.items import FormationRectangular
+from interfaces.items import Fracture
+from interfaces.items import Well
 
 class TestCore(unittest.TestCase):
 
