@@ -13,15 +13,19 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 if __name__ == "__main__":
     import setup
 
-class graph():
-    
-    def __init__(self,window):
+from interfaces.database import database
 
-        self.root = window
+class graph(database):
+    
+    def __init__(self):
+
+        super().__init__()
 
         self.dirname = os.path.dirname(__file__)
 
-    def draw(self):
+    def draw(self,window):
+
+        self.root = window
 
         self.temps = {"title":[],"xnumgrid":[],"ynumgrid":[]}
 
@@ -392,8 +396,8 @@ if __name__ == "__main__":
     
     window = tk.Tk()
 
-    gui = graph(window)
+    gui = graph()
 
-    gui.draw()
+    gui.draw(window)
 
     window.mainloop()

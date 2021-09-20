@@ -20,9 +20,6 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from interfaces.table import table
-from interfaces.graph import graph
-
 class dataset():
 
     special_extensions = [".db",".xlsx",".las"]
@@ -407,38 +404,6 @@ class dataset():
         else:
             self.running = [np.asarray(column[match_index]) for column in self._running]
 
-    def tabulate(self,window=None):
-
-        if window is None:
-            table_window = tk.Tk()
-        else:
-            table_window = window
-
-        self.table_gui = table(table_window)
-        
-        self.table_gui.draw()
-
-        if window is None:
-            table_window.mainloop()
-
-    def plot(self,window=None):
-
-        if window is None:
-            graph_window = tk.Tk()
-        else:
-            graph_window = window
-
-        self.graph_gui = graph(graph_window)
-
-        self.graph_gui.draw()
-
-        self.graph_gui.searchbox.content = self.names
-
-        self.graph_gui.searchbox.config(completevalues=self.names,allow_other_values=True)
-
-        if window is None:
-            graph_window.mainloop()
-
     def write(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
 
         if header_indices is None:
@@ -621,4 +586,4 @@ def cyrilictolatin(string):
 
 if __name__ == "__main__":
 
-    pass
+    data = dataset(headers=["first name","last name","occupation"])

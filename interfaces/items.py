@@ -392,7 +392,7 @@ class Wells(dataset):
 
         return traj
 
-    def get_formation_tops(self,directory,wellname=None):
+    def get_formation_tops(self,directory,formations,wellname=None):
 
         pass
 

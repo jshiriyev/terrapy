@@ -13,15 +13,19 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-class table():
+from interfaces.dataset import dataset
 
-    def __init__(self,window):
+class table(dataset):
 
-        self.root = window
+    def __init__(self,headers):
+
+        super().__init__(headers)
 
         self.dirname = os.path.dirname(__file__)
 
-    def draw(self,func=None):
+    def draw(self,window,func=None):
+
+        self.root = window
 
         self.scrollbar = tk.Scrollbar(self.root)
 
