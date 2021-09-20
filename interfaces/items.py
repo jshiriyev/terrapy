@@ -4,6 +4,9 @@ from datetime import datetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 
+import os
+import re
+
 import warnings
 
 import matplotlib.pyplot as plt
@@ -14,55 +17,6 @@ if __name__ == "__main__":
     import setup
 
 from interfaces.dataset import dataset
-
-# % The fracture segment is defined as a plane joining two node points
-# % (point1 and point2). The heigth of fracture plane is taken the same
-# % as reservoir thickness (it is not diffcult to model shorter planes).
-# % z-coordinate of the points is given as the reservoir depth.
-
-# fileDir
-# nodeCoord
-# map
-# permeability
-# width
-# fracID
-# nodeID
-# numAfrac
-# numAnode
-# conductivity
-# point1
-# point2
-# Length
-# areatoreservoir
-# areatofracture
-# volume
-# center
-# signX
-# signY
-# azimuth
-
-# fileDir
-# Length
-# xLength
-# yLength
-# zLength
-# porosity
-# permeability
-# xPermeability
-# yPermeability
-# zPermeability
-# initPressure
-# diffusivity
-# xDiffusivity
-# yDiffusivity
-# zDiffusivity
-# isotropic
-# anisotropic
-# rockCompressibility
-# oilViscosity
-# oilFVF      % formation volume factor
-# oilCompressibility
-# totCompressibility
 
 class Pipes():
 
@@ -161,6 +115,29 @@ class FormationCylindrical():
 
 class FormationRectangular():
 
+    # fileDir
+    # Length
+    # xLength
+    # yLength
+    # zLength
+    # porosity
+    # permeability
+    # xPermeability
+    # yPermeability
+    # zPermeability
+    # initPressure
+    # diffusivity
+    # xDiffusivity
+    # yDiffusivity
+    # zDiffusivity
+    # isotropic
+    # anisotropic
+    # rockCompressibility
+    # oilViscosity
+    # oilFVF      % formation volume factor
+    # oilCompressibility
+    # totCompressibility
+
     def __init__(self):
 
         pass
@@ -253,16 +230,42 @@ class FormationRectangular():
 
 class Fractures():
 
+    # % The fracture segment is defined as a plane joining two node points
+    # % (point1 and point2). The heigth of fracture plane is taken the same
+    # % as reservoir thickness (it is not diffcult to model shorter planes).
+    # % z-coordinate of the points is given as the reservoir depth.
+
+    # fileDir
+    # nodeCoord
+    # map
+    # permeability
+    # width
+    # fracID
+    # nodeID
+    # numAfrac
+    # numAnode
+    # conductivity
+    # point1
+    # point2
+    # Length
+    # areatoreservoir
+    # areatofracture
+    # volume
+    # center
+    # signX
+    # signY
+    # azimuth
+
     def __init__(self):
 
         pass
 
 class Wells(dataset):
     #previously known as schedule
+    def __init__(self,fprod=None): #,fcomp=None,ftraj=None,fftop=None
 
-    def __init__(self,fprod,fcomp):
-
-        super().__init__(None)
+        # MAIN SCHEDULE DATA
+        super().__init__(headers=["DATE","KEYWORD","DETAILS"])
 
         # KEYWORDS = [DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN]
 
@@ -276,45 +279,122 @@ class Wells(dataset):
         self.strwefac       = " '{}'\t{} / "#.format(wellname,efficiency)
         self.strwopen       = " '{}'\tSHUT\t3* / "#.format(wellname)
 
-        # MAIN SCHEDULE DATA
-
-        self._headers = ["DATE","KEYWORD","DETAILS"]
-        self._running = [np.array([]) for _ in self._headers]
-
-        self.headers = self._headers
-        self.running = [np.asarray(column) for column in self._running]
-
         # INPUT, production and completion data
 
         self.fprod = fprod
-        self.fcomp = fcomp
+        # self.fcomp = fcomp
+        # self.ftraj = ftraj
+        # self.fftop = fftop
 
-        self.prods = dataset(fprod,skiplines=1)
-        self.comps = dataset(fcomp,skiplines=1)
+        self.prods = dataset(filepath=self.fprod,skiplines=1)
+        # self.comps = dataset(filepath=self.fcomp,skiplines=1)
+        # self.ftraj = dataset(filepath=self.ftraj,skiplines=1)
+        # self.ftops = dataset(filepath=self.ftraj,skiplines=1)
 
         self.prods.texttocolumn(0,"\t",maxsplit=7)
-        self.comps.texttocolumn(0,"\t",maxsplit=6)
+        # self.comps.texttocolumn(0,"\t",maxsplit=6)
 
         self.prods.get_columns(headers=["WELL","DATE","DAYS","OPROD","WPROD","GPROD","WINJ"],inplace=True)
-        self.comps.get_columns(headers=["WELL","DATE","EVENT","TOP","BOTTOM"],inplace=True)
+        # self.comps.get_columns(headers=["WELL","DATE","EVENT","TOP","BOTTOM"],inplace=True)
 
         self.prods.sort(header_indices=[1],inplace=True)
-        self.comps.sort(header_indices=[1],inplace=True)
+        # self.comps.sort(header_indices=[1],inplace=True)
 
-        self.prodwellnames = np.unique(self.prods.running[0])
+        self.names = np.unique(self.prods.running[0])
 
-        self.prods.astype(1,dtype=np.datetime64,datestring=True,shiftmonths=-1)
+        self.prods.astype(1,datestring=True,shiftmonths=-1)
         self.prods.astype(2,dtype=np.int64)
         self.prods.astype(3,dtype=np.float64)
         self.prods.astype(4,dtype=np.float64)
         self.prods.astype(5,dtype=np.float64)
         self.prods.astype(6,dtype=np.float64)
 
-        self.compwellnames = np.unique(self.comps.running[0])
+        # self.compwellnames = np.unique(self.comps.running[0])
 
-        self.comps.astype(1,dtype=np.datetime64,datestring=True)
-        self.comps.astype(3,dtype=np.float64)
-        self.comps.astype(4,dtype=np.float64)
+        # self.comps.astype(1,dtype=np.datetime64,datestring=True)
+        # self.comps.astype(3,dtype=np.float64)
+        # self.comps.astype(4,dtype=np.float64)
+
+        # self.names = self.prodwellnames
+
+    def get_completion(self,directory,wellname=None):
+
+        wellnumber = int(re.sub("[^0-9]","",wellname))
+
+        folder1 = "GD-{}".format(str(wellnumber).zfill(3))
+
+        filename = "GD-{}.xlsx".format(str(wellnumber).zfill(3))
+
+        filepath = os.path.join(directory,folder1,filename)
+        
+        comp = dataset(filepath=filepath,sheetname=folder1,headerline=1,skiplines=2,min_row=2,min_col=2)
+
+        headers = ["Wells","Horizont","Top","Bottom","start","stoped"]
+
+        comp.get_columns(headers=headers)
+
+        comp.astype(header=headers[2],dtype=np.float64)
+        comp.astype(header=headers[3],dtype=np.float64)
+
+        if np.any(comp.running[0]!=folder1):
+            warnings.warn("{} has name conflict in completion directory.".format(wellname))
+
+        if np.any(comp.running[1]==None) or np.any(np.char.strip(comp.running[1].astype(str))==""):
+            warnings.warn("{} does not have proper layer name in completion directory.".format(wellname))
+
+        if np.any(comp.running[2]<0):
+            warnings.warn("{} top level depths must be positive in completion directory.".format(wellname))
+
+        if np.any(comp.running[3]<0):
+            warnings.warn("{} bottom level depths must be positive in completion directory.".format(wellname))
+
+        if np.any(comp.running[2]-comp.running[3]>0):
+            warnings.warn("{} top level must be smaller than bottom levels in completion directory.".format(wellname))
+
+        if any([not isinstance(value,datetime) for value in comp.running[4].tolist()]):
+            warnings.warn("{} start date is not set properly in completion directory.".format(wellname))
+
+        indices = [not isinstance(value,datetime) for value in comp.running[5].tolist()]
+
+        if any(indices) and np.any(comp.running[5][indices]!="ACTIVE"):
+            warnings.warn("{} stoped date is not set properly in completion directory.".format(wellname))
+
+        comp.running[5][indices] = datetime.now()
+
+        if any([(s2-s1).days<=0 for s1,s2 in zip(comp.running[4].tolist(),comp.running[5].tolist())]):
+            warnings.warn("{} start date is after or equal to stop date in completion directory.".format(wellname))
+
+        return comp
+
+    def get_trajectory(self,directory,wellname=None):
+
+        wellnumber = int(re.sub("[^0-9]","",wellname))
+
+        folder1 = "GD-{}".format(str(wellnumber).zfill(3))
+        folder2 = "6.GD-{} Deviation".format(str(wellnumber).zfill(3))
+
+        filename = "Qum_Adasi-{}.txt".format(wellnumber)
+        
+        filepath = os.path.join(directory,folder1,folder2,filename)
+
+        traj = dataset(filepath=filepath,skiplines=1,comment="#")
+
+        traj.texttocolumn(0,deliminator=None,maxsplit=None)
+
+        headers = ["X","Y","Z","MD"]
+
+        traj.get_columns(headers=headers)
+
+        traj.astype(header=headers[0],dtype=np.float64)
+        traj.astype(header=headers[1],dtype=np.float64)
+        traj.astype(header=headers[2],dtype=np.float64)
+        traj.astype(header=headers[3],dtype=np.float64)
+
+        return traj
+
+    def get_formation_tops(self,directory,wellname=None):
+
+        pass
 
     def getwell(self,wellname):
 
@@ -732,10 +812,7 @@ class Wells(dataset):
         # production dates must be the last day of month
 
     def completioncheck(self):
-        # completion data should be sorted, first perforation of the interval and then plug
         # for the future there can be more than two completion scenarios (perf and plug)
-        # completion top must be smaller than bottom
-        # they must be positive values
 
         for wellname in self.prodwellnames:
 
@@ -859,6 +936,8 @@ class Wells(dataset):
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")
+
+
 
 if __name__ == "__main__":
 

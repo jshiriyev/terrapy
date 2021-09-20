@@ -9,6 +9,8 @@ import inspect
 import os
 import re
 
+import tkinter as tk
+
 import warnings
 
 import matplotlib.pyplot as plt
@@ -18,57 +20,71 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
+from interfaces.table import table
+from interfaces.graph import graph
+
 class dataset():
 
-    special_extensions = [".db",".xlsx"] # should also add .las files
+    special_extensions = [".db",".xlsx",".las"]
 
-    def __init__(self,filepath=None,skiplines=1,headerline=None,comment="--",endline="/",endfile="END",**kwargs):
+    def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
-        if filepath is None:
-            return
+        # There can be two uses of dataset, case 1 or case 2:
+        #   case 1: headers
+        #   case 2: filepath,skiplines,headerline
+        #    - for reading plain date: comment,endline,endfile
+        #    - for reading scpecial extensions: **kwargs
 
-        self.filepath = filepath
+        if headers is not None:
+            self._headers = headers
+            self._running = [np.array([])]*len(self._headers)
 
-        self.skiplines = skiplines
+        elif filepath is not None:
+            self.filepath = filepath
+            self.skiplines = skiplines
 
-        if headerline is None:
-            self.headerline = skiplines-1
-        elif headerline<skiplines:
-            self.headerline = headerline
+            if headerline is None:
+                self.headerline = skiplines-1
+            elif headerline<skiplines:
+                self.headerline = headerline
+            else:
+                self.headerline = skiplines-1
+
+            self.comment = comment
+            self.endline = endline
+            self.endfile = endfile
+
+            self.filename = os.path.split(self.filepath)[1]
+            self.extension = os.path.splitext(self.filepath)[1]
+
+            if not any([self.extension==extension for extension in self.special_extensions]):
+
+                self.read()
+
+                self.title = []
+
+                for _ in range(self.skiplines):
+                    self.title.append(self._running.pop(0))
+
+                num_cols = len(self._running[0])
+
+                if self.skiplines==0:
+                    self._headers = ["Column #"+str(index) for index in range(num_cols)]
+                elif skiplines!=0:
+                    self._headers = self.title[self.headerline]
+
+                nparray = np.array(self._running).T
+
+                self._running = [np.asarray(column) for column in nparray]
+
+            else:
+
+                self.read_special(**kwargs)
+
         else:
-            self.headerline = skiplines-1
-
-        self.comment = comment
-        self.endline = endline
-        self.endfile = endfile
-
-        self.filename = os.path.split(self.filepath)[1]
-        self.extension = os.path.splitext(self.filepath)[1]
-
-        if any([self.extension==extension for extension in self.special_extensions]):
-            self.read_special(**kwargs)
             return
-        else:
-            self.read()
-
-        self.title = []
-
-        for _ in range(self.skiplines):
-            self.title.append(self._running.pop(0))
-
-        num_cols = len(self._running[0])
-
-        if self.skiplines==0:
-            self._headers = ["Column #"+str(index) for index in range(num_cols)]
-        elif skiplines!=0:
-            self._headers = self.title[self.headerline]
 
         self.headers = self._headers
-
-        nparray = np.array(self._running).T
-
-        self._running = [np.asarray(column) for column in nparray]
-
         self.running = [np.asarray(column) for column in self._running]
 
     def read(self):
@@ -114,13 +130,29 @@ class dataset():
 
             wb = openpyxl.load_workbook(self.filepath,read_only=True)
 
-            self._headers = wb[sheetname].iter_rows(min_row=self.headerline+1,min_col=min_col,
-                max_row=self.headerline+1,max_col=max_col,values_only=True)
+            rows = wb[sheetname].iter_rows(min_row=min_row,min_col=min_col,
+                max_row=min_row+self.skiplines-1,max_col=max_col,values_only=True)
 
-            columns = wb[sheetname].iter_cols(min_row=min_row+self.skiplines,min_col=min_col,
+            rows = list(rows)
+
+            self._headers = list(rows[self.headerline-1])
+
+            if self.headerline<self.skiplines:
+
+                for index,(header,header_lower) in enumerate(zip(self._headers,rows[self.skiplines-1])):
+                    if header_lower is not None:
+                        self._headers[index] = header_lower.strip()
+                    elif header is not None:
+                        self._headers[index] = header.strip()
+                    else:
+                        self._headers[index] = None
+
+            columns = wb[sheetname].iter_rows(min_row=min_row+self.skiplines,min_col=min_col,
                 max_row=max_row,max_col=max_col,values_only=True)
 
-            self._running = [np.array(column) for column in columns]
+            nparray = np.array(list(columns)).T
+
+            self._running = [np.asarray(column) for column in nparray]
 
             wb._archive.close()
 
@@ -133,9 +165,6 @@ class dataset():
             self._headers = las.keys()
 
             self._running = [np.asarray(column) for column in las.data.transpose()]
-
-        self.headers = self._headers
-        self.running = [np.asarray(column) for column in self._running]
 
     def set_subheaders(self,header_index=None,header=None,regex=None,regex_builtin="INC_HEADERS",title="SUB-HEADERS"):
 
@@ -246,19 +275,24 @@ class dataset():
 
             def shifting(string):
                 date = parse(string)+relativedelta(months=shiftmonths)
-                return datetime(date.year,date.month,calendar.monthrange(date.year,date.month)[1])
+                days = calendar.monthrange(date.year,date.month)[1]
+                return datetime(date.year,date.month,days)
 
-            if shiftmonths != 0:
-                vdate = np.vectorize(lambda x: shifting(x))
+            if dtype is None:
+                if shiftmonths != 0:
+                    vdate = np.vectorize(lambda x: shifting(x))
+                else:
+                    vdate = np.vectorize(lambda x: parse(x))
             else:
-                vdate = np.vectorize(lambda x: parse(x))
+                if shiftmonths != 0:
+                    vdate = np.vectorize(lambda x: dtype(shifting(x)))
+                else:
+                    vdate = np.vectorize(lambda x: dtype(parse(x)))
             
         else:
             vdate = np.vectorize(lambda x: dtype(x))
             
         self._running[header_index] = vdate(self._running[header_index])
-
-        self.running[header_index] = np.asarray(self._running[header_index])
 
     def upper(self,header_index=None,header=None):
 
@@ -307,9 +341,11 @@ class dataset():
 
         if inplace:
             self._headers = [self._headers[index] for index in header_indices]
-            self.headers = self._headers
             self._running = [self._running[index] for index in header_indices]
+
+            self.headers = self._headers
             self.running = [np.asarray(column) for column in self._running]
+
         else:
             self.headers = [self._headers[index] for index in header_indices]
             self.running = [np.asarray(self._running[index]) for index in header_indices]
@@ -370,6 +406,38 @@ class dataset():
             self.running = [np.asarray(column) for column in self._running]
         else:
             self.running = [np.asarray(column[match_index]) for column in self._running]
+
+    def tabulate(self,window=None):
+
+        if window is None:
+            table_window = tk.Tk()
+        else:
+            table_window = window
+
+        self.table_gui = table(table_window)
+        
+        self.table_gui.draw()
+
+        if window is None:
+            table_window.mainloop()
+
+    def plot(self,window=None):
+
+        if window is None:
+            graph_window = tk.Tk()
+        else:
+            graph_window = window
+
+        self.graph_gui = graph(graph_window)
+
+        self.graph_gui.draw()
+
+        self.graph_gui.searchbox.content = self.names
+
+        self.graph_gui.searchbox.config(completevalues=self.names,allow_other_values=True)
+
+        if window is None:
+            graph_window.mainloop()
 
     def write(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
 

@@ -1,3 +1,5 @@
+import os
+
 import tkinter as tk
 
 from tkinter import ttk
@@ -11,25 +13,15 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from interfaces.dataset import dataset
+class table():
 
-class table(dataset):
-
-    def __init__(self,filepath=None,headers=None,**kwargs):
-
-        super().__init__(filepath,**kwargs)
-
-        if filepath is None:
-
-            self._headers = headers
-            self._running = [np.array([]) for _ in self._headers]
-
-            self.headers = self._headers
-            self.running = [np.asarray(column) for column in self._running]
-
-    def draw(self,window,func=None):
+    def __init__(self,window):
 
         self.root = window
+
+        self.dirname = os.path.dirname(__file__)
+
+    def draw(self,func=None):
 
         self.scrollbar = tk.Scrollbar(self.root)
 
