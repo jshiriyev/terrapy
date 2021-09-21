@@ -463,6 +463,25 @@ class Wells(dataset):
 
             self.wellcompletioncheck(well)
 
+    def wellcompletioncheck(self,well):
+
+        compdata = zip(well.compdates,well.compevents,well.compuppers,well.complowers)
+
+        for index,(compdate,compevent,compupper,complower) in enumerate(compdata):
+
+            if index==0:
+                self.set_rows([compdate,"WELSPECS",self.detail_wspec.format(well.name)])
+
+            if compevent == "PERF":
+                bottom = complower
+                perfs = "OPEN"
+            elif compevent == "PLUG":
+                bottom = "1*"
+                perfs = "SHUT"
+
+            self.set_rows([compdate,"COMPDATMD",self.detail_compdat.format(well.name,compupper,bottom,perfs)])
+            self.set_rows([compdate,"COMPORD",self.detail_compord.format(well.name)])
+
     def crosscheck(self):
 
         warnNOPROD = "{} has completion but no production data."
@@ -499,122 +518,6 @@ class Wells(dataset):
             well = self.get_well(wellname)
 
             self.wellcrosscheck(well,flagReturn=False,flagShow=False)
-
-    def get_trajectory(self,wellname=None):
-
-        wellnumber = int(re.sub("[^0-9]","",wellname))
-
-        folder1 = "GD-{}".format(str(wellnumber).zfill(3))
-        folder2 = "6.GD-{} Deviation".format(str(wellnumber).zfill(3))
-
-        filename = "Qum_Adasi-{}.txt".format(wellnumber)
-        
-        filepath = os.path.join(self.dir_traj,folder1,folder2,filename)
-
-        traj = dataset(filepath=filepath,skiplines=1,comment="#")
-
-        traj.texttocolumn(0,deliminator=None,maxsplit=None)
-
-        traj.get_columns(headers=headers_traj)
-
-        traj.astype(header=headers_traj[0],dtype=np.float64)
-        traj.astype(header=headers_traj[1],dtype=np.float64)
-        traj.astype(header=headers_traj[2],dtype=np.float64)
-        traj.astype(header=headers_traj[3],dtype=np.float64)
-
-        return traj
-
-    def get_well(self,wellname):
-
-        self.prods.filter(0,keywords=[wellname],inplace=False)
-        self.comps.filter(0,keywords=[wellname],inplace=False)
-
-        class well: pass
-
-        well.name = wellname
-
-        well.opdates = self.prods.running[1]
-
-        well.opdays = self.prods.running[2]
-
-        well.prodtotal = self.prods.running[3]+self.prods.running[4]+self.prods.running[5]
-        well.injtotal = self.prods.running[6]
-
-        well.total = well.prodtotal+well.injtotal
-
-        well.opstatus = np.empty(well.opdays.shape,dtype=object)
-
-        well.oil = np.zeros(well.opdays.shape,dtype=np.float32)
-        well.water = np.zeros(well.opdays.shape,dtype=np.float32)
-        well.gas = np.zeros(well.opdays.shape,dtype=np.float32)
-
-        well.opstatus[well.prodtotal>0] = "production"
-
-        well.oil[well.prodtotal>0] = self.prods.running[3][well.prodtotal>0]
-        well.water[well.prodtotal>0] = self.prods.running[4][well.prodtotal>0]
-        well.gas[well.prodtotal>0] = self.prods.running[5][well.prodtotal>0]
-        
-        well.opstatus[well.injtotal>0] = "injection"
-
-        well.water[well.injtotal>0] = self.prods.running[6][well.injtotal>0]
-
-        well.compdates = self.comps.running[1]
-
-        well.compevents = self.comps.running[2]
-        well.compuppers = self.comps.running[3]
-        well.complowers = self.comps.running[4]
-
-        well.compupdatedates = np.unique(well.compdates)
-
-        compcounts = np.insert(np.cumsum(np.sum(well.compdates==well.compupdatedates.reshape((-1,1)),axis=1)),0,0)
-
-        well.compupdatecounts = np.empty(well.compupdatedates.shape,dtype=int)
-
-        compopenintervals = np.empty((0,2))
-
-        for index,date in enumerate(well.compupdatedates):
-
-            compevents = well.compevents[compcounts[index]:compcounts[index+1]]
-            compuppers = well.compuppers[compcounts[index]:compcounts[index+1]]
-            complowers = well.complowers[compcounts[index]:compcounts[index+1]]
-
-            perfevents = compevents=="PERF"
-
-            perfintervals = np.array([compuppers[perfevents],complowers[perfevents]]).T
-
-            compopenintervals = np.concatenate((compopenintervals,perfintervals),axis=0)
-
-            plugevents = compevents=="PLUG"
-
-            pluguppermatch = np.any(compopenintervals[:,0]==compuppers[plugevents].reshape((-1,1)),axis=0)
-            pluglowermatch = np.any(compopenintervals[:,1]==complowers[plugevents].reshape((-1,1)),axis=0)
-
-            plugmatch = np.where(np.logical_and(pluguppermatch,pluglowermatch))[0]
-
-            compopenintervals = np.delete(compopenintervals,plugmatch,0)
-
-            well.compupdatecounts[index] = compopenintervals.shape[0]
-
-        return well
-
-    def wellcompletioncheck(self,well):
-
-        compdata = zip(well.compdates,well.compevents,well.compuppers,well.complowers)
-
-        for index,(compdate,compevent,compupper,complower) in enumerate(compdata):
-
-            if index==0:
-                self.set_rows([compdate,"WELSPECS",self.detail_wspec.format(well.name)])
-
-            if compevent == "PERF":
-                bottom = complower
-                perfs = "OPEN"
-            elif compevent == "PLUG":
-                bottom = "1*"
-                perfs = "SHUT"
-
-            self.set_rows([compdate,"COMPDATMD",self.detail_compdat.format(well.name,compupper,bottom,perfs)])
-            self.set_rows([compdate,"COMPORD",self.detail_compord.format(well.name)])
 
     def wellcrosscheck(self,well,flagReturn=False,flagShow=False):
 
@@ -837,19 +740,111 @@ class Wells(dataset):
 
             return well
 
-    def setPlotAxes(self,index=None,event=None):
+    def get_trajectory(self,wellname=None):
 
-        if not self.graph.temps.listbox.curselection(): return
+        wellnumber = int(re.sub("[^0-9]","",wellname))
 
-        if hasattr(self,"axes"):
-            [self.graph.figure.delaxes(axis) for axis in self.graph.axes]
+        folder1 = "GD-{}".format(str(wellnumber).zfill(3))
+        folder2 = "6.GD-{} Deviation".format(str(wellnumber).zfill(3))
 
-        self.graph.axes = []
+        filename = "Qum_Adasi-{}.txt".format(wellnumber)
+        
+        filepath = os.path.join(self.dir_traj,folder1,folder2,filename)
 
-        if index is None:
-            index = self.graph.temps.listbox.curselection()[0]
+        traj = dataset(filepath=filepath,skiplines=1,comment="#")
 
-        if index == 0:
+        traj.texttocolumn(0,deliminator=None,maxsplit=None)
+
+        traj.get_columns(headers=headers_traj)
+
+        traj.astype(header=headers_traj[0],dtype=np.float64)
+        traj.astype(header=headers_traj[1],dtype=np.float64)
+        traj.astype(header=headers_traj[2],dtype=np.float64)
+        traj.astype(header=headers_traj[3],dtype=np.float64)
+
+        return traj
+
+    def get_well(self,wellname):
+
+        self.prods.filter(0,keywords=[wellname],inplace=False)
+        self.comps.filter(0,keywords=[wellname],inplace=False)
+
+        class well: pass
+
+        well.name = wellname
+
+        well.opdates = self.prods.running[1]
+
+        well.opdays = self.prods.running[2]
+
+        well.prodtotal = self.prods.running[3]+self.prods.running[4]+self.prods.running[5]
+        well.injtotal = self.prods.running[6]
+
+        well.total = well.prodtotal+well.injtotal
+
+        well.opstatus = np.empty(well.opdays.shape,dtype=object)
+
+        well.oil = np.zeros(well.opdays.shape,dtype=np.float32)
+        well.water = np.zeros(well.opdays.shape,dtype=np.float32)
+        well.gas = np.zeros(well.opdays.shape,dtype=np.float32)
+
+        well.opstatus[well.prodtotal>0] = "production"
+
+        well.oil[well.prodtotal>0] = self.prods.running[3][well.prodtotal>0]
+        well.water[well.prodtotal>0] = self.prods.running[4][well.prodtotal>0]
+        well.gas[well.prodtotal>0] = self.prods.running[5][well.prodtotal>0]
+        
+        well.opstatus[well.injtotal>0] = "injection"
+
+        well.water[well.injtotal>0] = self.prods.running[6][well.injtotal>0]
+
+        well.compdates = self.comps.running[1]
+
+        well.compevents = self.comps.running[2]
+        well.compuppers = self.comps.running[3]
+        well.complowers = self.comps.running[4]
+
+        well.compupdatedates = np.unique(well.compdates)
+
+        compcounts = np.insert(np.cumsum(np.sum(well.compdates==well.compupdatedates.reshape((-1,1)),axis=1)),0,0)
+
+        well.compupdatecounts = np.empty(well.compupdatedates.shape,dtype=int)
+
+        compopenintervals = np.empty((0,2))
+
+        for index,date in enumerate(well.compupdatedates):
+
+            compevents = well.compevents[compcounts[index]:compcounts[index+1]]
+            compuppers = well.compuppers[compcounts[index]:compcounts[index+1]]
+            complowers = well.complowers[compcounts[index]:compcounts[index+1]]
+
+            perfevents = compevents=="PERF"
+
+            perfintervals = np.array([compuppers[perfevents],complowers[perfevents]]).T
+
+            compopenintervals = np.concatenate((compopenintervals,perfintervals),axis=0)
+
+            plugevents = compevents=="PLUG"
+
+            pluguppermatch = np.any(compopenintervals[:,0]==compuppers[plugevents].reshape((-1,1)),axis=0)
+            pluglowermatch = np.any(compopenintervals[:,1]==complowers[plugevents].reshape((-1,1)),axis=0)
+
+            plugmatch = np.where(np.logical_and(pluguppermatch,pluglowermatch))[0]
+
+            compopenintervals = np.delete(compopenintervals,plugmatch,0)
+
+            well.compupdatecounts[index] = compopenintervals.shape[0]
+
+        return well
+
+    def setPlotAxes(self,event=None):
+
+        super().setPlotAxes()
+
+        tempname = self.graph.temps.get(self.graph.temps.listbox.curselection())
+
+        if tempname == self.templates[0]:
+
             self.graph.axes.append(self.graph.figure.add_subplot(221))
             self.graph.axes.append(self.graph.axes[0].twinx())
             self.graph.axes.append(self.graph.figure.add_subplot(222))
@@ -879,7 +874,8 @@ class Wells(dataset):
 
             status = "Production history match template has been selected."
 
-        elif index == 1:
+        elif tempname == self.templates[1]:
+
             self.graph.axes.append(self.graph.figure.add_subplot(1,2,1))
             self.graph.axes.append(self.graph.axes[0].twinx())
             self.graph.axes.append(self.graph.figure.add_subplot(1,2,2))
@@ -902,35 +898,23 @@ class Wells(dataset):
             for tick in self.graph.axes[2].get_xticklabels():
                 tick.set_rotation(45)
 
-            status = "Historical production and completion template has been selected."
+            status = "Production and Completion template has been selected."
 
-        self.graph.foot.insert(tk.END,status)
-        self.graph.foot.see(tk.END)
+        self.graph.footer.insert(tk.END,status)
+        self.graph.footer.see(tk.END)
 
         self.graph.figure.set_tight_layout(True)
 
         self.graph.canvas.draw()
 
-    def setPlotLines(self,index=None,event=None):
+    def setPlotLines(self,event=None):
 
-        if not self.graph.items.listbox.curselection(): return
+        super().setPlotLines()
 
-        if not hasattr(self.graph,"axes"):
-            status = "No template has been selected."
-            self.graph.status.insert(tk.END,status)
-            self.graph.status.see(tk.END)
-            return
+        tempname = self.graph.temps.get(self.graph.temps.listbox.curselection())
 
-        if hasattr(self.graph,"lines"):
-            for line in self.graph.lines:
-                line.remove()
-                
-        self.graph.lines = []
+        if tempname == self.templates[0]:
 
-        if index is None:
-            index = self.graph.temps.listbox.curselection()[0]
-
-        if index == 0:
             try: self.graph.lines.append(self.graph.axes[0].plot(data.date,data.Oil_Rate,c='k')[0])
             except: pass
             try: self.graph.lines.append(self.graph.axes[0].plot(data.date,data.Oil_Rate_H,'--',c='g')[0])
@@ -963,8 +947,9 @@ class Wells(dataset):
             try: self.graph.lines.append(self.graph.axes[6].plot(data.date,data.Bottom_Hole_Pressure_H,'--',c='m')[0])
             except: pass
 
-        elif index == 1:
-            self.get_completion(self.graph.items.listbox.get(self.graph.items.listbox.curselection()[0]))
+        elif tempname == self.templates[1]:
+
+            self.get_completion(self.graph.items.listbox.get(self.graph.items.listbox.curselection()))
 
             self.graph.lines.append(self.graph.axes[0].scatter(self.prods.running[1],self.prods.running[9])[0])
 
@@ -1001,7 +986,7 @@ class Wells(dataset):
 
         self.graph.figure.set_tight_layout(True)
 
-        self.graph.canvas.draw()
+        self.graph.plot.draw()
 
     def write(self,filepath):
 

@@ -13,15 +13,15 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 if __name__ == "__main__":
     import setup
 
-class graph():
+func_integer = lambda x: True if x.isdigit() or x == "" else False
 
-    funcCheckINT = lambda x: True if x.isdigit() or x == "" else False
+class graph():
     
-    def __init__(self,window,setPlotAxes=None,setPlotLines=None):
+    def __init__(self,window,setAxes=None,setLines=None):
 
         self.root = window
 
-        self.validateINT = (self.root.register(self.funcCheckINT),'%P')
+        self.validate_integer = (self.root.register(func_integer),'%P')
 
         self.dirname = os.path.dirname(__file__)
 
@@ -32,9 +32,9 @@ class graph():
 
         self.pane_NS.add(self.body,weight=1)
 
-        self.foot = tk.Listbox(self.root,height=5)
+        self.footer = tk.Listbox(self.root,height=5)
 
-        self.pane_NS.add(self.foot,weight=0)
+        self.pane_NS.add(self.footer,weight=0)
 
         self.pane_NS.pack(expand=1,fill=tk.BOTH)
 
@@ -60,10 +60,8 @@ class graph():
         self.items = AutocompleteEntryListbox(self.side,height=250,padding=0)
         self.items.config(completevalues=[],allow_other_values=False)
 
-        if setPlotLines is not None:
-            self.items.listbox.bind('<<ListboxSelect>>',lambda event: setPlotLines(None,event))
-        else:
-            self.items.listbox.bind('<<ListboxSelect>>',lambda event: self.setPlotLines(None,event))
+        if setLines is not None:
+            self.items.listbox.bind('<<ListboxSelect>>',lambda event: setLines(event))
 
         self.pane_ns.add(self.items,weight=1)
 
@@ -95,61 +93,12 @@ class graph():
         self.temps.listbox = tk.Listbox(self.temps,exportselection=False)
         self.temps.listbox.grid(row=1,column=0,columnspan=4,sticky=tk.NSEW)
 
-        if setPlotAxes is not None:
-            self.temps.listbox.bind('<<ListboxSelect>>',lambda event: setPlotAxes(None,event))
-        else:
-            self.temps.listbox.bind('<<ListboxSelect>>',lambda event: self.setPlotAxes(None,event))
+        if setAxes is not None:
+            self.temps.listbox.bind('<<ListboxSelect>>',lambda event: setAxes(event))
 
         self.pane_ns.add(self.temps,weight=1)
 
         self.pane_ns.pack(expand=1,fill=tk.BOTH)
-
-    def setPlotAxes(self,index=None,event=None):
-
-        if not self.temps.listbox.curselection(): return
-
-        if hasattr(self,"axes"):
-            [self.figure.delaxes(axis) for axis in self.axes]
-
-        self.axes = []
-
-        if index is None:
-            index = self.temps.listbox.curselection()[0]
-
-        self.tempaxes[index]
-
-        self.figure.set_tight_layout(True)
-
-        self.canvas.draw()
-
-    def setPlotLines(self,index=None,event=None):
-
-        if not self.items.listbox.curselection(): return
-
-        if not hasattr(self,"axes"):
-            status = "No template has been selected."
-            self.status.insert(tk.END,status)
-            self.status.see(tk.END)
-            return
-
-        if hasattr(self,"lines"):
-            for line in self.lines:
-                line.remove()
-                
-        self.lines = []
-
-        if index is None:
-            index = self.temps.listbox.curselection()[0]
-
-        self.templines[index]
-
-        for axis in self.axes:
-            axis.relim()
-            axis.autoscale_view()
-
-        self.figure.set_tight_layout(True)
-
-        self.plot.draw()
 
     def addTemp(self):
 
@@ -221,13 +170,13 @@ class graph():
         self.topTempNotebookTemplateFrame1.xgridlabel = ttk.Label(self.topTempNotebookTemplateFrame1,text="Grids in Y")
         self.topTempNotebookTemplateFrame1.xgridlabel.grid(row=0,column=0,sticky=tk.EW,padx=(10,10),pady=(20,2))
 
-        self.topTempNotebookTemplateFrame1.xnumgrid = ttk.Entry(self.topTempNotebookTemplateFrame1,width=10,validate="key",validatecommand=self.validateINT)
+        self.topTempNotebookTemplateFrame1.xnumgrid = ttk.Entry(self.topTempNotebookTemplateFrame1,width=10,validate="key",validatecommand=self.validate_integer)
         self.topTempNotebookTemplateFrame1.xnumgrid.grid(row=0,column=1,sticky=tk.EW,padx=(10,2),pady=(20,2))
 
         self.topTempNotebookTemplateFrame1.ygridlabel = ttk.Label(self.topTempNotebookTemplateFrame1,text="Grids in X")
         self.topTempNotebookTemplateFrame1.ygridlabel.grid(row=1,column=0,sticky=tk.EW,padx=(10,10),pady=(2,2))
 
-        self.topTempNotebookTemplateFrame1.ynumgrid = ttk.Entry(self.topTempNotebookTemplateFrame1,width=10,validate="key",validatecommand=self.validateINT)
+        self.topTempNotebookTemplateFrame1.ynumgrid = ttk.Entry(self.topTempNotebookTemplateFrame1,width=10,validate="key",validatecommand=self.validate_integer)
         self.topTempNotebookTemplateFrame1.ynumgrid.grid(row=1,column=1,sticky=tk.EW,padx=(10,2),pady=(2,2))
 
         self.topTempNotebookTemplateFrame1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
@@ -303,8 +252,6 @@ class graph():
             ynumgrid = 1
 
         self.temps.get("ynumgrid").insert(item,ynumgrid)
-
-        # self.setPlotAxes(item)
 
         self.topTemplate.destroy()
 

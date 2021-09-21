@@ -421,13 +421,30 @@ class dataset():
         for name in self.templates:
             self.graph.temps.listbox.insert(tk.END,name)
 
-    def setPlotAxes(self):
+    def setPlotAxes(self,event=None):
 
-        pass
+        if not self.graph.temps.listbox.curselection(): return
 
-    def setPlotLines(self):
+        if hasattr(self,"axes"):
+            [self.graph.figure.delaxes(axis) for axis in self.graph.axes]
 
-        pass
+        self.graph.axes = []
+
+    def setPlotLines(self,event=None):
+
+        if not self.graph.items.listbox.curselection(): return
+
+        if not hasattr(self.graph,"axes"):
+            status = "No template has been selected."
+            self.graph.footer.insert(tk.END,status)
+            self.graph.footer.see(tk.END)
+            return
+
+        if hasattr(self.graph,"lines"):
+            for line in self.graph.lines:
+                line.remove()
+                
+        self.graph.lines = []
 
     def write(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
 
