@@ -20,9 +20,13 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
+from interfaces.graph import graph
+
 class dataset():
 
     special_extensions = [".db",".xlsx",".las"]
+
+    templates = []
 
     def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
@@ -54,29 +58,10 @@ class dataset():
             self.filename = os.path.split(self.filepath)[1]
             self.extension = os.path.splitext(self.filepath)[1]
 
-            if not any([self.extension==extension for extension in self.special_extensions]):
-
-                self.read()
-
-                self.title = []
-
-                for _ in range(self.skiplines):
-                    self.title.append(self._running.pop(0))
-
-                num_cols = len(self._running[0])
-
-                if self.skiplines==0:
-                    self._headers = ["Column #"+str(index) for index in range(num_cols)]
-                elif skiplines!=0:
-                    self._headers = self.title[self.headerline]
-
-                nparray = np.array(self._running).T
-
-                self._running = [np.asarray(column) for column in nparray]
-
-            else:
-
+            if any([self.extension==extension for extension in self.special_extensions]):
                 self.read_special(**kwargs)
+            else:
+                self.read()
 
         else:
             return
@@ -118,6 +103,22 @@ class dataset():
                         break
 
                 self._running.append([line])
+
+        self.title = []
+
+        for _ in range(self.skiplines):
+            self.title.append(self._running.pop(0))
+
+        num_cols = len(self._running[0])
+
+        if self.skiplines==0:
+            self._headers = ["Column #"+str(index) for index in range(num_cols)]
+        elif self.skiplines!=0:
+            self._headers = self.title[self.headerline]
+
+        nparray = np.array(self._running).T
+
+        self._running = [np.asarray(column) for column in nparray]
 
     def read_special(self,sheetname=None,min_row=1,min_col=1,max_row=None,max_col=None):
 
@@ -238,7 +239,7 @@ class dataset():
 
         # line = re.sub(r"[^\w]","",line)
         # line = "_"+line if line[0].isnumeric() else line
-        # vmatch = np.vectorize(lambda x:bool(re.compile('[Ab]').match(x)))
+        # vmatch = np.vectorize(lambda x: bool(re.compile('[Ab]').match(x)))
         
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
@@ -291,6 +292,8 @@ class dataset():
             
         self._running[header_index] = vdate(self._running[header_index])
 
+        self.running[header_index] = np.asarray(self._running[header_index])
+
     def upper(self,header_index=None,header=None):
 
         if header_index is None:
@@ -303,12 +306,15 @@ class dataset():
         if header_index is None:
             if header_new is None:
                 header_new = "Col ##"+str(len(self._headers))
+
             self._headers.append(header_new)
-            self.headers = self._headers
             self._running.append(column)
+
+            self.headers = self._headers
             self.running.append(np.asarray(self._running[-1]))
         else:
             self._running[header_index] = column
+
             self.running[header_index] = np.asarray(self._running[header_index])
 
     def set_rows(self,row,row_indices=None):
@@ -403,6 +409,25 @@ class dataset():
             self.running = [np.asarray(column) for column in self._running]
         else:
             self.running = [np.asarray(column[match_index]) for column in self._running]
+
+    def plot(self,window):
+
+        self.graph = graph(window,self.setPlotAxes,self.setPlotLines)
+
+        self.graph.items.content = self.names.tolist()
+
+        self.graph.items.config(completevalues=self.graph.items.content,allow_other_values=True)
+
+        for name in self.templates:
+            self.graph.temps.listbox.insert(tk.END,name)
+
+    def setPlotAxes(self):
+
+        pass
+
+    def setPlotLines(self):
+
+        pass
 
     def write(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
 
