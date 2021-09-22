@@ -270,6 +270,68 @@ class Fractures():
 
         pass
 
+# TEMPLATES
+#
+#
+# TEMP 0
+# self.graph.axes.append(self.graph.figure.add_subplot(221))
+# self.graph.axes.append(self.graph.axes[0].twinx())
+# self.graph.axes.append(self.graph.figure.add_subplot(222))
+# self.graph.axes.append(self.graph.axes[2].twinx())
+# self.graph.axes.append(self.graph.figure.add_subplot(223))
+# self.graph.axes.append(self.graph.axes[4].twinx())
+# self.graph.axes.append(self.graph.figure.add_subplot(224))
+
+# self.graph.axes[0].set_xlabel("Date")
+# self.graph.axes[2].set_xlabel("Date")
+# self.graph.axes[4].set_xlabel("Date")
+# self.graph.axes[6].set_xlabel("Date")
+
+# self.graph.axes[0].set_ylabel("Liquid Rate, sm3/day")
+# self.graph.axes[2].set_ylabel("Gas Rate, th. sm3/day")
+# self.graph.axes[4].set_ylabel("Liquid Rate, sm3/day")
+# self.graph.axes[6].set_ylabel("Pressure, Bars")
+
+# self.graph.axes[1].set_ylabel("Liquid Volume, th. sm3")
+# self.graph.axes[3].set_ylabel("Surface Gas Volume, mln. sm3")
+# self.graph.axes[5].set_ylabel("Liquid Volume, th. sm3")
+
+# self.graph.axes[0].grid()
+# self.graph.axes[2].grid()
+# self.graph.axes[4].grid()
+# self.graph.axes[6].grid()
+
+# status = "Production history match template has been selected."
+
+
+# TEMP 1 
+#
+# self.graph.axes.append(self.graph.figure.add_subplot(1,2,1))
+# self.graph.axes.append(self.graph.axes[0].twinx())
+# self.graph.axes.append(self.graph.figure.add_subplot(1,2,2))
+# self.graph.axes.append(self.graph.axes[2].twinx())
+
+# self.graph.axes[0].set_xlabel("Date")
+# self.graph.axes[2].set_xlabel("Date")
+
+# self.graph.axes[0].set_ylabel('Total Production or Injection [m3/day]')
+# self.graph.axes[1].set_yticks([])
+# self.graph.axes[2].set_yticks([])
+# self.graph.axes[3].set_ylabel('Open Perforation Intervals')
+
+# self.graph.axes[0].set_title("BEFORE CORRECTIONS")
+# self.graph.axes[2].set_title("AFTER CORRECTIONS")
+
+# for tick in self.graph.axes[0].get_xticklabels():
+#     tick.set_rotation(45)
+
+# for tick in self.graph.axes[2].get_xticklabels():
+#     tick.set_rotation(45)
+
+# status = "Production and Completion template has been selected."
+
+templates = ["Production History Match","Production-Completion Cross Plot"]
+
 class Wells(dataset):
 
     # HISTORY: PRODUCTION, COMPLETION, TRAJECTORY
@@ -277,10 +339,6 @@ class Wells(dataset):
     headers_prod = ["WELL","DATE","DAYS","OPROD","WPROD","GPROD","WINJ"]
     headers_comp = ["Wells","Horizont","Top","Bottom","start","stoped"]
     headers_traj = ["X","Y","Z","MD"]
-
-    # PLOT TEMPLATES
-
-    templates = ["Production History Match","Production-Completion Cross Plot"]
 
     # DATA STORED TO BE WRITTEN WITH KEYWORDS [DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN]
 
@@ -837,77 +895,7 @@ class Wells(dataset):
 
         return well
 
-    def setPlotAxes(self,event=None):
-
-        super().setPlotAxes()
-
-        tempname = self.graph.temps.get(self.graph.temps.listbox.curselection())
-
-        if tempname == self.templates[0]:
-
-            self.graph.axes.append(self.graph.figure.add_subplot(221))
-            self.graph.axes.append(self.graph.axes[0].twinx())
-            self.graph.axes.append(self.graph.figure.add_subplot(222))
-            self.graph.axes.append(self.graph.axes[2].twinx())
-            self.graph.axes.append(self.graph.figure.add_subplot(223))
-            self.graph.axes.append(self.graph.axes[4].twinx())
-            self.graph.axes.append(self.graph.figure.add_subplot(224))
-
-            self.graph.axes[0].set_xlabel("Date")
-            self.graph.axes[2].set_xlabel("Date")
-            self.graph.axes[4].set_xlabel("Date")
-            self.graph.axes[6].set_xlabel("Date")
-
-            self.graph.axes[0].set_ylabel("Liquid Rate, sm3/day")
-            self.graph.axes[2].set_ylabel("Gas Rate, th. sm3/day")
-            self.graph.axes[4].set_ylabel("Liquid Rate, sm3/day")
-            self.graph.axes[6].set_ylabel("Pressure, Bars")
-
-            self.graph.axes[1].set_ylabel("Liquid Volume, th. sm3")
-            self.graph.axes[3].set_ylabel("Surface Gas Volume, mln. sm3")
-            self.graph.axes[5].set_ylabel("Liquid Volume, th. sm3")
-
-            self.graph.axes[0].grid()
-            self.graph.axes[2].grid()
-            self.graph.axes[4].grid()
-            self.graph.axes[6].grid()
-
-            status = "Production history match template has been selected."
-
-        elif tempname == self.templates[1]:
-
-            self.graph.axes.append(self.graph.figure.add_subplot(1,2,1))
-            self.graph.axes.append(self.graph.axes[0].twinx())
-            self.graph.axes.append(self.graph.figure.add_subplot(1,2,2))
-            self.graph.axes.append(self.graph.axes[2].twinx())
-
-            self.graph.axes[0].set_xlabel("Date")
-            self.graph.axes[2].set_xlabel("Date")
-
-            self.graph.axes[0].set_ylabel('Total Production or Injection [m3/day]')
-            self.graph.axes[1].set_yticks([])
-            self.graph.axes[2].set_yticks([])
-            self.graph.axes[3].set_ylabel('Open Perforation Intervals')
-
-            self.graph.axes[0].set_title("BEFORE CORRECTIONS")
-            self.graph.axes[2].set_title("AFTER CORRECTIONS")
-
-            for tick in self.graph.axes[0].get_xticklabels():
-                tick.set_rotation(45)
-
-            for tick in self.graph.axes[2].get_xticklabels():
-                tick.set_rotation(45)
-
-            status = "Production and Completion template has been selected."
-
-        self.graph.footer.insert(tk.END,status)
-        self.graph.footer.see(tk.END)
-
-        self.graph.figure.set_tight_layout(True)
-
-        self.graph.canvas.draw()
-
-    def setPlotLines(self,event=None):
+    def setLinesFunc(self,event=None):
 
         super().setPlotLines()
 

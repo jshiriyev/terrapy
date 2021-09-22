@@ -10,14 +10,64 @@ from ttkwidgets.autocomplete import AutocompleteEntryListbox
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-if __name__ == "__main__":
-    import setup
+# if __name__ == "__main__":
+#     import setup
+
+temp0 = {
+    "name": "Standard",
+    "subplots": [1,1],
+    "twinx": [False],
+    "title": [""],
+    "xlabel": ["x-axis"],
+    "ylabel": [["y-axis"]],
+    "xticks": [None],
+    "yticks": [None],
+    "grid": [True]
+}
+
+temp1 = {
+    "name": "Standard-dual horizontal stack",
+    "subplots": [1,2],
+    "twinx": [False,False],
+    "title": ["Left","Right"],
+    "xlabel": ["x-axis","x-axis"],
+    "ylabel": [["y-axis"],["y-axis"]],
+    "xticks": [None,None],
+    "yticks": [None,None],
+    "grid": [True,True]
+}
+
+temp2 = {
+    "name": "Standard-dual vertical stack",
+    "subplots": [2,1],
+    "twinx": [False,False],
+    "title": ["Top","Bottom"],
+    "xlabel": ["x-axis","x-axis"],
+    "ylabel": [["y-axis"],["y-axis"]],
+    "xticks": [None,None],
+    "yticks": [None,None],
+    "grid": [True,True]
+}
+
+temp3 = {
+    "name": "Standard-quadruple",
+    "subplots": [2,2],
+    "twinx": [True,True,True,False],
+    "title": ["NW","NE","SW","SE"],
+    "xlabel": ["x-axis","x-axis","x-axis","x-axis"],
+    "ylabel": [["y-axis","y-axis-2"],["y-axis","y-axis-2"],["y-axis","y-axis-2"],["y-axis"]],
+    "xticks": [None,None,None,None],
+    "yticks": [None,None,None,None],
+    "grid": [True,True,True,True]
+}
+
+templates = (temp0,temp1,temp2,temp3)
 
 func_integer = lambda x: True if x.isdigit() or x == "" else False
 
 class graph():
     
-    def __init__(self,window,setAxes=None,setLines=None):
+    def __init__(self,window,templates=templates,setLineFunc=None):
 
         self.root = window
 
@@ -28,9 +78,9 @@ class graph():
         # configuration of window pane
         self.pane_NS = ttk.PanedWindow(self.root,orient=tk.VERTICAL,width=1000)
 
-        self.body = ttk.Frame(self.root,height=450)
+        self.frame_body = ttk.Frame(self.root,height=450)
 
-        self.pane_NS.add(self.body,weight=1)
+        self.pane_NS.add(self.frame_body,weight=1)
 
         self.footer = tk.Listbox(self.root,height=5)
 
@@ -39,14 +89,14 @@ class graph():
         self.pane_NS.pack(expand=1,fill=tk.BOTH)
 
         # configuration of top pane
-        self.pane_EW = ttk.PanedWindow(self.body,orient=tk.HORIZONTAL)
+        self.pane_EW = ttk.PanedWindow(self.frame_body,orient=tk.HORIZONTAL)
 
-        self.side = ttk.Frame(self.body)
+        self.frame_side = ttk.Frame(self.frame_body)
 
-        self.pane_EW.add(self.side,weight=0)
+        self.pane_EW.add(self.frame_side,weight=0)
 
         self.figure = plt.Figure()
-        self.canvas = FigureCanvasTkAgg(self.figure,self.body)
+        self.canvas = FigureCanvasTkAgg(self.figure,self.frame_body)
 
         self.plot = self.canvas.get_tk_widget()
 
@@ -55,50 +105,104 @@ class graph():
         self.pane_EW.pack(expand=1,fill=tk.BOTH)
 
         # configuration of top left pane
-        self.pane_ns = ttk.PanedWindow(self.side,orient=tk.VERTICAL,width=300)
+        self.pane_ns = ttk.PanedWindow(self.frame_side,orient=tk.VERTICAL,width=300)
 
-        self.items = AutocompleteEntryListbox(self.side,height=250,padding=0)
+        self.items = AutocompleteEntryListbox(self.frame_side,height=250,padding=0)
         self.items.config(completevalues=[],allow_other_values=False)
 
-        if setLines is not None:
-            self.items.listbox.bind('<<ListboxSelect>>',lambda event: setLines(event))
+        if setLineFunc is not None:
+            self.items.listbox.bind('<<ListboxSelect>>',lambda event: setLineFunc(event))
 
         self.pane_ns.add(self.items,weight=1)
 
-        self.temps = ttk.Frame(self.side,height=200)
+        self.frame_temps = ttk.Frame(self.frame_side,height=200)
 
-        self.temps.rowconfigure(0,weight=0)
-        self.temps.rowconfigure(1,weight=1)
+        self.frame_temps.rowconfigure(0,weight=0)
+        self.frame_temps.rowconfigure(1,weight=1)
 
-        self.temps.columnconfigure(0,weight=1)
-        self.temps.columnconfigure(1,weight=0)
-        self.temps.columnconfigure(2,weight=0)
+        self.frame_temps.columnconfigure(0,weight=1)
+        self.frame_temps.columnconfigure(1,weight=0)
+        self.frame_temps.columnconfigure(2,weight=0)
 
-        self.temps.label = ttk.Label(self.temps,text="Templates")
-        self.temps.label.grid(row=0,column=0,sticky=tk.EW)
+        self.frame_temps.label = ttk.Label(self.frame_temps,text="Templates")
+        self.frame_temps.label.grid(row=0,column=0,sticky=tk.EW)
 
-        self.temps.addIcon = tk.PhotoImage(file=self.dirname+"\\graphics\\Add\\Add-9.png")
-        self.temps.editIcon = tk.PhotoImage(file=self.dirname+"\\graphics\\Edit\\Edit-9.png")
-        self.temps.delIcon = tk.PhotoImage(file=self.dirname+"\\graphics\\Delete\\Delete-9.png")
+        self.frame_temps.addIcon = tk.PhotoImage(file=self.dirname+"\\graphics\\Add\\Add-9.png")
+        self.frame_temps.editIcon = tk.PhotoImage(file=self.dirname+"\\graphics\\Edit\\Edit-9.png")
+        self.frame_temps.delIcon = tk.PhotoImage(file=self.dirname+"\\graphics\\Delete\\Delete-9.png")
 
-        self.temps.addButton = ttk.Button(self.temps,image=self.temps.addIcon,command=self.addTemp)
-        self.temps.addButton.grid(row=0,column=1)
+        self.frame_temps.addButton = ttk.Button(self.frame_temps,image=self.frame_temps.addIcon,command=self.addTemp)
+        self.frame_temps.addButton.grid(row=0,column=1)
 
-        self.temps.editButton = ttk.Button(self.temps,image=self.temps.editIcon,command=self.editTemp)
-        self.temps.editButton.grid(row=0,column=2)
+        self.frame_temps.editButton = ttk.Button(self.frame_temps,image=self.frame_temps.editIcon,command=self.editTemp)
+        self.frame_temps.editButton.grid(row=0,column=2)
 
-        self.temps.delButton = ttk.Button(self.temps,image=self.temps.delIcon,command=self.delTemp)
-        self.temps.delButton.grid(row=0,column=3)
+        self.frame_temps.delButton = ttk.Button(self.frame_temps,image=self.frame_temps.delIcon,command=self.delTemp)
+        self.frame_temps.delButton.grid(row=0,column=3)
 
-        self.temps.listbox = tk.Listbox(self.temps,exportselection=False)
-        self.temps.listbox.grid(row=1,column=0,columnspan=4,sticky=tk.NSEW)
+        self.frame_temps.listbox = tk.Listbox(self.frame_temps,exportselection=False)
+        self.frame_temps.listbox.grid(row=1,column=0,columnspan=4,sticky=tk.NSEW)
 
-        if setAxes is not None:
-            self.temps.listbox.bind('<<ListboxSelect>>',lambda event: setAxes(event))
+        self.templates = templates
 
-        self.pane_ns.add(self.temps,weight=1)
+        for template in self.templates:
+            self.frame_temps.listbox.insert(tk.END,template.get("name"))
+
+        self.temp = {}
+
+        self.frame_temps.listbox.bind('<<ListboxSelect>>',lambda event: self.setAxesFunc(event))
+
+        self.pane_ns.add(self.frame_temps,weight=1)
 
         self.pane_ns.pack(expand=1,fill=tk.BOTH)
+
+    def setAxesFunc(self,event):
+
+        if not self.frame_temps.listbox.curselection():
+            return
+
+        if len(self.temp)!=0:
+            if self.temp == self.templates[self.frame_temps.listbox.curselection()[0]]:
+                return
+
+        self.temp = self.templates[self.frame_temps.listbox.curselection()[0]]
+
+        xnum,ynum = self.temp.get("subplots")
+        
+        if hasattr(self,"axes"):
+            [self.figure.delaxes(axis) for axis in self.axes]
+
+        self.axes = []
+
+        for index in range(xnum*ynum):
+            axis0 = self.figure.add_subplot(xnum,ynum,index+1)
+            if self.temp.get("twinx")[index]:
+                axis1 = axis0.twinx()
+            axis0.set_title(self.temp.get("title")[index])
+            axis0.set_xlabel(self.temp.get("xlabel")[index])
+            axis0.set_ylabel(self.temp.get("ylabel")[index][0])
+            if self.temp.get("twinx")[index]:
+                axis1.set_ylabel(self.temp.get("ylabel")[index][1])
+            if self.temp.get("xticks")[index] is not None:
+                axis0.set_xticks(self.temp.get("xticks")[index])
+            if self.temp.get("yticks")[index] is not None:
+                axis0.set_yticks(self.temp.get("yticks")[index])
+            axis0.grid(self.temp.get("grid")[index])
+            self.axes.append(axis0)
+            if self.temp.get("twinx")[index]:
+                self.axes.append(axis1)
+
+        # for tick in self.graph.axes[2].get_xticklabels():
+        #         tick.set_rotation(45)
+
+        status = "{} template has been selected.".format(self.temp.get("name"))
+
+        self.footer.insert(tk.END,status)
+        self.footer.see(tk.END)
+
+        self.figure.set_tight_layout(True)
+
+        self.canvas.draw()
 
     def addTemp(self):
 
@@ -106,27 +210,27 @@ class graph():
 
     def editTemp(self):
 
-        if not self.temps.listbox.curselection(): return
+        if not self.frame_temps.listbox.curselection(): return
         
-        name = self.temps.listbox.get(self.temps.listbox.curselection())
+        name = self.frame_temps.listbox.get(self.frame_temps.listbox.curselection())
 
-        item = self.temps.get("names").index(name)
+        item = self.frame_temps.get("names").index(name)
 
         self.setTopTemplate(item=item)
 
     def delTemp(self):
 
-        if not self.temps.listbox.curselection(): return
+        if not self.frame_temps.listbox.curselection(): return
 
-        name = self.temps.listbox.get(self.temps.listbox.curselection())
+        name = self.frame_temps.listbox.get(self.frame_temps.listbox.curselection())
 
-        item = self.temps.get("names").index(name)
+        item = self.temp.get("name").index(name)
         
-        self.temps.listbox.delete(item)
+        self.frame_temps.listbox.delete(item)
 
-        self.temps.get("names").pop(item)
-        self.temps.get("xnumgrid").pop(item)
-        self.temps.get("ynumgrid").pop(item)
+        self.temp.get("name").pop(item)
+        # self.temp.get("xnumgrid").pop(item)
+        # self.temp.get("ynumgrid").pop(item)
 
     def setTopTemplate(self,item=None):
 
@@ -191,9 +295,9 @@ class graph():
 
         if item is not None:
 
-            tempname = self.temps.get("names")[item]
-            xnumgrid = self.temps.get("xnumgrid")[item]
-            ynumgrid = self.temps.get("ynumgrid")[item]
+            tempname = self.temp.get("name")[item]
+            # xnumgrid = self.temp.get("xnumgrid")[item]
+            # ynumgrid = self.temp.get("ynumgrid")[item]
 
             self.topTempTemplateFrame.tempname.insert(0,tempname)
             self.topTempTemplateFrame.xnumgrid.insert(0,xnumgrid)
@@ -214,9 +318,9 @@ class graph():
             return
 
         if item is not None:
-            names = [name for index,name in enumerate(self.temps.get("names")) if index!=item]
+            names = [name for index,name in enumerate(self.temp.get("name")) if index!=item]
         else:
-            names = self.temps.get("names")
+            names = self.temp.get("name")
 
         name = self.topTempNotebookTemplateFrame0.tempname.get()
 
@@ -230,28 +334,28 @@ class graph():
         if item is None:
             item = len(self.temps.get("names"))
         else:
-            self.temps.listbox.delete(item)
-            self.temps.get("names").pop(item)
-            self.temps.get("xnumgrid").pop(item)
-            self.temps.get("ynumgrid").pop(item)
+            self.frame_temps.listbox.delete(item)
+            self.temp.get("name").pop(item)
+            # self.temp.get("xnumgrid").pop(item)
+            # self.temp.get("ynumgrid").pop(item)
         
-        self.temps.listbox.insert(item,name)
+        self.frame_temps.listbox.insert(item,name)
 
-        self.temps.get("names").insert(item,name)
+        self.temp.get("name").insert(item,name)
 
         try:
             xnumgrid = int(self.topTempNotebookTemplateFrame1.xnumgrid.get())
         except ValueError:
             xnumgrid = 1
 
-        self.temps.get("xnumgrid").insert(item,xnumgrid)
+        # self.temp.get("xnumgrid").insert(item,xnumgrid)
 
         try:
             ynumgrid = int(self.topTempNotebookTemplateFrame1.ynumgrid.get())
         except ValueError:
             ynumgrid = 1
 
-        self.temps.get("ynumgrid").insert(item,ynumgrid)
+        # self.temp.get("ynumgrid").insert(item,ynumgrid)
 
         self.topTemplate.destroy()
 

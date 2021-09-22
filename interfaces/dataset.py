@@ -26,15 +26,18 @@ class dataset():
 
     special_extensions = [".db",".xlsx",".las"]
 
-    templates = []
-
-    def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
+    def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,templates=None,**kwargs):
 
         # There can be two uses of dataset, case 1 or case 2:
         #   case 1: headers
         #   case 2: filepath,skiplines,headerline
-        #    - for reading plain date: comment,endline,endfile
-        #    - for reading scpecial extensions: **kwargs
+        #    - reading plain text: comment,endline,endfile
+        #    - reading scpecial extensions: **kwargs
+        # 
+        # There are two visualization options:
+        #   case 1: tabulating
+        #   case 2: plotting
+        #    - graph option: templates
 
         if headers is not None:
             self._headers = headers
@@ -68,6 +71,9 @@ class dataset():
 
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
+
+        if templates is not None:
+            self.templates = templates
 
     def read(self):
 
@@ -412,7 +418,10 @@ class dataset():
 
     def plot(self,window):
 
-        self.graph = graph(window,self.setPlotAxes,self.setPlotLines)
+        if hasattr(self,"templates"):
+            self.graph = graph(window,templates=self.templates,setLineFunc=self.setLineFunc)
+        else:
+            self.graph = graph(window,setLineFunc=self.setLineFunc)
 
         self.graph.items.content = self.names.tolist()
 
@@ -421,16 +430,7 @@ class dataset():
         for name in self.templates:
             self.graph.temps.listbox.insert(tk.END,name)
 
-    def setPlotAxes(self,event=None):
-
-        if not self.graph.temps.listbox.curselection(): return
-
-        if hasattr(self,"axes"):
-            [self.graph.figure.delaxes(axis) for axis in self.graph.axes]
-
-        self.graph.axes = []
-
-    def setPlotLines(self,event=None):
+    def setLineFunc(self,event=None):
 
         if not self.graph.items.listbox.curselection(): return
 
