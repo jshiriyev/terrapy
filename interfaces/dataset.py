@@ -33,14 +33,16 @@ temp0 = {
     "twinx": [False],
     "xlabel": ["x-axis"],
     "ylabel": ["y-axis"],
+    "legends": [True],
     "xticks": [None],
     "yticks": [None],
     "grid": [True],
     #
     "xaxes": [[1,1,1]],
     "yaxes": [[2,3,4]],
+    "drawstyles": [["default"]*3],
+    "linestyles": [["-","--","-"]],
     "colors": [["k","b","r"]],
-    "legends": [True],
 }
 
 temp1 = {
@@ -50,14 +52,16 @@ temp1 = {
     "title": ["Left","Right"],
     "xlabel": ["x-axis","x-axis"],
     "ylabel": ["y-axis","y-axis"],
+    "legends": [True,True],
     "xticks": [None,None],
     "yticks": [None,None],
     "grid": [True,True],
     #
     "xaxes": [[1],[1,1]],
     "yaxes": [[2],[3,4]],
+    "drawstyles": [["default"],["default"]*2],
+    "linestyles": [["-"],[None,None]],
     "colors": [["k"],["b","r"]],
-    "legends": [True,True],
 }
 
 temp2 = {
@@ -67,14 +71,16 @@ temp2 = {
     "title": ["Top","Bottom"],
     "xlabel": ["x-axis","x-axis"],
     "ylabel": ["y-axis","y-axis"],
+    "legends": [True,True],
     "xticks": [None,None],
     "yticks": [None,None],
     "grid": [True,True],
     #
     "xaxes": [[1],[1,1]],
     "yaxes": [[2],[3,4]],
+    "drawstyles": [["steps-post"],["default"]*2],
+    "linestyles": [["-"],[None,None]],
     "colors": [["k"],["b","r"]],
-    "legends": [True,True],
 }
 
 temp3 = {
@@ -83,15 +89,17 @@ temp3 = {
     "twinx": [False,False,False,False],
     "title": ["NW","NE","SW","SE"],
     "xlabel": ["x-axis","x-axis","x-axis","x-axis"],
-    "ylabel": ["y-axis","y-axis-2","y-axis","y-axis-2","y-axis","y-axis-2","y-axis"],
+    "ylabel": ["y-axis","y-axis","y-axis","y-axis"],
+    "legends": [True,True,True,False],
     "xticks": [None,None,None,None],
-    "yticks": [None,None,None,None,None,None,None],
+    "yticks": [None,None,None,None],
     "grid": [True,True,True,True],
     #
     "xaxes": [[1],[1],[1],[]],
     "yaxes": [[2],[3],[4],[]],
+    "drawstyles": [["default"]]*4,
+    "linestyles": [["-"],["-"],["-"],[]],
     "colors": [["k"],["b"],["r"],[]],
-    "legends": [True,True,True,False],
 }
 
 func_integer = lambda x: True if x.isdigit() or x == "" else False
@@ -547,7 +555,7 @@ class dataset():
         self.tempbox.columnconfigure(1,weight=0)
         self.tempbox.columnconfigure(2,weight=0)
 
-        self.tempbox.label = ttk.Label(self.tempbox,text="Templates")
+        self.tempbox.label = ttk.Label(self.tempbox,text="Graph Templates")
         self.tempbox.label.grid(row=0,column=0,sticky=tk.EW)
 
         self.tempbox.iconadd = tk.PhotoImage(file=os.path.join(self.dirname,"graphics","Add","Add-9.png"))
@@ -665,9 +673,17 @@ class dataset():
         for index,axis in enumerate(self.axes):
             xaxes = self.curtemp.get("xaxes")[index]
             yaxes = self.curtemp.get("yaxes")[index]
+            drawstyles = self.curtemp.get("drawstyles")[index]
+            linestyles = self.curtemp.get("linestyles")[index]
             colors = self.curtemp.get("colors")[index]
-            for xaxis,yaxis,color in zip(xaxes,yaxes,colors):
-                line = axis.plot(self.running[xaxis],self.running[yaxis],c=color,label=self.headers[yaxis])[0]
+            for xaxis,yaxis,dstyle,lstyle,color in zip(xaxes,yaxes,drawstyles,linestyles,colors):
+                line = axis.plot(
+                    self.running[xaxis],
+                    self.running[yaxis],
+                    drawstyle=dstyle,
+                    linestyle=lstyle,
+                    c=color,
+                    label=self.headers[yaxis])[0]
                 self.lines.append(line)
             if self.curtemp.get("legends")[index]:
                 axis.legend()
@@ -686,12 +702,8 @@ class dataset():
     def edit_temp(self):
 
         if not self.tempbox.listbox.curselection(): return
-        
-        name = self.tempbox.listbox.get(self.tempbox.listbox.curselection())
 
-        item = self.tempbox.get("names").index(name)
-
-        self.set_temptop(item=item)
+        self.set_temptop(tempid=self.tempbox.listbox.curselection()[0])
 
     def del_temp(self):
 
@@ -707,7 +719,7 @@ class dataset():
         # self.curtemp.get("xnumgrid").pop(item)
         # self.curtemp.get("ynumgrid").pop(item)
 
-    def set_temptop(self,item=None):
+    def set_temptop(self,tempid=None):
 
         if hasattr(self,"temptop"):
             if self.temptop.winfo_exists(): return
@@ -722,82 +734,107 @@ class dataset():
 
         self.style.configure("TNotebook.Tab",width=20,anchor=tk.CENTER)
 
-        self.topTemp = ttk.Notebook(self.temptop)
+        self.tempedit = ttk.Notebook(self.temptop)
 
-        self.topTempAxis = tk.Frame(self.topTemp)
+        self.tempeditAxis = tk.Frame(self.tempedit)
 
-        self.topTempAxisFrame0 = tk.Frame(self.topTempAxis,borderwidth=2,relief=tk.GROOVE)
+        self.tempeditAxis0 = tk.Frame(self.tempeditAxis,borderwidth=2,relief=tk.GROOVE)
 
-        self.topTempAxisFrame0.tempnameLabel = ttk.Label(self.topTempAxisFrame0,text="Template Name")
-        self.topTempAxisFrame0.tempnameLabel.grid(row=0,column=0,padx=(10,10),pady=(20,2))
+        self.tempeditAxis0.tempnameLabel = ttk.Label(self.tempeditAxis0,text="Template Name")
+        self.tempeditAxis0.tempnameLabel.grid(row=0,column=0,padx=(10,10),pady=(20,2))
 
-        self.topTempAxisFrame0.tempname = ttk.Entry(self.topTempAxisFrame0,width=30)
-        self.topTempAxisFrame0.tempname.grid(row=0,column=1,padx=(10,20),pady=(20,2),sticky=tk.EW)
+        self.tempeditAxis0.tempname = ttk.Entry(self.tempeditAxis0,width=30)
+        self.tempeditAxis0.tempname.grid(row=0,column=1,padx=(10,20),pady=(20,2),sticky=tk.EW)
 
-        self.topTempAxisFrame0.tempname.focus()
+        self.tempeditAxis0.tempname.focus()
 
-        self.topTempAxisFrame0.legendLabel = ttk.Label(self.topTempAxisFrame0,text="Legend Position")
-        self.topTempAxisFrame0.legendLabel.grid(row=1,column=0,padx=(10,10),pady=(2,2))
+        self.tempeditAxis0.legendLabel = ttk.Label(self.tempeditAxis0,text="Legend Position")
+        self.tempeditAxis0.legendLabel.grid(row=1,column=0,padx=(10,10),pady=(2,2))
 
-        self.topTempAxisFrame0.legend = ttk.Entry(self.topTempAxisFrame0,width=30)
-        self.topTempAxisFrame0.legend.grid(row=1,column=1,padx=(10,20),pady=(2,2),sticky=tk.EW)
+        self.tempeditAxis0.legend = ttk.Entry(self.tempeditAxis0,width=30)
+        self.tempeditAxis0.legend.grid(row=1,column=1,padx=(10,20),pady=(2,2),sticky=tk.EW)
 
-        self.topTempAxisFrame0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
+        self.tempeditAxis0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
 
-        self.topTempAxisFrame1 = tk.Frame(self.topTempAxis)
+        self.tempeditAxis1 = tk.Frame(self.tempeditAxis)
 
-        self.topTempAxisFrame1.xgridlabel = ttk.Label(self.topTempAxisFrame1,text="Grids in Y")
-        self.topTempAxisFrame1.xgridlabel.grid(row=0,column=0,sticky=tk.EW,padx=(10,10),pady=(20,2))
+        self.tempeditAxis1.xgridlabel = ttk.Label(self.tempeditAxis1,text="Grids in Y")
+        self.tempeditAxis1.xgridlabel.grid(row=0,column=0,sticky=tk.EW,padx=(10,10),pady=(20,2))
 
-        self.topTempAxisFrame1.xnumgrid = ttk.Entry(self.topTempAxisFrame1,width=10,validate="key",validatecommand=self.validate_integer)
-        self.topTempAxisFrame1.xnumgrid.grid(row=0,column=1,sticky=tk.EW,padx=(10,2),pady=(20,2))
+        self.tempeditAxis1.xnumgrid = ttk.Entry(self.tempeditAxis1,width=10,validate="key",validatecommand=self.validate_integer)
+        self.tempeditAxis1.xnumgrid.grid(row=0,column=1,sticky=tk.EW,padx=(10,2),pady=(20,2))
 
-        self.topTempAxisFrame1.ygridlabel = ttk.Label(self.topTempAxisFrame1,text="Grids in X")
-        self.topTempAxisFrame1.ygridlabel.grid(row=1,column=0,sticky=tk.EW,padx=(10,10),pady=(2,2))
+        self.tempeditAxis1.ygridlabel = ttk.Label(self.tempeditAxis1,text="Grids in X")
+        self.tempeditAxis1.ygridlabel.grid(row=1,column=0,sticky=tk.EW,padx=(10,10),pady=(2,2))
 
-        self.topTempAxisFrame1.ynumgrid = ttk.Entry(self.topTempAxisFrame1,width=10,validate="key",validatecommand=self.validate_integer)
-        self.topTempAxisFrame1.ynumgrid.grid(row=1,column=1,sticky=tk.EW,padx=(10,2),pady=(2,2))
+        self.tempeditAxis1.ynumgrid = ttk.Entry(self.tempeditAxis1,width=10,validate="key",validatecommand=self.validate_integer)
+        self.tempeditAxis1.ynumgrid.grid(row=1,column=1,sticky=tk.EW,padx=(10,2),pady=(2,2))
 
-        self.topTempAxisFrame1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        self.tempeditAxis1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
         
-        self.topTemp.add(self.topTempAxis,text="Template Options",compound=tk.CENTER)
+        self.tempedit.add(self.tempeditAxis,text="Template Options",compound=tk.CENTER)
 
-        self.topTempLine = tk.Frame(self.topTemp)
+        self.tempeditLines = tk.Frame(self.tempedit)
 
-        self.topTemp.add(self.topTempLine,text="Line Options",compound=tk.CENTER)
 
-        self.topTemp.pack(side=tk.TOP,expand=1,fill=tk.BOTH,padx=(0,1))
 
-        if item is not None:
 
-            tempname = self.curtemp.get("name")[item]
-            # xnumgrid = self.curtemp.get("xnumgrid")[item]
-            # ynumgrid = self.curtemp.get("ynumgrid")[item]
+        self.tempeditLines0 = tk.Frame(self.tempeditLines,borderwidth=2,relief=tk.GROOVE)
 
-            self.topTempAxisFrame.tempname.insert(0,tempname)
-            self.topTempAxisFrame.xnumgrid.insert(0,xnumgrid)
-            self.topTempAxisFrame.ynumgrid.insert(0,ynumgrid)
+        self.tempeditLines0.listbox = tk.Listbox(self.tempeditLines0)
 
-        buttonname = "Add Template" if item is None else "Edit Template"
+        for header in self.headers:
+            self.tempeditLines0.listbox.insert(tk.END,header)
 
-        self.temptop.button = ttk.Button(self.temptop,text=buttonname,width=20,command=lambda: self.topTempButtonApply(item))
+        self.tempeditLines0.listbox.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+        self.tempeditLines0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
+
+
+
+
+
+        self.tempeditLines1 = tk.Frame(self.tempeditLines)
+
+        self.tempeditLines1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+
+
+        self.tempedit.add(self.tempeditLines,text="Line Options",compound=tk.CENTER)
+
+        self.tempedit.pack(side=tk.TOP,expand=1,fill=tk.BOTH,padx=(0,1))
+
+        if tempid is not None:
+
+            curtemp = self.templates[tempid]
+
+            tempname = curtemp.get("name")
+            axisx,axisy = curtemp.get("subplots")
+
+            self.tempeditAxis0.tempname.insert(0,tempname)
+            self.tempeditAxis1.xnumgrid.insert(0,axisx)
+            self.tempeditAxis1.ynumgrid.insert(0,axisy)
+
+        buttonname = "Add Template" if tempid is None else "Edit Template"
+
+        self.temptop.button = ttk.Button(self.temptop,text=buttonname,width=20,command=lambda: self.tempeditButtonApply(tempid))
         self.temptop.button.pack(side=tk.TOP,anchor=tk.E,padx=(0,1),pady=(1,1))
 
-        self.temptop.button.bind('<Return>',lambda event: self.topTempButtonApply(item,event))
+        self.temptop.button.bind('<Return>',lambda event: self.tempeditButtonApply(tempid,event))
 
         self.temptop.mainloop()
 
-    def topTempButtonApply(self,item=None,event=None):
+    def tempeditButtonApply(self,tempid=None,event=None):
 
         if event is not None and event.widget!=self.temptop.button:
             return
 
-        if item is not None:
-            names = [name for index,name in enumerate(self.curtemp.get("name")) if index!=item]
+        if tempid is not None:
+            names = [name for index,name in enumerate(self.curtemp.get("name")) if index!=tempid]
         else:
             names = self.curtemp.get("name")
 
-        name = self.topTempAxisFrame0.tempname.get()
+        name = self.tempeditAxis0.tempname.get()
 
         if name in names:
             tk.messagebox.showerror("Error","You have a template with the same name!",parent=self.temptop)
@@ -806,31 +843,31 @@ class dataset():
             tk.messagebox.showerror("Error","You have not named the template!",parent=self.temptop)
             return
 
-        if item is None:
-            item = len(self.temps.get("names"))
+        if tempid is None:
+            tempid = len(self.temps.get("names"))
         else:
-            self.tempbox.listbox.delete(item)
-            self.curtemp.get("name").pop(item)
-            # self.curtemp.get("xnumgrid").pop(item)
-            # self.curtemp.get("ynumgrid").pop(item)
+            self.tempbox.listbox.delete(tempid)
+            self.curtemp.get("name").pop(tempid)
+            # self.curtemp.get("xnumgrid").pop(tempid)
+            # self.curtemp.get("ynumgrid").pop(tempid)
         
-        self.tempbox.listbox.insert(item,name)
+        self.tempbox.listbox.insert(tempid,name)
 
-        self.curtemp.get("name").insert(item,name)
+        self.curtemp.get("name").insert(tempid,name)
 
         try:
-            xnumgrid = int(self.topTempAxisFrame1.xnumgrid.get())
+            xnumgrid = int(self.tempeditAxis1.xnumgrid.get())
         except ValueError:
             xnumgrid = 1
 
-        # self.curtemp.get("xnumgrid").insert(item,xnumgrid)
+        # self.curtemp.get("xnumgrid").insert(tempid,xnumgrid)
 
         try:
-            ynumgrid = int(self.topTempAxisFrame1.ynumgrid.get())
+            ynumgrid = int(self.tempeditAxis1.ynumgrid.get())
         except ValueError:
             ynumgrid = 1
 
-        # self.curtemp.get("ynumgrid").insert(item,ynumgrid)
+        # self.curtemp.get("ynumgrid").insert(tempid,ynumgrid)
 
         self.temptop.destroy()
 
@@ -944,73 +981,47 @@ def writevtk(frac,time,solution):
 
 def cyrilictolatin(string):
 
-    """best it can be done with regular expressions"""
-    
-    string = string.replace("а","a")
-    string = string.replace("б","b")
-    string = string.replace("ж","c")
-    string = string.replace("ч","ç")
-    string = string.replace("д","d")
-    string = string.replace("е","e")
-    string = string.replace("я","ə")
-    string = string.replace("ф","f")
-    string = string.replace("э","g")
-    string = string.replace("ь","ğ")
-    string = string.replace("щ","h")
-    string = string.replace("х","x")
-    string = string.replace("ы","ı")
-    string = string.replace("и","i")
-    string = string.replace("ъ","j")
-    string = string.replace("к","k")
-    string = string.replace("г","q")
-    string = string.replace("л","l")
-    string = string.replace("м","m")
-    string = string.replace("н","n")
-    string = string.replace("о","o")
-    string = string.replace("ю","ö")
-    string = string.replace("п","p")
-    string = string.replace("р","r")
-    string = string.replace("с","s")
-    string = string.replace("ш","ş")
-    string = string.replace("т","t")
-    string = string.replace("у","u")
-    string = string.replace("ц","ü")
-    string = string.replace("в","v")
-    string = string.replace("й","y")
-    string = string.replace("з","z")
+    aze_cyril_lower = [
+        "а","б","ж","ч","д",
+        "е","я","ф","э","ь",
+        "щ","х","ы","и","ъ",
+        "к","г","л","м","н",
+        "о","ю","п","р","с",
+        "ш","т","у","ц","в",
+        "й","з"]
 
-    string = string.replace("А","A")
-    string = string.replace("Б","B")
-    string = string.replace("Ҹ","C")
-    string = string.replace("Ч","Ç")
-    string = string.replace("Д","D")
-    string = string.replace("Е","E")
-    string = string.replace("Я","Ə")
-    string = string.replace("Ф","F")
-    string = string.replace("Ҝ","G")
-    string = string.replace("Ғ","Ğ")
-    string = string.replace("Щ","H")
-    string = string.replace("Х","X")
-    string = string.replace("Ы","I")
-    string = string.replace("И","İ")
-    ##string = string.replace("я","J")
-    string = string.replace("К","K")
-    string = string.replace("Г","Q")
-    ##string = string.replace("я","L")
-    ##string = string.replace("я","M")
-    string = string.replace("Н","N")
-    ##string = string.replace("я","O")
-    ##string = string.replace("я","Ö")
-    string = string.replace("П","P")
-    string = string.replace("Р","R")
-    string = string.replace("С","S")
-    string = string.replace("Ш","Ş")
-    ##string = string.replace("я","T")
-    ##string = string.replace("я","U")
-    ##string = string.replace("я","Ü")
-    string = string.replace("В","V")
-    string = string.replace("Й","Y")
-    string = string.replace("З","Z")
+    aze_latin_lower = [
+        "a","b","c","ç","d",
+        "e","ə","f","g","ğ",
+        "h","x","ı","i","j",
+        "k","q","l","m","n",
+        "o","ö","p","r","s",
+        "ş","t","u","ü","v",
+        "y","z"]
+
+    aze_cyril_upper = [
+        "А","Б","Ҹ","Ч","Д",
+        "Е","Я","Ф","Ҝ","Ғ",
+        "Щ","Х","Ы","И","Ъ",
+        "К","Г","Л","М","Н",
+        "О","Ю","П","Р","С",
+        "Ш","Т","У","Ц","В",
+        "Й","З"]
+
+    aze_latin_upper = [
+        "A","B","C","Ç","D",
+        "E","Ə","F","G","Ğ",
+        "H","X","I","İ","J",
+        "K","Q","L","M","N",
+        "O","Ö","P","R","S",
+        "Ş","T","U","Ü","V",
+        "Y","Z"]
+
+    for cyril,latin in zip(aze_cyril_lower,aze_latin_lower):
+        string.replace(cyril,latin)
+
+    for cyril,latin in zip(aze_cyril_upper,aze_latin_upper):
+        string.replace(cyril,latin)
 
     return string
 

@@ -270,67 +270,50 @@ class Fractures():
 
         pass
 
-# TEMPLATES
-#
-#
-# TEMP 0
-# self.graph.axes.append(self.graph.figure.add_subplot(221))
-# self.graph.axes.append(self.graph.axes[0].twinx())
-# self.graph.axes.append(self.graph.figure.add_subplot(222))
-# self.graph.axes.append(self.graph.axes[2].twinx())
-# self.graph.axes.append(self.graph.figure.add_subplot(223))
-# self.graph.axes.append(self.graph.axes[4].twinx())
-# self.graph.axes.append(self.graph.figure.add_subplot(224))
+welltemp0 = {
+    "name": "Production-Completion Cross Plot",
+    "subplots": [1,2],
+    "twinx": [True,True],
+    "title": ["BEFORE CORRECTIONS","AFTER CORRECTIONS"],
+    "xlabel": ["Dates","Dates"],
+    "ylabel": ["Total Production or Injection [m3/day]",None,None,
+               "Open Perforation Intervals"],
+    "legends": [True,True],
+    "xticks": [None,None],
+    "yticks": [None,[],[],None],
+    "grid": [False,False],
+    #
+    "xaxes": [[1,1],[1],[1,1],[1]],
+    "yaxes": [[3,3],[3],[4,4],[4]],
+    "drawstyles": [[None,"steps-post"],["steps-post"],[None,"steps-post"],["steps-post"]],
+    "linestyles": [["-",""],[],[],[]],
+    "colors": [[None,"b"],["r"],[None,"b"],["r"]],
+}
 
-# self.graph.axes[0].set_xlabel("Date")
-# self.graph.axes[2].set_xlabel("Date")
-# self.graph.axes[4].set_xlabel("Date")
-# self.graph.axes[6].set_xlabel("Date")
-
-# self.graph.axes[0].set_ylabel("Liquid Rate, sm3/day")
-# self.graph.axes[2].set_ylabel("Gas Rate, th. sm3/day")
-# self.graph.axes[4].set_ylabel("Liquid Rate, sm3/day")
-# self.graph.axes[6].set_ylabel("Pressure, Bars")
-
-# self.graph.axes[1].set_ylabel("Liquid Volume, th. sm3")
-# self.graph.axes[3].set_ylabel("Surface Gas Volume, mln. sm3")
-# self.graph.axes[5].set_ylabel("Liquid Volume, th. sm3")
-
-# self.graph.axes[0].grid()
-# self.graph.axes[2].grid()
-# self.graph.axes[4].grid()
-# self.graph.axes[6].grid()
-
-# status = "Production history match template has been selected."
-
-
-# TEMP 1 
-#
-# self.graph.axes.append(self.graph.figure.add_subplot(1,2,1))
-# self.graph.axes.append(self.graph.axes[0].twinx())
-# self.graph.axes.append(self.graph.figure.add_subplot(1,2,2))
-# self.graph.axes.append(self.graph.axes[2].twinx())
-
-# self.graph.axes[0].set_xlabel("Date")
-# self.graph.axes[2].set_xlabel("Date")
-
-# self.graph.axes[0].set_ylabel('Total Production or Injection [m3/day]')
-# self.graph.axes[1].set_yticks([])
-# self.graph.axes[2].set_yticks([])
-# self.graph.axes[3].set_ylabel('Open Perforation Intervals')
-
-# self.graph.axes[0].set_title("BEFORE CORRECTIONS")
-# self.graph.axes[2].set_title("AFTER CORRECTIONS")
-
-# for tick in self.graph.axes[0].get_xticklabels():
-#     tick.set_rotation(45)
-
-# for tick in self.graph.axes[2].get_xticklabels():
-#     tick.set_rotation(45)
-
-# status = "Production and Completion template has been selected."
-
-templates = ["Production History Match","Production-Completion Cross Plot"]
+welltemp1 = {
+    "name": "Production History Match",
+    "subplots": [2,2],
+    "twinx": [True,True,True,False],
+    "title": ["NW","NE","SW","SE"],
+    "xlabel": ["Dates","Dates","Dates","Dates"],
+    "ylabel": ["Liquid Rate, sm3/day",
+               "Liquid Volume, th. sm3",
+               "Gas Rate, th. sm3/day",
+               "Surface Gas Volume, mln. sm3",
+               "Liquid Rate, sm3/day",
+               "Liquid Volume, th. sm3",
+               "Pressure, Bars"],
+    "legends": [True,True,True,False],
+    "xticks": [None,None,None,None],
+    "yticks": [None,None,None,None,None,None,None],
+    "grid": [True,True,True,True],
+    #
+    "xaxes": [[1],[1],[1],[1],[1],[1],[]],
+    "yaxes": [[3],[10],[4],[11],[5],[12],[]],
+    "drawstyles": [["default"]]*7, 
+    "linestyles": [["-"],["--"],["-"],["--"],["-"],["--"],[]],
+    "colors": [["g"],["g"],["b"],["b"],["r"],["r"],[]],
+}
 
 class Wells(dataset):
 
@@ -354,10 +337,14 @@ class Wells(dataset):
     detail_wefac       = " '{}'\t{} / "#.format(wellname,efficiency)
     detail_wopen       = " '{}'\tSHUT\t3* / "#.format(wellname)
 
-    def __init__(self,fprod=None,dir_comp=None,dir_traj=None,namestring=None):
+    # GRAPH TEMPLATES
+
+    templates = (welltemp0,welltemp1)
+
+    def __init__(self,fprod,dir_comp=None,dir_traj=None,namestring=None,**kwargs):
 
         # MAIN SCHEDULE DATA
-        super().__init__(headers=self.headers_main)
+        super().__init__(headers=self.headers_main,**kwargs)
 
         # INPUT, production and completion data
 
@@ -402,6 +389,10 @@ class Wells(dataset):
         self.prods.set_column(total_injected,header_new="TINJ")  # index = 8
 
         self.prods.set_column(total,header_new="TOTAL")          # index = 9
+
+        self.prods.set_column(np.cumsum(self.prods.running[3]),header_new="TOIL")       # index = 10
+        self.prods.set_column(np.cumsum(self.prods.running[4]),header_new="TWATER")     # index = 11
+        self.prods.set_column(np.cumsum(self.prods.running[5]),header_new="TGAS")       # index = 12
 
         # self.compwellnames = np.unique(self.comps.running[0])
 
@@ -894,79 +885,6 @@ class Wells(dataset):
             well.compupdatecounts[index] = compopenintervals.shape[0]
 
         return well
-
-    def setLinesFunc(self,event=None):
-
-        super().setPlotLines()
-
-        tempname = self.curtemps.get(self.graph.temps.listbox.curselection())
-
-        if tempname == self.templates[0]:
-
-            try: self.graph.lines.append(self.graph.axes[0].plot(data.date,data.Oil_Rate,c='k')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[0].plot(data.date,data.Oil_Rate_H,'--',c='g')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[1].plot(data.date,data.Oil_Total/1000,c='k')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[1].plot(data.date,data.Oil_Total_H/1000,'--',c='g')[0])
-            except: pass
-            
-            try: self.graph.lines.append(self.graph.axes[2].plot(data.date,data.Gas_Rate/1000,c='k')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[2].plot(data.date,data.Gas_Rate_H/1000,'--',c='r')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[3].plot(data.date,data.Gas_Total/1000000,c='k')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[3].plot(data.date,data.Gas_Total_H/1000000,'--',c='r')[0])
-            except: pass
-            
-            try: self.graph.lines.append(self.graph.axes[4].plot(data.date,data.Water_Rate,c='k')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[4].plot(data.date,data.Water_Rate_H,'--',c='b')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[5].plot(data.date,data.Water_Total/1000,c='k')[0])
-            except: pass
-            try: self.graph.lines.append(self.graph.axes[5].plot(data.date,data.Water_Total_H/1000,'--',c='b')[0])
-            except: pass
-            
-            try: self.graph.lines.append(self.graph.axes[6].plot(data.date,data.Bottom_Hole_Pressure,c='k')[0])
-            except: self.graph.lines.append(self.graph.axes[6].plot(data.date,data.Avg_Pressure,c='k')[0])
-            try: self.graph.lines.append(self.graph.axes[6].plot(data.date,data.Bottom_Hole_Pressure_H,'--',c='m')[0])
-            except: pass
-
-        elif tempname == self.templates[1]:
-
-            self.get_completion(self.graph.items.listbox.get(self.graph.items.listbox.curselection()))
-
-            self.graph.lines.append(self.graph.axes[0].scatter(self.prods.running[1],self.prods.running[9])[0])
-
-            self.graph.lines.append(self.graph.axes[0].step(self.prods.running[1],self.prods.running[9],'b',where='post')[0])
-            
-            self.graph.lines.append(self.graph.axes[1].step(self.comps.updatedates,self.comps.compupdatecounts,'r--',where='post')[0])
-
-            # try: self.lines.append(self.axes[0].set_ylim(ymin=0,ymax=max(well.total)*1.1)[0])
-            # except: pass
-            # try: self.lines.append(self.axes[1].set_ylim(ymin=0,ymax=max(well.compupdatecounts)+0.5)[0])
-            # except: pass
-
-            # well = self.lines.append(self.wellcrosscheck(well,flagReturn=True,flagShow=True)[0])
-
-            # try: self.lines.append(self.axes[2].scatter(well.opdates,well.total)[0])
-            # except: pass
-
-            # try: self.lines.append(self.axes[2].step(well.opdates,well.total,'b',where='post')[0])
-            # except: pass
-            # try: self.lines.append(self.axes[3].step(well.compupdatedates,well.compupdatecounts,'r--',where='post')[0])
-            # except: pass
-
-            # try: self.lines.append(self.axes[2].set_ylim(ymin=0,ymax=max(well.total)*1.1)[0])
-            # except: pass
-            # try: self.lines.append(self.axes[3].set_ylim(ymin=0,ymax=max(well.compupdatecounts)+0.5)[0])
-            # except: pass
-
-            # try: self.lines.append(self.axes[3].set_yticks(range(0,max(well.compupdatecounts)+1))[0])
-            # except: pass
 
     def write(self,filepath):
 
