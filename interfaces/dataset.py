@@ -29,13 +29,18 @@ if __name__ == "__main__":
 temp0 = {
     "name": "Standard",
     "subplots": [1,1],
-    "twinx": [False],
     "title": [""],
+    "twinx": [False],
     "xlabel": ["x-axis"],
-    "ylabel": [["y-axis"]],
+    "ylabel": ["y-axis"],
     "xticks": [None],
     "yticks": [None],
-    "grid": [True]
+    "grid": [True],
+    #
+    "xaxes": [[1,1,1]],
+    "yaxes": [[2,3,4]],
+    "colors": [["k","b","r"]],
+    "legends": [True],
 }
 
 temp1 = {
@@ -44,10 +49,15 @@ temp1 = {
     "twinx": [False,False],
     "title": ["Left","Right"],
     "xlabel": ["x-axis","x-axis"],
-    "ylabel": [["y-axis"],["y-axis"]],
+    "ylabel": ["y-axis","y-axis"],
     "xticks": [None,None],
     "yticks": [None,None],
-    "grid": [True,True]
+    "grid": [True,True],
+    #
+    "xaxes": [[1],[1,1]],
+    "yaxes": [[2],[3,4]],
+    "colors": [["k"],["b","r"]],
+    "legends": [True,True],
 }
 
 temp2 = {
@@ -56,22 +66,32 @@ temp2 = {
     "twinx": [False,False],
     "title": ["Top","Bottom"],
     "xlabel": ["x-axis","x-axis"],
-    "ylabel": [["y-axis"],["y-axis"]],
+    "ylabel": ["y-axis","y-axis"],
     "xticks": [None,None],
     "yticks": [None,None],
-    "grid": [True,True]
+    "grid": [True,True],
+    #
+    "xaxes": [[1],[1,1]],
+    "yaxes": [[2],[3,4]],
+    "colors": [["k"],["b","r"]],
+    "legends": [True,True],
 }
 
 temp3 = {
     "name": "Standard-quadruple",
     "subplots": [2,2],
-    "twinx": [True,True,True,False],
+    "twinx": [False,False,False,False],
     "title": ["NW","NE","SW","SE"],
     "xlabel": ["x-axis","x-axis","x-axis","x-axis"],
-    "ylabel": [["y-axis","y-axis-2"],["y-axis","y-axis-2"],["y-axis","y-axis-2"],["y-axis"]],
+    "ylabel": ["y-axis","y-axis-2","y-axis","y-axis-2","y-axis","y-axis-2","y-axis"],
     "xticks": [None,None,None,None],
-    "yticks": [None,None,None,None],
-    "grid": [True,True,True,True]
+    "yticks": [None,None,None,None,None,None,None],
+    "grid": [True,True,True,True],
+    #
+    "xaxes": [[1],[1],[1],[]],
+    "yaxes": [[2],[3],[4],[]],
+    "colors": [["k"],["b"],["r"],[]],
+    "legends": [True,True,True,False],
 }
 
 func_integer = lambda x: True if x.isdigit() or x == "" else False
@@ -82,18 +102,22 @@ class dataset():
 
     templates = (temp0,temp1,temp2,temp3)
 
-    def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
+    def __init__(self,window=None,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
-        # There can be two uses of dataset, case 1 or case 2:
+        # There are two visualization options:
+        #   case 1: tabulating
+        #   case 2: plotting allowing also templates
+
+        # There are two uses of dataset, case 1 or case 2:
         #   case 1: headers
         #   case 2: filepath,skiplines,headerline
         #    - reading plain text: comment,endline,endfile
         #    - reading scpecial extensions: **kwargs
-        # 
-        # There are two visualization options:
-        #   case 1: tabulating
-        #   case 2: plotting
-        #    - graph option: templates
+
+        if window is not None:
+            self.root = window
+
+        self.dirname = os.path.dirname(__file__)
 
         if headers is not None:
             self._headers = headers
@@ -469,9 +493,7 @@ class dataset():
         else:
             self.running = [np.asarray(column[match_index]) for column in self._running]
 
-    def plot(self,window):
-
-        self.root = window
+    def set_gui(self):
 
         self.validate_integer = (self.root.register(func_integer),'%P')
 
@@ -498,9 +520,9 @@ class dataset():
         self.figure = plt.Figure()
         self.canvas = FigureCanvasTkAgg(self.figure,self.frame_body)
 
-        self.plot = self.canvas.get_tk_widget()
+        self.plotbox = self.canvas.get_tk_widget()
 
-        self.pane_EW.add(self.plot,weight=1)
+        self.pane_EW.add(self.plotbox,weight=1)
 
         self.pane_EW.pack(expand=1,fill=tk.BOTH)
 
@@ -512,7 +534,7 @@ class dataset():
         self.itembox.content = self.names.tolist()
         self.itembox.config(completevalues=self.itembox.content,allow_other_values=True)
 
-        self.itembox.listbox.bind('<<ListboxSelect>>',lambda event: setLineFunc(event))
+        self.itembox.listbox.bind('<<ListboxSelect>>',lambda event: self.set_lines(event))
 
         self.pane_ns.add(self.itembox,weight=1)
 
@@ -528,9 +550,9 @@ class dataset():
         self.tempbox.label = ttk.Label(self.tempbox,text="Templates")
         self.tempbox.label.grid(row=0,column=0,sticky=tk.EW)
 
-        self.tempbox.iconadd = tk.PhotoImage(file=self.dirname+"\\graphics\\Add\\Add-9.png")
-        self.tempbox.iconedit = tk.PhotoImage(file=self.dirname+"\\graphics\\Edit\\Edit-9.png")
-        self.tempbox.icondel = tk.PhotoImage(file=self.dirname+"\\graphics\\Delete\\Delete-9.png")
+        self.tempbox.iconadd = tk.PhotoImage(file=os.path.join(self.dirname,"graphics","Add","Add-9.png"))
+        self.tempbox.iconedit = tk.PhotoImage(file=os.path.join(self.dirname,"graphics","Edit","Edit-9.png"))
+        self.tempbox.icondel = tk.PhotoImage(file=os.path.join(self.dirname,"graphics","Delete","Delete-9.png"))
 
         self.tempbox.buttonadd = ttk.Button(self.tempbox,image=self.tempbox.iconadd,command=self.add_temp)
         self.tempbox.buttonadd.grid(row=0,column=1)
@@ -547,7 +569,7 @@ class dataset():
         for template in self.templates:
             self.tempbox.listbox.insert(tk.END,template.get("name"))
 
-        self.temp = {}
+        self.curtemp = {}
 
         self.tempbox.listbox.bind('<<ListboxSelect>>',lambda event: self.set_axes(event))
 
@@ -560,41 +582,60 @@ class dataset():
         if not self.tempbox.listbox.curselection():
             return
 
-        if len(self.temp)!=0:
-            if self.temp == self.templates[self.tempbox.listbox.curselection()[0]]:
-                return
-
-        self.temp = self.templates[self.tempbox.listbox.curselection()[0]]
-
-        xnum,ynum = self.temp.get("subplots")
+        if self.curtemp == self.templates[self.tempbox.listbox.curselection()[0]]:
+            return
         
+        self.curtemp = self.templates[self.tempbox.listbox.curselection()[0]]
+
+        axisx = self.curtemp.get("subplots")[0]
+        axisy = self.curtemp.get("subplots")[1]
+
+        twinx = self.curtemp.get("twinx")
+
+        self.curtemp["flagMainAxes"] = []
+
+        for flagTwinAxis in twinx:
+            self.curtemp["flagMainAxes"].append(True)
+            if flagTwinAxis: self.curtemp["flagMainAxes"].append(False)
+
         if hasattr(self,"axes"):
             [self.figure.delaxes(axis) for axis in self.axes]
 
         self.axes = []
 
-        for index in range(xnum*ynum):
-            axis0 = self.figure.add_subplot(xnum,ynum,index+1)
-            if self.temp.get("twinx")[index]:
-                axis1 = axis0.twinx()
-            axis0.set_title(self.temp.get("title")[index])
-            axis0.set_xlabel(self.temp.get("xlabel")[index])
-            axis0.set_ylabel(self.temp.get("ylabel")[index][0])
-            if self.temp.get("twinx")[index]:
-                axis1.set_ylabel(self.temp.get("ylabel")[index][1])
-            if self.temp.get("xticks")[index] is not None:
-                axis0.set_xticks(self.temp.get("xticks")[index])
-            if self.temp.get("yticks")[index] is not None:
-                axis0.set_yticks(self.temp.get("yticks")[index])
-            axis0.grid(self.temp.get("grid")[index])
-            self.axes.append(axis0)
-            if self.temp.get("twinx")[index]:
-                self.axes.append(axis1)
+        for index,flagMainAxis in enumerate(self.curtemp.get("flagMainAxes")):
 
-        # for tick in self.graph.axes[2].get_xticklabels():
-        #         tick.set_rotation(45)
+            index_main = sum(self.curtemp.get("flagMainAxes")[:index+1])-1
 
-        status = "{} template has been selected.".format(self.temp.get("name"))
+            if flagMainAxis:
+                axis = self.figure.add_subplot(axisx,axisy,index_main+1)
+            else:
+                axis = self.axes[-1].twinx()
+                
+            if flagMainAxis and self.curtemp.get("title")[index_main] is not None:
+                axis.set_title(self.curtemp.get("title")[index_main])
+
+            if flagMainAxis and self.curtemp.get("xlabel")[index_main] is not None:
+                axis.set_xlabel(self.curtemp.get("xlabel")[index_main])
+
+            if self.curtemp.get("ylabel")[index] is not None:
+                axis.set_ylabel(self.curtemp.get("ylabel")[index])
+
+            if flagMainAxis and self.curtemp.get("xticks")[index_main] is not None:
+                axis.set_xticks(self.curtemp.get("xticks")[index_main])
+
+            if self.curtemp.get("yticks")[index] is not None:
+                axis.set_yticks(self.curtemp.get("yticks")[index])
+
+            if flagMainAxis and self.curtemp.get("grid")[index_main] is not None:
+                axis.grid(self.curtemp.get("grid")[index_main])
+
+            self.axes.append(axis)
+
+            # for tick in axis0.get_xticklabels():
+            #     tick.set_rotation(45)
+
+        status = "{} template has been selected.".format(self.curtemp.get("name"))
 
         self.footer.insert(tk.END,status)
         self.footer.see(tk.END)
@@ -605,7 +646,8 @@ class dataset():
 
     def set_lines(self,event):
 
-        if not self.itembox.listbox.curselection(): return
+        if not self.itembox.listbox.curselection():
+            return
 
         if not hasattr(self,"axes"):
             status = "No template has been selected."
@@ -613,11 +655,29 @@ class dataset():
             self.footer.see(tk.END)
             return
 
+        self.filter(0,keywords=[self.names[self.itembox.listbox.curselection()[0]]],inplace=False)
+
         if hasattr(self,"lines"):
-            for line in self.lines:
-                line.remove()
+            [line.remove() for line in self.lines]
                 
-        self.graph.lines = []
+        self.lines = []
+
+        for index,axis in enumerate(self.axes):
+            xaxes = self.curtemp.get("xaxes")[index]
+            yaxes = self.curtemp.get("yaxes")[index]
+            colors = self.curtemp.get("colors")[index]
+            for xaxis,yaxis,color in zip(xaxes,yaxes,colors):
+                line = axis.plot(self.running[xaxis],self.running[yaxis],c=color,label=self.headers[yaxis])[0]
+                self.lines.append(line)
+            if self.curtemp.get("legends")[index]:
+                axis.legend()
+            axis.relim()
+            axis.autoscale_view()
+            axis.set_ylim(bottom=0,top=None,auto=True)
+
+        self.figure.set_tight_layout(True)
+
+        self.canvas.draw()
 
     def add_temp(self):
 
@@ -639,13 +699,13 @@ class dataset():
 
         name = self.tempbox.listbox.get(self.tempbox.listbox.curselection())
 
-        item = self.temp.get("name").index(name)
+        item = self.curtemp.get("name").index(name)
         
         self.tempbox.listbox.delete(item)
 
-        self.temp.get("name").pop(item)
-        # self.temp.get("xnumgrid").pop(item)
-        # self.temp.get("ynumgrid").pop(item)
+        self.curtemp.get("name").pop(item)
+        # self.curtemp.get("xnumgrid").pop(item)
+        # self.curtemp.get("ynumgrid").pop(item)
 
     def set_temptop(self,item=None):
 
@@ -710,9 +770,9 @@ class dataset():
 
         if item is not None:
 
-            tempname = self.temp.get("name")[item]
-            # xnumgrid = self.temp.get("xnumgrid")[item]
-            # ynumgrid = self.temp.get("ynumgrid")[item]
+            tempname = self.curtemp.get("name")[item]
+            # xnumgrid = self.curtemp.get("xnumgrid")[item]
+            # ynumgrid = self.curtemp.get("ynumgrid")[item]
 
             self.topTempAxisFrame.tempname.insert(0,tempname)
             self.topTempAxisFrame.xnumgrid.insert(0,xnumgrid)
@@ -733,9 +793,9 @@ class dataset():
             return
 
         if item is not None:
-            names = [name for index,name in enumerate(self.temp.get("name")) if index!=item]
+            names = [name for index,name in enumerate(self.curtemp.get("name")) if index!=item]
         else:
-            names = self.temp.get("name")
+            names = self.curtemp.get("name")
 
         name = self.topTempAxisFrame0.tempname.get()
 
@@ -750,27 +810,27 @@ class dataset():
             item = len(self.temps.get("names"))
         else:
             self.tempbox.listbox.delete(item)
-            self.temp.get("name").pop(item)
-            # self.temp.get("xnumgrid").pop(item)
-            # self.temp.get("ynumgrid").pop(item)
+            self.curtemp.get("name").pop(item)
+            # self.curtemp.get("xnumgrid").pop(item)
+            # self.curtemp.get("ynumgrid").pop(item)
         
         self.tempbox.listbox.insert(item,name)
 
-        self.temp.get("name").insert(item,name)
+        self.curtemp.get("name").insert(item,name)
 
         try:
             xnumgrid = int(self.topTempAxisFrame1.xnumgrid.get())
         except ValueError:
             xnumgrid = 1
 
-        # self.temp.get("xnumgrid").insert(item,xnumgrid)
+        # self.curtemp.get("xnumgrid").insert(item,xnumgrid)
 
         try:
             ynumgrid = int(self.topTempAxisFrame1.ynumgrid.get())
         except ValueError:
             ynumgrid = 1
 
-        # self.temp.get("ynumgrid").insert(item,ynumgrid)
+        # self.curtemp.get("ynumgrid").insert(item,ynumgrid)
 
         self.temptop.destroy()
 
@@ -956,4 +1016,21 @@ def cyrilictolatin(string):
 
 if __name__ == "__main__":
 
-    data = dataset(headers=["first name","last name","occupation"])
+    import interfaces.tests
+
+    window = tk.Tk()
+
+    data = dataset(window=window,filepath=os.path.join(os.path.dirname(__file__),"tests","datatest"),skiplines=1)
+
+    data.texttocolumn(0,deliminator="\t")
+
+    data.astype(1,dtype=np.float64)
+    data.astype(2,dtype=np.float64)
+    data.astype(3,dtype=np.float64)
+    data.astype(4,dtype=np.float64)
+
+    data.names = np.unique(data.running[0])
+
+    data.set_gui()
+
+    window.mainloop()

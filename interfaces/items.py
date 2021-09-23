@@ -899,7 +899,7 @@ class Wells(dataset):
 
         super().setPlotLines()
 
-        tempname = self.graph.temps.get(self.graph.temps.listbox.curselection())
+        tempname = self.curtemps.get(self.graph.temps.listbox.curselection())
 
         if tempname == self.templates[0]:
 
@@ -967,14 +967,6 @@ class Wells(dataset):
 
             # try: self.lines.append(self.axes[3].set_yticks(range(0,max(well.compupdatecounts)+1))[0])
             # except: pass
-
-        for axis in self.graph.axes:
-            axis.relim()
-            axis.autoscale_view()
-
-        self.graph.figure.set_tight_layout(True)
-
-        self.graph.plot.draw()
 
     def write(self,filepath):
 
