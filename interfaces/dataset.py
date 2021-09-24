@@ -393,20 +393,18 @@ class dataset():
         self._running[header_index] = np.char.upper(self._running[header_index])
 
     def set_column(self,column,header_index=None,header_new=None):
-        
-        if header_index is None:
-            if header_new is None:
-                header_new = "Col ##"+str(len(self._headers))
 
+        if header_new is None:
+            header_new = "Col ##"+str(len(self._headers))
+        
+        if header_index is None or header_index==-1:
             self._headers.append(header_new)
             self._running.append(column)
-
-            self.headers = self._headers
-            self.running.append(np.asarray(self._running[-1]))
         else:
             self._running[header_index] = column
 
-            self.running[header_index] = np.asarray(self._running[header_index])
+        self.headers = self._headers
+        self.running = [np.asarray(column) for column in self._running]
 
     def set_rows(self,row,row_indices=None):
         
@@ -871,20 +869,20 @@ class dataset():
 
         self.temptop.destroy()
 
-    def write(self,filepath,header_indices=None,headers=None,string=None,**kwargs):
+    def write(self,filepath,fstring=None,**kwargs):
 
-        if header_indices is None:
-            header_indices = [self._headers.index(header) for header in headers]
+        header_fstring = ("{}\t"*len(self._headers))[:-1]+"\n"
 
-        if string is None:
-            string = ("{}\t"*len(header_indices))[:-1]+"\n"
+        if fstring is None:
+            running_fstring = ("{}\t"*len(self._headers))[:-1]+"\n"
+        else:
+            running_fstring = fstring
 
-        vprint = np.vectorize(lambda *args: string.format(*args))
-
-        columns = [np.asarray(self._running[index]) for index in header_indices]
+        vprint = np.vectorize(lambda *args: running_fstring.format(*args))
 
         with open(filepath,"w",encoding='utf-8') as wfile:
-            for line in vprint(*columns):
+            wfile.write(header_fstring.format(*self._headers))
+            for line in vprint(*self._running):
                 wfile.write(line)
 
 def writexlsx(filepath,**kwargs):

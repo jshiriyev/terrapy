@@ -270,193 +270,264 @@ class Fractures():
 
         pass
 
-welltemp0 = {
-    "name": "Production-Completion Cross Plot",
-    "subplots": [1,2],
-    "twinx": [True,True],
-    "title": ["BEFORE CORRECTIONS","AFTER CORRECTIONS"],
-    "xlabel": ["Dates","Dates"],
-    "ylabel": ["Total Production or Injection [m3/day]",None,None,
-               "Open Perforation Intervals"],
-    "legends": [True,True],
-    "xticks": [None,None],
-    "yticks": [None,[],[],None],
-    "grid": [False,False],
-    #
-    "xaxes": [[1,1],[1],[1,1],[1]],
-    "yaxes": [[3,3],[3],[4,4],[4]],
-    "drawstyles": [[None,"steps-post"],["steps-post"],[None,"steps-post"],["steps-post"]],
-    "linestyles": [["-",""],[],[],[]],
-    "colors": [[None,"b"],["r"],[None,"b"],["r"]],
-}
+class Wells():
 
-welltemp1 = {
-    "name": "Production History Match",
-    "subplots": [2,2],
-    "twinx": [True,True,True,False],
-    "title": ["NW","NE","SW","SE"],
-    "xlabel": ["Dates","Dates","Dates","Dates"],
-    "ylabel": ["Liquid Rate, sm3/day",
-               "Liquid Volume, th. sm3",
-               "Gas Rate, th. sm3/day",
-               "Surface Gas Volume, mln. sm3",
-               "Liquid Rate, sm3/day",
-               "Liquid Volume, th. sm3",
-               "Pressure, Bars"],
-    "legends": [True,True,True,False],
-    "xticks": [None,None,None,None],
-    "yticks": [None,None,None,None,None,None,None],
-    "grid": [True,True,True,True],
-    #
-    "xaxes": [[1],[1],[1],[1],[1],[1],[]],
-    "yaxes": [[3],[10],[4],[11],[5],[12],[]],
-    "drawstyles": [["default"]]*7, 
-    "linestyles": [["-"],["--"],["-"],["--"],["-"],["--"],[]],
-    "colors": [["g"],["g"],["b"],["b"],["r"],["r"],[]],
-}
+    # INPUT: PRODUCTION, COMPLETION, TRAJECTORY, BOREHOLE LOGGING
 
-class Wells(dataset):
+    filename_wprod      = "woperation.bbp"
+    filename_wcomp      = "wcompletion.bbp"
+    filename_wtrace     = "wtrack.bbp"
+    filename_wlog       = "wlogging.bbp"
 
-    # HISTORY: PRODUCTION, COMPLETION, TRAJECTORY
+    headers_wprod       = [
+        "WELL","DATE","DAYS","OPROD","WPROD","GPROD","WINJ"]
 
-    headers_prod = ["WELL","DATE","DAYS","OPROD","WPROD","GPROD","WINJ"]
-    headers_comp = ["Wells","Horizont","Top","Bottom","start","stoped"]
-    headers_traj = ["X","Y","Z","MD"]
+    headers_wcomp       = [
+        "Wells","Horizont","Top","Bottom","start","stoped"]
 
-    # DATA STORED TO BE WRITTEN WITH KEYWORDS [DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN]
+    headers_wtrace      = [
+        "X","Y","Z","MD"]
 
-    headers_main = ["DATE","KEYWORD","DETAILS"]
+    headers_wlog        = [
+        ]
 
-    detail_dates       = " {} / "#.format(date)
+    # OUTPUT: PRODUCTION, COMPLETION, TRAJECTORY, BOREHOLE LOGGING, SCHEDULE
 
-    detail_wspec       = " '{}'\t1*\t2* / "
-    detail_compdat     = " '{}'\t1*\t{}\t{}\tMD\t{}\t2*\t0.14 / "#.format(wellname,top,bottom,status)
-    detail_compord     = " '{}'\tINPUT\t/ "#.format(wellname)
-    detail_prodhist    = " '{}'\tOPEN\tORAT\t{}\t{}\t{} / "#.format(wellname,oilrate,waterrate,gasrate)
-    detail_injhist     = " '{}'\tWATER\tOPEN\t{}\t7*\tRATE / "#.format(wellname,waterrate)
-    detail_wefac       = " '{}'\t{} / "#.format(wellname,efficiency)
-    detail_wopen       = " '{}'\tSHUT\t3* / "#.format(wellname)
+    filename_production = "OPERATION.BBP"
+    filename_completion = "COMPLETION.BBP"
+    filename_track      = "WELLTRACK.BBP"
+    filename_logging    = "WELLOGGING.BBP"
+    filename_schedule   = "SCHEDULE.BBP"
+
+    headers_production  = [
+        "WELL","DATE","DAYS","OPTYPE",
+        "ROIL","RWATER","RGAS",
+        "TOIL","TWATER","TGAS"]
+
+    headers_completion  = [
+        "WELL","DATE","EVENT","TOP","BOTTOM","DIAM"]
+
+    headers_track       = [
+        "WELL","X","Y","Z","MD"]
+
+    headers_logging     = [
+        "WELL"]
+
+    headers_schedule    = [
+        "DATE","KEYWORD","DETAILS"]
+
+    # SCHEDULE TO BE WRITTEN WITH KEYWORDS [DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN]
+
+    schedule_dates      = " {} / "#.format(date)
+
+    schedule_wspec      = " '{}'\t1*\t2* / "
+    schedule_compdat    = " '{}'\t1*\t{}\t{}\tMD\t{}\t2*\t0.14 / "#.format(wellname,top,bottom,status)
+    schedule_compord    = " '{}'\tINPUT\t/ "#.format(wellname)
+    schedule_prodhist   = " '{}'\tOPEN\tORAT\t{}\t{}\t{} / "#.format(wellname,oilrate,waterrate,gasrate)
+    schedule_injhist    = " '{}'\tWATER\tOPEN\t{}\t7*\tRATE / "#.format(wellname,waterrate)
+    schedule_wefac      = " '{}'\t{} / "#.format(wellname,efficiency)
+    schedule_wopen      = " '{}'\tSHUT\t3* / "#.format(wellname)
 
     # GRAPH TEMPLATES
 
-    templates = (welltemp0,welltemp1)
+    welltemp0 = {
+        "name": "Production-Completion Cross Plot",
+        "subplots": [1,2],
+        "twinx": [True,True],
+        "title": ["BEFORE CORRECTIONS","AFTER CORRECTIONS"],
+        "xlabel": ["Dates","Dates"],
+        "ylabel": ["Total Production or Injection [m3/day]",None,None,
+                   "Open Perforation Intervals"],
+        "legends": [True,True],
+        "xticks": [None,None],
+        "yticks": [None,[],[],None],
+        "grid": [False,False],
+        #
+        "xaxes": [[1,1],[1],[1,1],[1]],
+        "yaxes": [[3,3],[3],[4,4],[4]],
+        "drawstyles": [[None,"steps-post"],["steps-post"],[None,"steps-post"],["steps-post"]],
+        "linestyles": [["-",""],[],[],[]],
+        "colors": [[None,"b"],["r"],[None,"b"],["r"]],
+    }
 
-    def __init__(self,fprod,dir_comp=None,dir_traj=None,namestring=None,**kwargs):
+    welltemp1 = {
+        "name": "Production History Match",
+        "subplots": [2,2],
+        "twinx": [True,True,True,False],
+        "title": ["NW","NE","SW","SE"],
+        "xlabel": ["Dates","Dates","Dates","Dates"],
+        "ylabel": ["Liquid Rate, sm3/day",
+                   "Liquid Volume, th. sm3",
+                   "Gas Rate, th. sm3/day",
+                   "Surface Gas Volume, mln. sm3",
+                   "Liquid Rate, sm3/day",
+                   "Liquid Volume, th. sm3",
+                   "Pressure, Bars"],
+        "legends": [True,True,True,False],
+        "xticks": [None,None,None,None],
+        "yticks": [None,None,None,None,None,None,None],
+        "grid": [True,True,True,True],
+        #
+        "xaxes": [[1],[1],[1],[1],[1],[1],[]],
+        "yaxes": [[3],[10],[4],[11],[5],[12],[]],
+        "drawstyles": [["default"]]*7, 
+        "linestyles": [["-"],["--"],["-"],["--"],["-"],["--"],[]],
+        "colors": [["g"],["g"],["b"],["b"],["r"],["r"],[]],
+    }
 
-        # MAIN SCHEDULE DATA
-        super().__init__(headers=self.headers_main,**kwargs)
+    def __init__(self,workdir,wproddir=None,wcompdir=None,wtrajdir=None,wlogdir=None,wnamefstr=None,**kwargs):
 
-        # INPUT, production and completion data
+        self.workdir    = workdir   # working directory to save and retrieve saved data
 
-        self.fprod = fprod # production file path
+        self.wproddir   = wproddir  # production files directory
+        self.wcompdir   = wcompdir  # completion files directory
+        self.wtrajdir   = wtrajdir  # trajectory files directory
+        self.wlogdir    = wlogdir   # wellogging files directory
 
-        self.dir_comp = dir_comp # completion files directory
-        self.dir_traj = dir_traj # trajectory files directory
+        self.production = dataset(headers=self.headers_production)
+        self.completion = dataset(headers=self.headers_completion)
+        self.track      = dataset(headers=self.headers_track)
+        self.logging    = dataset(headers=self.headers_logging)
+        self.schedule   = dataset(headers=self.headers_schedule)
 
-        self.prods = dataset(filepath=self.fprod,skiplines=1)
-        # self.comps = dataset(filepath=self.fcomp,skiplines=1)
+        self.wnamefstr  = wnamefstr
 
-        self.prods.texttocolumn(0,"\t",maxsplit=7)
-        # self.comps.texttocolumn(0,"\t",maxsplit=6)
+        self.schedule.templates = (self.welltemp0,)
 
-        self.prods.get_columns(headers=self.headers_prod,inplace=True)
-        # self.comps.get_columns(headers=["WELL","DATE","EVENT","TOP","BOTTOM"],inplace=True)
+    def production_run(self):
 
-        self.prods.sort(header_indices=[1],inplace=True)
-        # self.comps.sort(header_indices=[1],inplace=True)
+        path = os.path.join(self.workdir,self.filename_wprod)
 
-        self.names = np.unique(self.prods.running[0])
+        prod = dataset(filepath=path,skiplines=1)
 
-        if namestring is not None:
+        prod.texttocolumn(0,"\t",maxsplit=7)
 
-            vname = np.vectorize(lambda x: namestring.format(re.sub("[^0-9]","",x).zfill(3)))
+        prod.get_columns(headers=self.headers_wprod,inplace=True)
 
-            self.names = np.sort(vname(self.names))
+        prod.sort(header_indices=[1],inplace=True)
 
-        self.prods.astype(header=self.headers_prod[1],datestring=True,shiftmonths=-1)
-        self.prods.astype(header=self.headers_prod[2],dtype=np.int64)
-        self.prods.astype(header=self.headers_prod[3],dtype=np.float64)
-        self.prods.astype(header=self.headers_prod[4],dtype=np.float64)
-        self.prods.astype(header=self.headers_prod[5],dtype=np.float64)
-        self.prods.astype(header=self.headers_prod[6],dtype=np.float64)
-
-        total_produced = self.prods.running[3]+self.prods.running[4]+self.prods.running[5]
-        total_injected = self.prods.running[6]
-
-        total = total_produced+total_injected
-
-        self.prods.set_column(total_produced,header_new="TPROD") # index = 7
-        self.prods.set_column(total_injected,header_new="TINJ")  # index = 8
-
-        self.prods.set_column(total,header_new="TOTAL")          # index = 9
-
-        self.prods.set_column(np.cumsum(self.prods.running[3]),header_new="TOIL")       # index = 10
-        self.prods.set_column(np.cumsum(self.prods.running[4]),header_new="TWATER")     # index = 11
-        self.prods.set_column(np.cumsum(self.prods.running[5]),header_new="TGAS")       # index = 12
-
-        # self.compwellnames = np.unique(self.comps.running[0])
-
-        # self.comps.astype(1,dtype=np.datetime64,datestring=True)
-        # self.comps.astype(3,dtype=np.float64)
-        # self.comps.astype(4,dtype=np.float64)
-
-    def productioncheck(self):
+        prod.astype(header=self.headers_wprod[1],datestring=True)
+        prod.astype(header=self.headers_wprod[2],dtype=np.int64)
+        prod.astype(header=self.headers_wprod[3],dtype=np.float64)
+        prod.astype(header=self.headers_wprod[4],dtype=np.float64)
+        prod.astype(header=self.headers_wprod[5],dtype=np.float64)
+        prod.astype(header=self.headers_wprod[6],dtype=np.float64)
 
         vdate1 = np.vectorize(lambda x: x.day!=calendar.monthrange(x.year,x.month)[1])
 
-        if any(vdate1(self.prods.running[1])):
-            for index in np.where(vdate1(self.prods.running[1]))[0]:
-                well = self.prods.running[0][index]
-                date = self.prods.running[1][index]
+        if any(vdate1(prod.running[1])):
+            for index in np.where(vdate1(prod.running[1]))[0]:
+                well = prod.running[0][index]
+                date = prod.running[1][index]
                 warnings.warn("{:%d %b %Y} {} date is not the last day of month.".format(date,well))
 
         vdate2 = np.vectorize(lambda x,y: x.day<y)
 
-        if any(vdate2(self.prods.running[1],self.prods.running[2])):
-            for index in np.where(vdate2(self.prods.running[1],self.prods.running[2]))[0]:
-                well = self.prods.running[0][index]
-                date = self.prods.running[1][index]
+        if any(vdate2(prod.running[1],prod.running[2])):
+            for index in np.where(vdate2(prod.running[1],prod.running[2]))[0]:
+                well = prod.running[0][index]
+                date = prod.running[1][index]
                 warnings.warn("{:%d %b %Y} {} active days is greater than the days in the month.".format(date,well))
 
-        if any(self.prods.running[3]<0):
-            for index in np.where(self.self.prods.running[3]<0)[0]:
-                well = self.prods.running[0][index]
-                date = self.prods.running[1][index]
+        if any(prod.running[3]<0):
+            for index in np.where(prod.running[3]<0)[0]:
+                well = prod.running[0][index]
+                date = prod.running[1][index]
                 warnings.warn("{:%d %b %Y} {} oil production has negative entry.".format(date,well))
 
-        if any(self.prods.running[4]<0):
-            for index in np.where(self.self.prods.running[4]<0)[0]:
-                well = self.prods.running[0][index]
-                date = self.prods.running[1][index]
+        if any(prod.running[4]<0):
+            for index in np.where(prod.running[4]<0)[0]:
+                well = prod.running[0][index]
+                date = prod.running[1][index]
                 warnings.warn("{:%d %b %Y} {} water production has negative entry.".format(date,well))
 
-        if any(self.prods.running[5]<0):
-            for index in np.where(self.self.prods.running[5]<0)[0]:
-                well = self.prods.running[0][index]
-                date = self.prods.running[1][index]
+        if any(prod.running[5]<0):
+            for index in np.where(prod.running[5]<0)[0]:
+                well = prod.running[0][index]
+                date = prod.running[1][index]
                 warnings.warn("{:%d %b %Y} {} gas production has negative entry.".format(date,well))
 
-        if any(self.prods.running[6]<0):
-            for index in np.where(self.self.prods.running[6]<0)[0]:
-                well = self.prods.running[0][index]
-                date = self.prods.running[1][index]
+        if any(prod.running[6]<0):
+            for index in np.where(prod.running[6]<0)[0]:
+                well = prod.running[0][index]
+                date = prod.running[1][index]
                 warnings.warn("{:%d %b %Y} {} water injection has negative entry.".format(date,well))
 
-        if any(self.prods.running[9]==0):
-            for index in np.where(self.prods.running[9]==0)[0]:
-                well = self.prods.running[0][index]
-                date = self.prods.running[1][index]
+        roil = prod.running[3]
+        rwater = prod.running[4]+prod.running[6]
+        rgas = prod.running[5]
+
+        toil = np.cumsum(roil)
+        twater = np.cumsum(rwater)
+        tgas = np.cumsum(rgas)
+
+        rprod = prod.running[3]+prod.running[4]+prod.running[5]
+        rinj = prod.running[6]
+
+        rtot = rprod+rinj
+
+        optype = np.empty(prod.running[2].shape,dtype=object)
+
+        optype[rprod>0] = "production"
+        optype[rinj>0] = "injection"
+
+        if any(rtot==0):
+            for index in np.where(rtot==0)[0]:
+                well = prod.running[0][index]
+                date = prod.running[1][index]
                 warnings.warn("{:%d %b %Y} {} has zero production and injection.".format(date,well))
 
-        if any(np.logical_and(self.prods.running[7]!=0,self.prods.running[8]!=0)):
-            for index in np.where(np.logical_and(self.prods.running[7]!=0,self.prods.running[8]!=0))[0]:
-                well = self.prods.running[0][index]
-                date = self.prods.running[1][index]
+        if any(np.logical_and(rprod!=0,rinj!=0)):
+            for index in np.where(np.logical_and(rprod!=0,rinj!=0))[0]:
+                well = prod.running[0][index]
+                date = prod.running[1][index]
                 warnings.warn("{:%d %b %Y} {} has both production and injection data.".format(date,well))
 
-    def get_completion(self,wellname=None):
+        # "WELL","DATE","DAYS","OPTYPE","ROIL","RWATER","RGAS","TOIL","TWATER","TGAS"
+        #     0      1      2        3      4        5      6      7        8      9
 
-        self.prods.filter(0,keywords=[wellname],inplace=False)
+        if self.wnamefstr is not None:
+            vname = np.vectorize(lambda x: self.wnamefstr.format(re.sub("[^0-9]","",x).zfill(3)))
+
+            prod.set_column(vname(prod.running[0]),header_index=0)
+
+        def shifting(x):
+            date = x+relativedelta(months=-1)
+            days = calendar.monthrange(date.year,date.month)[1]
+            return datetime(date.year,date.month,days)
+
+        vdate3 = np.vectorize(lambda x: shifting(x))
+
+        prod.set_column(vdate3(prod.running[1]),header_index=1)
+
+        prod.set_column(roil,header_new="ROIL")
+        prod.set_column(rwater,header_new="RWATER")
+        prod.set_column(rgas,header_new="RGAS")
+
+        prod.set_column(toil,header_new="TOIL")
+        prod.set_column(twater,header_new="TWATER")
+        prod.set_column(tgas,header_new="TGAS")
+
+        prod.set_column(optype,header_new="OPTYPE")
+
+        prod.get_columns(headers=self.headers_production,inplace=True)
+        
+        path = os.path.join(self.workdir,self.filename_production)
+
+        fstring = "{:6s}\t{:%Y-%m-%d}\t{:2d}\t{:10s}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\n"
+
+        prod.write(filepath=path,fstring=fstring)
+
+    def production_getfromWdir(self,wellname=None):
+
+        path = os.path.join(self.workdir,self.filename_production)
+
+        self.production = dataset(filepath=path,skiplines=1)
+
+        if wellname is not None:
+            prod.filter(0,keywords=[wellname],inplace=False)
+
+    def completion_collect(self,wellname=None):
 
         wellnumber = int(re.sub("[^0-9]","",wellname))
 
@@ -464,7 +535,7 @@ class Wells(dataset):
 
         filename = "GD-{}.xlsx".format(str(wellnumber).zfill(3))
 
-        filepath = os.path.join(self.dir_comp,folder1,filename)
+        filepath = os.path.join(self.dircomp,folder1,filename)
         
         comps = dataset(filepath=filepath,sheetname=folder1,headerline=1,skiplines=2,min_row=2,min_col=2)
 
@@ -503,8 +574,62 @@ class Wells(dataset):
 
         self.comps = comps
 
-    def completioncheck(self):
+    def completion_run(self):
+
+        self.comps.filter(0,keywords=[wellname],inplace=False)
+
+        well.compdates = self.comps.running[1]
+
+        well.compevents = self.comps.running[2]
+        well.compuppers = self.comps.running[3]
+        well.complowers = self.comps.running[4]
+
+        well.compupdatedates = np.unique(well.compdates)
+
+        compcounts = np.insert(np.cumsum(np.sum(well.compdates==well.compupdatedates.reshape((-1,1)),axis=1)),0,0)
+
+        well.compupdatecounts = np.empty(well.compupdatedates.shape,dtype=int)
+
+        compopenintervals = np.empty((0,2))
+
+        for index,date in enumerate(well.compupdatedates):
+
+            compevents = well.compevents[compcounts[index]:compcounts[index+1]]
+            compuppers = well.compuppers[compcounts[index]:compcounts[index+1]]
+            complowers = well.complowers[compcounts[index]:compcounts[index+1]]
+
+            perfevents = compevents=="PERF"
+
+            perfintervals = np.array([compuppers[perfevents],complowers[perfevents]]).T
+
+            compopenintervals = np.concatenate((compopenintervals,perfintervals),axis=0)
+
+            plugevents = compevents=="PLUG"
+
+            pluguppermatch = np.any(compopenintervals[:,0]==compuppers[plugevents].reshape((-1,1)),axis=0)
+            pluglowermatch = np.any(compopenintervals[:,1]==complowers[plugevents].reshape((-1,1)),axis=0)
+
+            plugmatch = np.where(np.logical_and(pluguppermatch,pluglowermatch))[0]
+
+            compopenintervals = np.delete(compopenintervals,plugmatch,0)
+
+            well.compupdatecounts[index] = compopenintervals.shape[0]
+
+        # def completion_vcheck(self):
+
         # for the future there can be more than two completion scenarios (perf and plug)
+
+
+
+        # self.compwellnames = np.unique(self.comps.running[0])
+
+        # self.comps.astype(1,dtype=np.datetime64,datestring=True)
+        # self.comps.astype(3,dtype=np.float64)
+        # self.comps.astype(4,dtype=np.float64)
+
+
+
+
 
         for wellname in self.prodwellnames:
 
@@ -512,14 +637,12 @@ class Wells(dataset):
 
             self.wellcompletioncheck(well)
 
-    def wellcompletioncheck(self,well):
-
         compdata = zip(well.compdates,well.compevents,well.compuppers,well.complowers)
 
         for index,(compdate,compevent,compupper,complower) in enumerate(compdata):
 
             if index==0:
-                self.set_rows([compdate,"WELSPECS",self.detail_wspec.format(well.name)])
+                self.set_rows([compdate,"WELSPECS",self.schedule_wspec.format(well.name)])
 
             if compevent == "PERF":
                 bottom = complower
@@ -528,47 +651,54 @@ class Wells(dataset):
                 bottom = "1*"
                 perfs = "SHUT"
 
-            self.set_rows([compdate,"COMPDATMD",self.detail_compdat.format(well.name,compupper,bottom,perfs)])
-            self.set_rows([compdate,"COMPORD",self.detail_compord.format(well.name)])
+            self.set_rows([compdate,"COMPDATMD",self.schedule_compdat.format(well.name,compupper,bottom,perfs)])
+            self.set_rows([compdate,"COMPORD",self.schedule_compord.format(well.name)])
 
-    def crosscheck(self):
+    def completion_getfromWdir(self,wellname=None):
 
-        warnNOPROD = "{} has completion but no production data."
-        warnNOCOMP = "{} has production but no completion data."
+        # self.comps.texttocolumn(0,"\t",maxsplit=6)
+        # self.comps.get_columns(headers=["WELL","DATE","EVENT","TOP","BOTTOM"],inplace=True)
+        # self.comps.sort(header_indices=[1],inplace=True)
 
-        warnCROSS = "{} production has been defined before completion."
+        pass
 
-        for wellname in np.setdiff1d(self.prodwellnames,self.compwellnames):
-            warnings.warn(warnNOCOMP.format(wellname))
+    def trajectory_collect(self,wellname=None):
 
-        for wellname in np.setdiff1d(self.compwellnames,self.prodwellnames):
-            warnings.warn(warnNOPROD.format(wellname))
+        wellnumber = int(re.sub("[^0-9]","",wellname))
 
-        for wellname in self.prodwellnames:
+        folder1 = "GD-{}".format(str(wellnumber).zfill(3))
+        folder2 = "6.GD-{} Deviation".format(str(wellnumber).zfill(3))
 
-            well = self.get_well(wellname)
+        filename = "Qum_Adasi-{}.txt".format(wellnumber)
+        
+        filepath = os.path.join(self.dirtraj,folder1,folder2,filename)
 
-            try:
-                datemin = well.opdates.min()
-            except ValueError:
-                datemin = datetime(3000,1,1)
+        traj = dataset(filepath=filepath,skiplines=1,comment="#")
 
-            date = datemin+relativedelta(months=1)
+        traj.texttocolumn(0,deliminator=None,maxsplit=None)
 
-            days = calendar.monthrange(date.year,date.month)[1]
+        traj.get_columns(headers=headers_traj)
 
-            date = datetime(date.year,date.month,days)
+        traj.astype(header=headers_traj[0],dtype=np.float64)
+        traj.astype(header=headers_traj[1],dtype=np.float64)
+        traj.astype(header=headers_traj[2],dtype=np.float64)
+        traj.astype(header=headers_traj[3],dtype=np.float64)
 
-            if well.compupdatedates.min()>=date:
-                warnings.warn(warnCROSS.format(well.name))
+        return traj
 
-        for wellname in self.prodwellnames:
+    def trajectory_getfromWdir(self,wellname=None):
 
-            well = self.get_well(wellname)
+        pass
 
-            self.wellcrosscheck(well,flagReturn=False,flagShow=False)
+    def logging_collect(self,wellname=None):
 
-    def wellcrosscheck(self,well,flagReturn=False,flagShow=False):
+        pass
+
+    def logging_getfromWdir(self,wellname=None):
+
+        pass
+
+    def schedule_run(self,well,flagReturn=False,flagShow=False):
 
         warnWPLUGPERF = "{:%Y-%m-%d}: {} first perf and last plug dates do not fit production days."
         warnWPERF = "{:%Y-%m-%d}: {} first perf date does not fit production days."
@@ -623,12 +753,12 @@ class Wells(dataset):
                 compday = plugdates[-1].day-perfdates[0].day
                 prodeff = day/compday
                 if status == "production":
-                    self.set_rows([perfdates[0],"WCONHIST",self.detail_prodhist.format(well.name,oil,water,gas)])
+                    self.set_rows([perfdates[0],"WCONHIST",self.schedule_prodhist.format(well.name,oil,water,gas)])
                 elif status == "injection":
-                    self.set_rows([perfdates[0],"WCONINJH",self.detail_injhist.format(well.name,water)])
-                self.set_rows([perfdates[0],"WEFAC",self.detail_wefac.format(well.name,prodeff)])
+                    self.set_rows([perfdates[0],"WCONINJH",self.schedule_injhist.format(well.name,water)])
+                self.set_rows([perfdates[0],"WEFAC",self.schedule_wefac.format(well.name,prodeff)])
                 well.opdates[index] = perfdates[0]
-                self.set_rows([plugdates[-1],"WELOPEN",self.detail_wopen.format(well.name)])
+                self.set_rows([plugdates[-1],"WELOPEN",self.schedule_wopen.format(well.name)])
                 shutdates.append(plugdates[-1])
                 flagNoPrevProd = True
                 if flagShow:
@@ -638,13 +768,13 @@ class Wells(dataset):
                 compday = prodmonthENDday.day-perfdates[0].day
                 prodeff = day/compday
                 if status == "production":
-                    self.set_rows([perfdates[0],"WCONHIST",self.detail_prodhist.format(well.name,oil,water,gas)])
+                    self.set_rows([perfdates[0],"WCONHIST",self.schedule_prodhist.format(well.name,oil,water,gas)])
                 elif status == "injection":
-                    self.set_rows([perfdates[0],"WCONINJH",self.detail_injhist.format(well.name,water)])
-                self.set_rows([perfdates[0],"WEFAC",self.detail_wefac.format(well.name,prodeff)])
+                    self.set_rows([perfdates[0],"WCONINJH",self.schedule_injhist.format(well.name,water)])
+                self.set_rows([perfdates[0],"WEFAC",self.schedule_wefac.format(well.name,prodeff)])
                 well.opdates[index] = perfdates[0]
                 if flagNoPostProd:
-                    self.set_rows([prodmonthENDday,"WELOPEN",self.detail_wopen.format(well.name)])
+                    self.set_rows([prodmonthENDday,"WELOPEN",self.schedule_wopen.format(well.name)])
                     shutdates.append(prodmonthENDday)
                     flagNoPrevProd = True
                     if flagShow:
@@ -662,11 +792,11 @@ class Wells(dataset):
                 compday = plugdate.day
                 prodeff = day/compday
                 if status == "production":
-                    self.set_rows([date,"WCONHIST",self.detail_prodhist.format(well.name,oil,water,gas)])
+                    self.set_rows([date,"WCONHIST",self.schedule_prodhist.format(well.name,oil,water,gas)])
                 elif status == "injection":
-                    self.set_rows([date,"WCONINJH",self.detail_injhist.format(well.name,water)])
-                self.set_rows([date,"WEFAC",self.detail_wefac.format(well.name,prodeff)])
-                self.set_rows([plugdate,"WELOPEN",self.detail_wopen.format(well.name)])
+                    self.set_rows([date,"WCONINJH",self.schedule_injhist.format(well.name,water)])
+                self.set_rows([date,"WEFAC",self.schedule_wefac.format(well.name,prodeff)])
+                self.set_rows([plugdate,"WELOPEN",self.schedule_wopen.format(well.name)])
                 shutdates.append(plugdate)
                 flagNoPrevProd = True
                 if flagShow:
@@ -681,12 +811,12 @@ class Wells(dataset):
                     compday = plugdates[-1].day-perfdates[1].day
                     prodeff = day/compday
                     if status == "production":
-                        self.set_rows([perfdates[1],"WCONHIST",self.detail_prodhist.format(well.name,oil,water,gas)])
+                        self.set_rows([perfdates[1],"WCONHIST",self.schedule_prodhist.format(well.name,oil,water,gas)])
                     elif status == "injection":
-                        self.set_rows([perfdates[1],"WCONINJH",self.detail_injhist.format(well.name,water)])
-                    self.set_rows([perfdates[1],"WEFAC",self.detail_wefac.format(well.name,prodeff)])
+                        self.set_rows([perfdates[1],"WCONINJH",self.schedule_injhist.format(well.name,water)])
+                    self.set_rows([perfdates[1],"WEFAC",self.schedule_wefac.format(well.name,prodeff)])
                     well.opdates[index] = perfdates[1]
-                    self.set_rows([plugdates[-1],"WELOPEN",self.detail_wopen.format(well.name)])
+                    self.set_rows([plugdates[-1],"WELOPEN",self.schedule_wopen.format(well.name)])
                     shutdates.append(plugdates[-1])
                     flagNoPrevProd = True
                     if flagShow:
@@ -700,10 +830,10 @@ class Wells(dataset):
                     compday = prodmonthENDday.day-perfdate.day
                     prodeff = day/compday
                     if status == "production":
-                        self.set_rows([perfdate,"WCONHIST",self.detail_prodhist.format(well.name,oil,water,gas)])
+                        self.set_rows([perfdate,"WCONHIST",self.schedule_prodhist.format(well.name,oil,water,gas)])
                     elif status == "injection":
-                        self.set_rows([perfdate,"WCONINJH",self.detail_injhist.format(well.name,water)])
-                    self.set_rows([perfdate,"WEFAC",self.detail_wefac.format(well.name,prodeff)])
+                        self.set_rows([perfdate,"WCONINJH",self.schedule_injhist.format(well.name,water)])
+                    self.set_rows([perfdate,"WEFAC",self.schedule_wefac.format(well.name,prodeff)])
                     well.opdates[index] = perfdate
                     flagNoPrevProd = False
                     if flagShow:
@@ -717,11 +847,11 @@ class Wells(dataset):
                     compday = plugdate.day
                     prodeff = day/compday
                     if status == "production":
-                        self.set_rows([date,"WCONHIST",self.detail_prodhist.format(well.name,oil,water,gas)])
+                        self.set_rows([date,"WCONHIST",self.schedule_prodhist.format(well.name,oil,water,gas)])
                     elif status == "injection":
-                        self.set_rows([date,"WCONINJH",self.detail_injhist.format(well.name,water)])
-                    self.set_rows([date,"WEFAC",self.detail_wefac.format(well.name,prodeff)])
-                    self.set_rows([plugdate,"WELOPEN",self.detail_wopen.format(well.name)])
+                        self.set_rows([date,"WCONINJH",self.schedule_injhist.format(well.name,water)])
+                    self.set_rows([date,"WEFAC",self.schedule_wefac.format(well.name,prodeff)])
+                    self.set_rows([plugdate,"WELOPEN",self.schedule_wopen.format(well.name)])
                     shutdates.append(plugdate)
                     flagNoPrevProd = True
                     if flagShow:
@@ -739,27 +869,27 @@ class Wells(dataset):
                     else:
                         compday = plugdate.day
                         prodeff = day/compday
-                        self.set_rows([plugdate,"WELOPEN",self.detail_wopen.format(well.name)])
+                        self.set_rows([plugdate,"WELOPEN",self.schedule_wopen.format(well.name)])
                         shutdates.append(plugdate)
                         flagNoPrevProd = True
                         if flagShow:
                             print("{:%d %b %Y} Plugged and Perforated: CONT and SHUT ({:%d %b %Y}) WEFAC ({:.3f})".format(prodmonthENDday,plugdate,prodeff))
                     if status == "production":
-                        self.set_rows([date,"WCONHIST",self.detail_prodhist.format(well.name,oil,water,gas)])
+                        self.set_rows([date,"WCONHIST",self.schedule_prodhist.format(well.name,oil,water,gas)])
                     elif status == "injection":
-                        self.set_rows([date,"WCONINJH",self.detail_injhist.format(well.name,water)])
-                    self.set_rows([date,"WEFAC",self.detail_wefac.format(well.name,prodeff)])
+                        self.set_rows([date,"WCONINJH",self.schedule_injhist.format(well.name,water)])
+                    self.set_rows([date,"WEFAC",self.schedule_wefac.format(well.name,prodeff)])
 
             else:
                 compday = prodmonthdaycount
                 prodeff = day/compday
                 if status == "production":
-                    self.set_rows([date,"WCONHIST",self.detail_prodhist.format(well.name,oil,water,gas)])
+                    self.set_rows([date,"WCONHIST",self.schedule_prodhist.format(well.name,oil,water,gas)])
                 elif status == "injection":
-                    self.set_rows([date,"WCONINJH",self.detail_injhist.format(well.name,water)])
-                self.set_rows([date,"WEFAC",self.detail_wefac.format(well.name,prodeff)])
+                    self.set_rows([date,"WCONINJH",self.schedule_injhist.format(well.name,water)])
+                self.set_rows([date,"WEFAC",self.schedule_wefac.format(well.name,prodeff)])
                 if flagNoPostProd:
-                    self.set_rows([prodmonthENDday,"WELOPEN",self.detail_wopen.format(well.name)])
+                    self.set_rows([prodmonthENDday,"WELOPEN",self.schedule_wopen.format(well.name)])
                     shutdates.append(prodmonthENDday)
                     flagNoPrevProd = True
                     if flagShow:
@@ -789,104 +919,46 @@ class Wells(dataset):
 
             return well
 
-    def get_trajectory(self,wellname=None):
+        # def schedule_vcheck(self):
 
-        wellnumber = int(re.sub("[^0-9]","",wellname))
+        warnNOPROD = "{} has completion but no production data."
+        warnNOCOMP = "{} has production but no completion data."
 
-        folder1 = "GD-{}".format(str(wellnumber).zfill(3))
-        folder2 = "6.GD-{} Deviation".format(str(wellnumber).zfill(3))
+        warnCROSS = "{} production has been defined before completion."
 
-        filename = "Qum_Adasi-{}.txt".format(wellnumber)
-        
-        filepath = os.path.join(self.dir_traj,folder1,folder2,filename)
+        for wellname in np.setdiff1d(self.prodwellnames,self.compwellnames):
+            warnings.warn(warnNOCOMP.format(wellname))
 
-        traj = dataset(filepath=filepath,skiplines=1,comment="#")
+        for wellname in np.setdiff1d(self.compwellnames,self.prodwellnames):
+            warnings.warn(warnNOPROD.format(wellname))
 
-        traj.texttocolumn(0,deliminator=None,maxsplit=None)
+        for wellname in self.prodwellnames:
 
-        traj.get_columns(headers=headers_traj)
+            well = self.get_well(wellname)
 
-        traj.astype(header=headers_traj[0],dtype=np.float64)
-        traj.astype(header=headers_traj[1],dtype=np.float64)
-        traj.astype(header=headers_traj[2],dtype=np.float64)
-        traj.astype(header=headers_traj[3],dtype=np.float64)
+            try:
+                datemin = well.opdates.min()
+            except ValueError:
+                datemin = datetime(3000,1,1)
 
-        return traj
+            date = datemin+relativedelta(months=1)
 
-    def get_well(self,wellname):
+            days = calendar.monthrange(date.year,date.month)[1]
 
-        self.prods.filter(0,keywords=[wellname],inplace=False)
-        self.comps.filter(0,keywords=[wellname],inplace=False)
+            date = datetime(date.year,date.month,days)
 
-        class well: pass
+            if well.compupdatedates.min()>=date:
+                warnings.warn(warnCROSS.format(well.name))
 
-        well.name = wellname
+        for wellname in self.prodwellnames:
 
-        well.opdates = self.prods.running[1]
+            well = self.get_well(wellname)
 
-        well.opdays = self.prods.running[2]
+            self.wellcrosscheck(well,flagReturn=False,flagShow=False)
 
-        well.prodtotal = self.prods.running[3]+self.prods.running[4]+self.prods.running[5]
-        well.injtotal = self.prods.running[6]
 
-        well.total = well.prodtotal+well.injtotal
+        # writing
 
-        well.opstatus = np.empty(well.opdays.shape,dtype=object)
-
-        well.oil = np.zeros(well.opdays.shape,dtype=np.float32)
-        well.water = np.zeros(well.opdays.shape,dtype=np.float32)
-        well.gas = np.zeros(well.opdays.shape,dtype=np.float32)
-
-        well.opstatus[well.prodtotal>0] = "production"
-
-        well.oil[well.prodtotal>0] = self.prods.running[3][well.prodtotal>0]
-        well.water[well.prodtotal>0] = self.prods.running[4][well.prodtotal>0]
-        well.gas[well.prodtotal>0] = self.prods.running[5][well.prodtotal>0]
-        
-        well.opstatus[well.injtotal>0] = "injection"
-
-        well.water[well.injtotal>0] = self.prods.running[6][well.injtotal>0]
-
-        well.compdates = self.comps.running[1]
-
-        well.compevents = self.comps.running[2]
-        well.compuppers = self.comps.running[3]
-        well.complowers = self.comps.running[4]
-
-        well.compupdatedates = np.unique(well.compdates)
-
-        compcounts = np.insert(np.cumsum(np.sum(well.compdates==well.compupdatedates.reshape((-1,1)),axis=1)),0,0)
-
-        well.compupdatecounts = np.empty(well.compupdatedates.shape,dtype=int)
-
-        compopenintervals = np.empty((0,2))
-
-        for index,date in enumerate(well.compupdatedates):
-
-            compevents = well.compevents[compcounts[index]:compcounts[index+1]]
-            compuppers = well.compuppers[compcounts[index]:compcounts[index+1]]
-            complowers = well.complowers[compcounts[index]:compcounts[index+1]]
-
-            perfevents = compevents=="PERF"
-
-            perfintervals = np.array([compuppers[perfevents],complowers[perfevents]]).T
-
-            compopenintervals = np.concatenate((compopenintervals,perfintervals),axis=0)
-
-            plugevents = compevents=="PLUG"
-
-            pluguppermatch = np.any(compopenintervals[:,0]==compuppers[plugevents].reshape((-1,1)),axis=0)
-            pluglowermatch = np.any(compopenintervals[:,1]==complowers[plugevents].reshape((-1,1)),axis=0)
-
-            plugmatch = np.where(np.logical_and(pluguppermatch,pluglowermatch))[0]
-
-            compopenintervals = np.delete(compopenintervals,plugmatch,0)
-
-            well.compupdatecounts[index] = compopenintervals.shape[0]
-
-        return well
-
-    def write(self,filepath):
 
         with open(filepath,"w",encoding='utf-8') as wfile:
 
@@ -906,7 +978,7 @@ class Wells(dataset):
 
                 wfile.write("\n\n")
                 wfile.write("DATES\n")
-                wfile.write(self.detail_dates.format(date.strftime("%d %b %Y").upper()))
+                wfile.write(self.schedule_dates.format(date.strftime("%d %b %Y").upper()))
                 wfile.write("\n")
                 wfile.write("/\n\n")
 
@@ -965,6 +1037,10 @@ class Wells(dataset):
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")
+
+    def schedule_getfromWdir(self,wellname=None):
+
+        pass
 
 if __name__ == "__main__":
 
