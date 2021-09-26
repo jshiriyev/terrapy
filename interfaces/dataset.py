@@ -38,6 +38,7 @@ temp0 = {
     "yticks": [None],
     "grid": [True],
     #
+    "sublines": [[3,0]],
     "xaxes": [[1,1,1]],
     "yaxes": [[2,3,4]],
     "drawstyles": [["default"]*3],
@@ -57,6 +58,7 @@ temp1 = {
     "yticks": [None,None],
     "grid": [True,True],
     #
+    "sublines": [[1,0],[2,0]],
     "xaxes": [[1],[1,1]],
     "yaxes": [[2],[3,4]],
     "drawstyles": [["default"],["default"]*2],
@@ -76,6 +78,7 @@ temp2 = {
     "yticks": [None,None],
     "grid": [True,True],
     #
+    "sublines": [[1,0],[2,0]],
     "xaxes": [[1],[1,1]],
     "yaxes": [[2],[3,4]],
     "drawstyles": [["steps-post"],["default"]*2],
@@ -95,6 +98,7 @@ temp3 = {
     "yticks": [None,None,None,None],
     "grid": [True,True,True,True],
     #
+    "sublines": [[1,0],[1,0],[1,0],[0,0]],
     "xaxes": [[1],[1],[1],[]],
     "yaxes": [[2],[3],[4],[]],
     "drawstyles": [["default"]]*4,
@@ -104,9 +108,46 @@ temp3 = {
 
 class dataset():
 
-    special_extensions = [".db",".xlsx",".las"]
+    special_extensions = (
+        ".db",".xlsx",".las",)
 
-    templates = (temp0,temp1,temp2,temp3)
+    templates = (
+        temp0,temp1,temp2,temp3,)
+
+    drawstyles = (
+        'default','steps','steps-pre','steps-mid','steps-post',)
+
+    linestyles = (
+        "{:2s} solid".format('-'),
+        "{:2s} dashed".format('--'),
+        "{:2s} dash dot".format('-.'),
+        "{:2s} dotted".format(':'),
+        "{:2s} point marker".format('.'),
+        "{:2s} pixel marker".format(','),
+        "{:2s} circle marker".format('o'),
+        "{:2s} triangle_down marker".format('v'),
+        "{:2s} triangle_up marker".format('^'),
+        "{:2s} triangle_left marker".format('<'),
+        "{:2s} triangle_right marker".format('>'),
+        "{:2s} tri_down marker".format('1'),
+        "{:2s} tri_up marker".format('2'),
+        "{:2s} tri_left marker".format('3'),
+        "{:2s} tri_right marker".format('4'),
+        "{:2s} square marker".format('s'),
+        "{:2s} pentagon marker".format('p'),
+        "{:2s} star marker".format('*'),
+        "{:2s} hexagon1 marker".format('h'),
+        "{:2s} hexagon2 marker".format('H'),
+        "{:2s} plus marker".format('+'),
+        "{:2s} x marker".format('x'),
+        "{:2s} diamond marker".format('D'),
+        "{:2s} thin_diamond marker".format('d'),
+        "{:2s} vline marker".format('|'),
+        "{:2s} hline marker".format('_'),
+        )
+
+    linecolors = (
+        "b: blue","g: green","r: red","c: cyan","m: magenta","y: yellow","k: black","w: white",)
 
     def __init__(self,window=None,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
@@ -589,8 +630,7 @@ class dataset():
         
         self.curtemp = self.templates[self.tempbox.listbox.curselection()[0]]
 
-        axisx = self.curtemp.get("subplots")[0]
-        axisy = self.curtemp.get("subplots")[1]
+        naxrows,naxcols = self.curtemp.get("subplots")
 
         twinx = self.curtemp.get("twinx")
 
@@ -610,7 +650,7 @@ class dataset():
             index_main = sum(self.curtemp.get("flagMainAxes")[:index+1])-1
 
             if flagMainAxis:
-                axis = self.figure.add_subplot(axisx,axisy,index_main+1)
+                axis = self.figure.add_subplot(naxrows,naxcols,index_main+1)
             else:
                 axis = self.axes[-1].twinx()
                 
@@ -699,6 +739,14 @@ class dataset():
 
         self.set_temptop(tempid=self.tempbox.listbox.curselection()[0])
 
+        self.curtemp = self.templates[self.tempbox.listbox.curselection()[0]]
+
+        naxrows,naxcols = self.curtemp.get("subplots")
+
+        self.tempeditgeneral0.tempname.insert(0,curtemp.get("name"))
+        self.tempeditgeneral1.naxrows.insert(0,naxrows)
+        self.tempeditgeneral1.naxcols.insert(0,naxcols)
+
     def del_temp(self):
 
         if not self.tempbox.listbox.curselection(): return
@@ -710,8 +758,8 @@ class dataset():
         self.tempbox.listbox.delete(item)
 
         self.curtemp.get("name").pop(item)
-        # self.curtemp.get("xnumgrid").pop(item)
-        # self.curtemp.get("ynumgrid").pop(item)
+        # self.curtemp.get("naxrows").pop(item)
+        # self.curtemp.get("naxcols").pop(item)
 
     def set_temptop(self,tempid=None):
 
@@ -722,18 +770,19 @@ class dataset():
             curtemp = self.templates[tempid]
         else:
             curtemp = {"subplots": [1,1]}
+            curtemp["sublines"] = [[1,0]]
 
         self.temptop = tk.Toplevel()
 
         self.temptop.title("Template Editor")
 
-        self.temptop.geometry("700x400")
+        self.temptop.geometry("700x450")
 
         self.temptop.resizable(0,0)
 
         self.style = ttk.Style(self.temptop)
 
-        self.style.configure("TNotebook.Tab",width=20,anchor=tk.CENTER)
+        self.style.configure("TNotebook.Tab",width=15,anchor=tk.CENTER)
 
         self.tempedit = ttk.Notebook(self.temptop)
 
@@ -743,43 +792,46 @@ class dataset():
 
         self.tempeditgeneral0 = tk.Frame(self.tempeditgeneral,borderwidth=2,relief=tk.GROOVE)
 
-        self.tempeditgeneral0.tempnameLabel = ttk.Label(self.tempeditgeneral0,text="Template Name")
-        self.tempeditgeneral0.tempnameLabel.grid(row=0,column=0,padx=(10,10),pady=(20,2))
+        self.tempeditgeneral0.templabel = ttk.Label(self.tempeditgeneral0,text="Settings")
+        self.tempeditgeneral0.templabel.grid(row=0,column=0,columnspan=2,sticky=tk.W,padx=(10,10),pady=(2,2))
+
+        self.tempeditgeneral0.tempnamelabel = ttk.Label(self.tempeditgeneral0,text="Template Name")
+        self.tempeditgeneral0.tempnamelabel.grid(row=1,column=0,sticky=tk.E,padx=(10,10),pady=(2,2))
 
         self.tempeditgeneral0.tempname = ttk.Entry(self.tempeditgeneral0,width=30)
-        self.tempeditgeneral0.tempname.grid(row=0,column=1,padx=(10,20),pady=(20,2),sticky=tk.EW)
+        self.tempeditgeneral0.tempname.grid(row=1,column=1,padx=(0,20),pady=(2,2),sticky=tk.EW)
 
         self.tempeditgeneral0.tempname.focus()
 
         self.tempeditgeneral0.legendLabel = ttk.Label(self.tempeditgeneral0,text="Legend Position")
-        self.tempeditgeneral0.legendLabel.grid(row=1,column=0,padx=(10,10),pady=(2,2))
+        self.tempeditgeneral0.legendLabel.grid(row=2,column=0,sticky=tk.E,padx=(10,10),pady=(2,2))
 
         self.tempeditgeneral0.legend = ttk.Entry(self.tempeditgeneral0,width=30)
-        self.tempeditgeneral0.legend.grid(row=1,column=1,padx=(10,20),pady=(2,2),sticky=tk.EW)
+        self.tempeditgeneral0.legend.grid(row=2,column=1,padx=(0,20),pady=(2,2),sticky=tk.EW)
 
         self.tempeditgeneral0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
 
-        self.tempeditgeneral1 = tk.Frame(self.tempeditgeneral)
+        self.tempeditgeneral1 = tk.Frame(self.tempeditgeneral,borderwidth=2)
 
-        self.tempeditgeneral1.xgridlabel = ttk.Label(self.tempeditgeneral1,text="Grids in Y")
-        self.tempeditgeneral1.xgridlabel.grid(row=0,column=0,sticky=tk.EW,padx=(10,10),pady=(20,2))
+        self.tempeditgeneral1.naxlabel = ttk.Label(self.tempeditgeneral1,text="Number of Axes")
+        self.tempeditgeneral1.naxlabel.grid(row=0,column=0,columnspan=2,sticky=tk.EW,padx=(10,2),pady=(2,2))
 
-        self.tempeditgeneral1.xnumgrid = ttk.Entry(
-            self.tempeditgeneral1,
-            width=10,
-            validate="key",
-            validatecommand=(self.root.register(lambda x,prop="axesx": self.set_tempdict(x,prop)),'%P'))
-        self.tempeditgeneral1.xnumgrid.grid(row=0,column=1,sticky=tk.EW,padx=(10,2),pady=(20,2))
+        self.tempeditgeneral1.naxrowslabel = ttk.Label(self.tempeditgeneral1,text="Rows")
+        self.tempeditgeneral1.naxrowslabel.grid(row=1,column=0,sticky=tk.E,padx=(10,10),pady=(2,2))
 
-        self.tempeditgeneral1.ygridlabel = ttk.Label(self.tempeditgeneral1,text="Grids in X")
-        self.tempeditgeneral1.ygridlabel.grid(row=1,column=0,sticky=tk.EW,padx=(10,10),pady=(2,2))
+        self.tempeditgeneral1.naxrows = ttk.Spinbox(self.tempeditgeneral1,from_=1,to=5)
+        # self.tempeditgeneral1.naxrows = ttk.Entry(
+        #     self.tempeditgeneral1,
+        #     width=10,
+        #     validate="key",
+        #     validatecommand=(self.root.register(lambda x,prop="naxrows": self.set_tempdict(x,prop)),'%P'))
+        self.tempeditgeneral1.naxrows.grid(row=1,column=1,sticky=tk.EW,padx=(0,2),pady=(2,2))
 
-        self.tempeditgeneral1.ynumgrid = ttk.Entry(
-            self.tempeditgeneral1,
-            width=10,
-            validate="key",
-            validatecommand=(self.root.register(lambda x,prop="axesy": self.set_tempdict(x,prop)),'%P'))
-        self.tempeditgeneral1.ynumgrid.grid(row=1,column=1,sticky=tk.EW,padx=(10,2),pady=(2,2))
+        self.tempeditgeneral1.naxcolslabel = ttk.Label(self.tempeditgeneral1,text="Columns")
+        self.tempeditgeneral1.naxcolslabel.grid(row=2,column=0,sticky=tk.E,padx=(10,10),pady=(2,2))
+
+        self.tempeditgeneral1.naxcols = ttk.Spinbox(self.tempeditgeneral1,from_=1,to=5)
+        self.tempeditgeneral1.naxcols.grid(row=2,column=1,sticky=tk.EW,padx=(0,2),pady=(2,2))
 
         self.tempeditgeneral1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
         
@@ -791,20 +843,78 @@ class dataset():
 
         self.tempeditaxes0 = tk.Frame(self.tempeditaxes,borderwidth=2,relief=tk.GROOVE)
 
+        self.tempeditaxes0.axislabel = ttk.Label(self.tempeditaxes0,text="Axis List")
+        self.tempeditaxes0.axislabel.pack(side=tk.TOP,fill=tk.X)
+
         self.tempeditaxes0.listbox = tk.Listbox(self.tempeditaxes0)
 
+        naxrows,naxcols = curtemp.get("subplots")
 
-
-        axisx,axisy = curtemp.get("subplots")
-        
-
-        for index in range(axisx*axisy):
+        for index in range(naxrows*naxcols):
 
             self.tempeditaxes0.listbox.insert(tk.END,"Axis {}".format(index))
 
-        self.tempeditaxes0.listbox.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        self.tempeditaxes0.listbox.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
 
         self.tempeditaxes0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
+
+        self.tempeditaxes1 = tk.Frame(self.tempeditaxes,borderwidth=2,relief=tk.GROOVE)
+
+        self.tempeditaxes1.label0 = ttk.Checkbutton(self.tempeditaxes1,text="Draw X Twin")
+        self.tempeditaxes1.label0.grid(row=0,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditaxes1.label1 = ttk.Label(self.tempeditaxes1,text="Title")
+        self.tempeditaxes1.label1.grid(row=1,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+
+        self.tempeditaxes1.label2 = ttk.Label(self.tempeditaxes1,text="X Label")
+        self.tempeditaxes1.label2.grid(row=2,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+
+        self.tempeditaxes1.label3 = ttk.Label(self.tempeditaxes1,text="Y-1 Label")
+        self.tempeditaxes1.label3.grid(row=3,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+
+        self.tempeditaxes1.label4 = ttk.Label(self.tempeditaxes1,text="Y-2 Label",state=tk.DISABLED)
+        self.tempeditaxes1.label4.grid(row=4,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+
+        self.tempeditaxes1.label5 = ttk.Label(self.tempeditaxes1,text="Y-1 Lines")
+        self.tempeditaxes1.label5.grid(row=5,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+
+        self.tempeditaxes1.label6 = ttk.Label(self.tempeditaxes1,text="Y-2 Lines",state=tk.DISABLED)
+        self.tempeditaxes1.label6.grid(row=6,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+
+        self.tempeditaxes1.label7 = ttk.Checkbutton(self.tempeditaxes1,text="Show Legends")
+        self.tempeditaxes1.label7.grid(row=7,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditaxes1.label8 = ttk.Checkbutton(self.tempeditaxes1,text="Show X Ticks")
+        self.tempeditaxes1.label8.grid(row=8,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditaxes1.label9 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-1 Ticks")
+        self.tempeditaxes1.label9.grid(row=9,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditaxes1.label10 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-2 Ticks",state=tk.DISABLED)
+        self.tempeditaxes1.label10.grid(row=10,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditaxes1.label11 = ttk.Checkbutton(self.tempeditaxes1,text="Show Grids")
+        self.tempeditaxes1.label11.grid(row=11,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditaxes1.entry1 = ttk.Entry(self.tempeditaxes1)
+        self.tempeditaxes1.entry1.grid(row=1,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
+
+        self.tempeditaxes1.entry2 = ttk.Entry(self.tempeditaxes1)
+        self.tempeditaxes1.entry2.grid(row=2,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
+
+        self.tempeditaxes1.entry3 = ttk.Entry(self.tempeditaxes1,state=tk.NORMAL)
+        self.tempeditaxes1.entry3.grid(row=3,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
+
+        self.tempeditaxes1.entry4 = ttk.Entry(self.tempeditaxes1,state=tk.DISABLED)
+        self.tempeditaxes1.entry4.grid(row=4,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
+
+        self.tempeditaxes1.entry5 = ttk.Spinbox(self.tempeditaxes1,to=20)
+        self.tempeditaxes1.entry5.grid(row=5,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
+
+        self.tempeditaxes1.entry6 = ttk.Spinbox(self.tempeditaxes1,to=20,state=tk.DISABLED)
+        self.tempeditaxes1.entry6.grid(row=6,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
+
+        self.tempeditaxes1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
         self.tempedit.add(self.tempeditaxes,text="Axes",compound=tk.CENTER)
 
@@ -812,46 +922,102 @@ class dataset():
 
         self.tempeditlines = tk.Frame(self.tempedit)
 
-
-
-
         self.tempeditlines0 = tk.Frame(self.tempeditlines,borderwidth=2,relief=tk.GROOVE)
+
+        self.tempeditlines0.axislabel = ttk.Label(self.tempeditlines0,text="Axis List")
+        self.tempeditlines0.axislabel.pack(side=tk.TOP,fill=tk.X)
 
         self.tempeditlines0.listbox = tk.Listbox(self.tempeditlines0)
 
-        for header in self.headers:
-            self.tempeditlines0.listbox.insert(tk.END,header)
+        naxrows,naxcols = curtemp.get("subplots")
 
-        self.tempeditlines0.listbox.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        for index in range(naxrows*naxcols):
+            self.tempeditlines0.listbox.insert(tk.END,"Axis {}".format(index))
+
+        self.tempeditlines0.listbox.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
 
         self.tempeditlines0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
 
+        self.tempeditlines1 = tk.Frame(self.tempeditlines,borderwidth=2,relief=tk.GROOVE)
 
+        self.tempeditlines1.line1label = ttk.Label(self.tempeditlines1,text="Y-1 Lines")
+        self.tempeditlines1.line1label.pack(side=tk.TOP,fill=tk.X)
 
+        self.tempeditlines1.listbox1 = tk.Listbox(self.tempeditlines1)
 
+        for index in range(curtemp.get("sublines")[0][0]):
+            self.tempeditlines1.listbox1.insert(tk.END,"Line {}".format(index))
 
-        self.tempeditlines1 = tk.Frame(self.tempeditlines)
+        self.tempeditlines1.listbox1.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
 
-        self.tempeditlines1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+        self.tempeditlines1.line2label = ttk.Label(self.tempeditlines1,text="Y-2 Lines")
+        self.tempeditlines1.line2label.pack(side=tk.TOP,fill=tk.X)
 
+        self.tempeditlines1.listbox2 = tk.Listbox(self.tempeditlines1)
 
+        for index in range(curtemp.get("sublines")[0][1]):
+            self.tempeditlines1.listbox2.insert(tk.END,"Line {}".format(index))
+
+        self.tempeditlines1.listbox2.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
+
+        self.tempeditlines1.pack(side=tk.LEFT,expand=0,fill=tk.Y)
+
+        self.tempeditlines2 = tk.Frame(self.tempeditlines)
+
+        self.tempeditlines2.label = ttk.Label(self.tempeditlines2,text="Line Details")
+        self.tempeditlines2.label.grid(row=0,column=0,columnspan=2,sticky=tk.W,padx=(10,),pady=(4,))
+
+        self.tempeditlines2.label0 = ttk.Label(self.tempeditlines2,text="X-axis")
+        self.tempeditlines2.label0.grid(row=1,column=0,sticky=tk.E,padx=(10,),pady=(2,))
+
+        self.tempeditlines2.label1 = ttk.Label(self.tempeditlines2,text="Y-axis")
+        self.tempeditlines2.label1.grid(row=2,column=0,sticky=tk.E,padx=(10,),pady=(2,))
+
+        self.tempeditlines2.label2 = ttk.Label(self.tempeditlines2,text="Draw Style")
+        self.tempeditlines2.label2.grid(row=3,column=0,sticky=tk.E,padx=(10,),pady=(2,))
+
+        self.tempeditlines2.label3 = ttk.Label(self.tempeditlines2,text="Line Style")
+        self.tempeditlines2.label3.grid(row=4,column=0,sticky=tk.E,padx=(10,),pady=(2,))
+
+        self.tempeditlines2.label4 = ttk.Label(self.tempeditlines2,text="Line Color")
+        self.tempeditlines2.label4.grid(row=5,column=0,sticky=tk.E,padx=(10,),pady=(2,))
+
+        self.tempeditlines2.val0 = tk.StringVar(self.tempeditlines2)
+        self.tempeditlines2.val1 = tk.StringVar(self.tempeditlines2)
+        self.tempeditlines2.val2 = tk.StringVar(self.tempeditlines2)
+        self.tempeditlines2.val3 = tk.StringVar(self.tempeditlines2)
+        self.tempeditlines2.val4 = tk.StringVar(self.tempeditlines2)
+
+        self.tempeditlines2.menu0 = ttk.OptionMenu(
+            self.tempeditlines2,self.tempeditlines2.val0,"Select Header",*self.headers)
+        self.tempeditlines2.menu0.grid(row=1,column=1,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditlines2.menu1 = ttk.OptionMenu(
+            self.tempeditlines2,self.tempeditlines2.val1,"Select Header",*self.headers)
+        self.tempeditlines2.menu1.grid(row=2,column=1,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditlines2.menu2 = ttk.OptionMenu(
+            self.tempeditlines2,self.tempeditlines2.val2,"Select Style",*self.drawstyles)
+        self.tempeditlines2.menu2.grid(row=3,column=1,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditlines2.menu3 = ttk.OptionMenu(
+            self.tempeditlines2,self.tempeditlines2.val3,"Select Style",*self.linestyles)
+        self.tempeditlines2.menu3.grid(row=4,column=1,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditlines2.menu4 = ttk.OptionMenu(
+            self.tempeditlines2,self.tempeditlines2.val4,"Select Color",*self.linecolors)
+        self.tempeditlines2.menu4.grid(row=5,column=1,sticky=tk.EW,padx=(10,),pady=(4,))
+
+        self.tempeditlines2.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
         self.tempedit.add(self.tempeditlines,text="Lines",compound=tk.CENTER)
 
         self.tempedit.pack(side=tk.TOP,expand=1,fill=tk.BOTH,padx=(0,1))
 
-        if tempid is not None:
-            
-            axisx,axisy = curtemp.get("subplots")
-
-            self.tempeditgeneral0.tempname.insert(0,curtemp.get("name"))
-            self.tempeditgeneral1.xnumgrid.insert(0,axisx)
-            self.tempeditgeneral1.ynumgrid.insert(0,axisy)
-
         buttonname = "Add Template" if tempid is None else "Edit Template"
 
         self.temptop.button = ttk.Button(self.temptop,text=buttonname,width=20,command=lambda: self.temptopapply(tempid))
-        self.temptop.button.pack(side=tk.TOP,anchor=tk.E,padx=(0,1),pady=(1,1))
+        self.temptop.button.pack(side=tk.TOP,expand=1,anchor=tk.E,padx=(0,1),pady=(1,1))
 
         self.temptop.button.bind('<Return>',lambda event: self.temptopapply(tempid,event))
 
@@ -889,26 +1055,26 @@ class dataset():
         else:
             self.tempbox.listbox.delete(tempid)
             self.curtemp.get("name").pop(tempid)
-            # self.curtemp.get("xnumgrid").pop(tempid)
-            # self.curtemp.get("ynumgrid").pop(tempid)
+            # self.curtemp.get("naxrows").pop(tempid)
+            # self.curtemp.get("naxcols").pop(tempid)
         
         self.tempbox.listbox.insert(tempid,name)
 
         self.curtemp.get("name").insert(tempid,name)
 
         try:
-            xnumgrid = int(self.tempeditgeneral1.xnumgrid.get())
+            naxrows = int(self.tempeditgeneral1.naxrows.get())
         except ValueError:
-            xnumgrid = 1
+            naxrows = 1
 
-        # self.curtemp.get("xnumgrid").insert(tempid,xnumgrid)
+        # self.curtemp.get("naxrows").insert(tempid,naxrows)
 
         try:
-            ynumgrid = int(self.tempeditgeneral1.ynumgrid.get())
+            naxcols = int(self.tempeditgeneral1.naxcols.get())
         except ValueError:
-            ynumgrid = 1
+            naxcols = 1
 
-        # self.curtemp.get("ynumgrid").insert(tempid,ynumgrid)
+        # self.curtemp.get("naxcols").insert(tempid,naxcols)
 
         self.temptop.destroy()
 
