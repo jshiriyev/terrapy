@@ -118,32 +118,32 @@ class dataset():
         'default','steps','steps-pre','steps-mid','steps-post',)
 
     linestyles = (
-        "{:2s} solid".format('-'),
-        "{:2s} dashed".format('--'),
-        "{:2s} dash dot".format('-.'),
-        "{:2s} dotted".format(':'),
-        "{:2s} point marker".format('.'),
-        "{:2s} pixel marker".format(','),
-        "{:2s} circle marker".format('o'),
-        "{:2s} triangle_down marker".format('v'),
-        "{:2s} triangle_up marker".format('^'),
-        "{:2s} triangle_left marker".format('<'),
-        "{:2s} triangle_right marker".format('>'),
-        "{:2s} tri_down marker".format('1'),
-        "{:2s} tri_up marker".format('2'),
-        "{:2s} tri_left marker".format('3'),
-        "{:2s} tri_right marker".format('4'),
-        "{:2s} square marker".format('s'),
-        "{:2s} pentagon marker".format('p'),
-        "{:2s} star marker".format('*'),
-        "{:2s} hexagon1 marker".format('h'),
-        "{:2s} hexagon2 marker".format('H'),
-        "{:2s} plus marker".format('+'),
-        "{:2s} x marker".format('x'),
-        "{:2s} diamond marker".format('D'),
-        "{:2s} thin_diamond marker".format('d'),
-        "{:2s} vline marker".format('|'),
-        "{:2s} hline marker".format('_'),
+        "({}) solid".format('-'),
+        "({}) dashed".format('--'),
+        "({}) dash dot".format('-.'),
+        "({}) dotted".format(':'),
+        "({}) point marker".format('.'),
+        "({}) pixel marker".format(','),
+        "({}) circle marker".format('o'),
+        "({}) triangle_down marker".format('v'),
+        "({}) triangle_up marker".format('^'),
+        "({}) triangle_left marker".format('<'),
+        "({}) triangle_right marker".format('>'),
+        "({}) tri_down marker".format('1'),
+        "({}) tri_up marker".format('2'),
+        "({}) tri_left marker".format('3'),
+        "({}) tri_right marker".format('4'),
+        "({}) square marker".format('s'),
+        "({}) pentagon marker".format('p'),
+        "({}) star marker".format('*'),
+        "({}) hexagon1 marker".format('h'),
+        "({}) hexagon2 marker".format('H'),
+        "({}) plus marker".format('+'),
+        "({}) x marker".format('x'),
+        "({}) diamond marker".format('D'),
+        "({}) thin_diamond marker".format('d'),
+        "({}) vline marker".format('|'),
+        "({}) hline marker".format('_'),
         )
 
     linecolors = (
@@ -160,6 +160,7 @@ class dataset():
         #   case 2: filepath,skiplines,headerline
         #    - reading plain text: comment,endline,endfile
         #    - reading scpecial extensions: **kwargs
+        #   case 3: no input
 
         if window is not None:
             self.root = window
@@ -194,7 +195,8 @@ class dataset():
                 self.read()
 
         else:
-            return
+            self._headers = []
+            self._running = []
 
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
@@ -445,20 +447,24 @@ class dataset():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
-    def set_rows(self,row,row_indices=None):
+    def set_rows(self,rows,row_indices=None):
         
+        for row in rows:
+
+            if row_indices is None:
+                for index,column in enumerate(self._running):
+                    self._running[index] = np.append(column,row[index])
+            else:
+                for index, _ in enumerate(self._running):
+                    self._running[index][row_indices] = row[index]
+
+            self.running = [np.asarray(column) for column in self._running]
+
+    def get_rows(self,row_indices=None):
+
         if row_indices is None:
-            for index,column in enumerate(self._running):
-                self._running[index] = np.append(column,row[index])
-        else:
-            for index, _ in enumerate(self._running):
-                self._running[index][row_indices] = row[index]
-
-        self.running = [np.asarray(column) for column in self._running]
-
-    def get_rows(self,row_indices):
-
-        if type(row_indices)==int:
+            row_indices = range(self._running[0].size)
+        elif type(row_indices)==int:
             row_indices = [row_indices]
 
         rows = [[column[index] for column in self._running] for index in row_indices]
