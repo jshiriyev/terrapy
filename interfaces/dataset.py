@@ -114,6 +114,13 @@ class dataset():
     templates = (
         temp0,temp1,temp2,temp3,)
 
+    legendpos = (
+        "best","right",
+        "upper left","upper center","upper right",
+        "lower left","lower center","lower right",
+        "center left","center","center right",
+        )
+
     drawstyles = (
         'default','steps','steps-pre','steps-mid','steps-post',)
 
@@ -147,7 +154,9 @@ class dataset():
         )
 
     linecolors = (
-        "b: blue","g: green","r: red","c: cyan","m: magenta","y: yellow","k: black","w: white",)
+        "b: blue","g: green","r: red",
+        "c: cyan","m: magenta","y: yellow",
+        "k: black","w: white",)
 
     def __init__(self,window=None,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
@@ -747,11 +756,65 @@ class dataset():
 
         self.curtemp = self.templates[self.tempbox.listbox.curselection()[0]]
 
-        naxrows,naxcols = self.curtemp.get("subplots")
+
+        temp1 = {
+            "name": "Standard-dual horizontal stack",
+            "subplots": [1,2],
+            "sublines": [[1,0],[2,0]],
+            "twinx": [False,False],
+            "title": ["Left","Right"],
+            "xlabel": ["x-axis","x-axis"],
+            "ylabel": [["y-axis"],["y-axis"]],
+            "legends": [True,True],
+            "xticks": [None,None],
+            "yticks": [[None],[None]],
+            "grids": [True,True],
+            #
+            
+            "xaxes": [[1],[1,1]],
+            "yaxes": [[2],[3,4]],
+            "drawstyles": [["default"],["default"]*2],
+            "linestyles": [["-"],[None,None]],
+            "colors": [["k"],["b","r"]],
+        }
 
         self.tempeditgeneral0.tempname.insert(0,curtemp.get("name"))
+
+        naxrows,naxcols = self.curtemp.get("subplots")
+
         self.tempeditgeneral1.naxrows.insert(0,naxrows)
         self.tempeditgeneral1.naxcols.insert(0,naxcols)
+
+        for index in range(naxrows*naxcols):
+            self.tempeditaxes0.listbox.insert(tk.END,"Axis {}".format(index))
+            self.tempeditlines0.listbox.insert(tk.END,"Axis {}".format(index))
+
+        for axis 0
+            self.tempeditaxes1.cehck00      self.curtemp.get("twinx")[0]
+            self.tempeditaxes1.entry01      self.curtemp.get("title")[0]
+            self.tempeditaxes1.enrty02      self.curtemp.get("xlabel")[0]
+            self.tempeditaxes1.enrty03      self.curtemp.get("ylabel")[0][0]
+            self.tempeditaxes1.enrty04      self.curtemp.get("ylabel")[0][1]
+            self.tempeditaxes1.spinb05      self.curtemp.get("sublines")[0][0]
+            self.tempeditaxes1.spinb06      self.curtemp.get("sublines")[0][1]
+            self.tempeditaxes1.check07      self.curtemp.get("legends")[0]
+            self.tempeditaxes1.check08      self.curtemp.get("xticks")[0]
+            self.tempeditaxes1.check09      self.curtemp.get("yticks")[0][0]
+            self.tempeditaxes1.check10      self.curtemp.get("yticks")[0][1]
+            self.tempeditaxes1.check11      self.curtemp.get("grids")[0]
+
+        for index in range(curtemp.get("sublines")[0][0]):
+            self.tempeditlines1.listbox1.insert(tk.END,"Line {}".format(index))
+
+        for index in range(curtemp.get("sublines")[0][1]):
+            self.tempeditlines1.listbox2.insert(tk.END,"Line {}".format(index))
+
+        for axis 0 and line0
+            self.tempeditlines2.menu0
+            self.tempeditlines2.menu1
+            self.tempeditlines2.menu2
+            self.tempeditlines2.menu3
+            self.tempeditlines2.menu4
 
     def del_temp(self):
 
@@ -854,71 +917,59 @@ class dataset():
 
         self.tempeditaxes0.listbox = tk.Listbox(self.tempeditaxes0)
 
-        naxrows,naxcols = curtemp.get("subplots")
-
-        for index in range(naxrows*naxcols):
-
-            self.tempeditaxes0.listbox.insert(tk.END,"Axis {}".format(index))
-
         self.tempeditaxes0.listbox.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
 
         self.tempeditaxes0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
 
         self.tempeditaxes1 = tk.Frame(self.tempeditaxes,borderwidth=2,relief=tk.GROOVE)
 
-        self.tempeditaxes1.label0 = ttk.Checkbutton(self.tempeditaxes1,text="Draw X Twin")
-        self.tempeditaxes1.label0.grid(row=0,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+        self.tempeditaxes1.check00 = ttk.Checkbutton(self.tempeditaxes1,text="Draw X Twin")
+        self.tempeditaxes1.cehck00.grid(row=0,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.label1 = ttk.Label(self.tempeditaxes1,text="Title")
-        self.tempeditaxes1.label1.grid(row=1,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.label01 = ttk.Label(self.tempeditaxes1,text="Title")
+        self.tempeditaxes1.label01.grid(row=1,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.entry01 = ttk.Entry(self.tempeditaxes1)
+        self.tempeditaxes1.entry01.grid(row=1,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
-        self.tempeditaxes1.label2 = ttk.Label(self.tempeditaxes1,text="X Label")
-        self.tempeditaxes1.label2.grid(row=2,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.label02 = ttk.Label(self.tempeditaxes1,text="X Label")
+        self.tempeditaxes1.label02.grid(row=2,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.entry02 = ttk.Entry(self.tempeditaxes1)
+        self.tempeditaxes1.entry02.grid(row=2,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
-        self.tempeditaxes1.label3 = ttk.Label(self.tempeditaxes1,text="Y-1 Label")
-        self.tempeditaxes1.label3.grid(row=3,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.label03 = ttk.Label(self.tempeditaxes1,text="Y-1 Label")
+        self.tempeditaxes1.label03.grid(row=3,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.entry03 = ttk.Entry(self.tempeditaxes1,state=tk.NORMAL)
+        self.tempeditaxes1.entry03.grid(row=3,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
-        self.tempeditaxes1.label4 = ttk.Label(self.tempeditaxes1,text="Y-2 Label",state=tk.DISABLED)
-        self.tempeditaxes1.label4.grid(row=4,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.label04 = ttk.Label(self.tempeditaxes1,text="Y-2 Label",state=tk.DISABLED)
+        self.tempeditaxes1.label04.grid(row=4,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.entry04 = ttk.Entry(self.tempeditaxes1,state=tk.DISABLED)
+        self.tempeditaxes1.entry04.grid(row=4,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
-        self.tempeditaxes1.label5 = ttk.Label(self.tempeditaxes1,text="Y-1 Lines")
-        self.tempeditaxes1.label5.grid(row=5,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.label05 = ttk.Label(self.tempeditaxes1,text="Y-1 Lines")
+        self.tempeditaxes1.label05.grid(row=5,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.spinb05 = ttk.Spinbox(self.tempeditaxes1,to=20)
+        self.tempeditaxes1.spinb05.grid(row=5,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
-        self.tempeditaxes1.label6 = ttk.Label(self.tempeditaxes1,text="Y-2 Lines",state=tk.DISABLED)
-        self.tempeditaxes1.label6.grid(row=6,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.label06 = ttk.Label(self.tempeditaxes1,text="Y-2 Lines",state=tk.DISABLED)
+        self.tempeditaxes1.label06.grid(row=6,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
+        self.tempeditaxes1.spinb06 = ttk.Spinbox(self.tempeditaxes1,to=20,state=tk.DISABLED)
+        self.tempeditaxes1.spinb06.grid(row=6,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
-        self.tempeditaxes1.label7 = ttk.Checkbutton(self.tempeditaxes1,text="Show Legends")
-        self.tempeditaxes1.label7.grid(row=7,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+        self.tempeditaxes1.check07 = ttk.Checkbutton(self.tempeditaxes1,text="Show Legends")
+        self.tempeditaxes1.check07.grid(row=7,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.label8 = ttk.Checkbutton(self.tempeditaxes1,text="Show X Ticks")
-        self.tempeditaxes1.label8.grid(row=8,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+        self.tempeditaxes1.check08 = ttk.Checkbutton(self.tempeditaxes1,text="Show X Ticks")
+        self.tempeditaxes1.check08.grid(row=8,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.label9 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-1 Ticks")
-        self.tempeditaxes1.label9.grid(row=9,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+        self.tempeditaxes1.check09 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-1 Ticks")
+        self.tempeditaxes1.check09.grid(row=9,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.label10 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-2 Ticks",state=tk.DISABLED)
-        self.tempeditaxes1.label10.grid(row=10,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+        self.tempeditaxes1.check10 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-2 Ticks",state=tk.DISABLED)
+        self.tempeditaxes1.check10.grid(row=10,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.label11 = ttk.Checkbutton(self.tempeditaxes1,text="Show Grids")
-        self.tempeditaxes1.label11.grid(row=11,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
-
-        self.tempeditaxes1.entry1 = ttk.Entry(self.tempeditaxes1)
-        self.tempeditaxes1.entry1.grid(row=1,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
-
-        self.tempeditaxes1.entry2 = ttk.Entry(self.tempeditaxes1)
-        self.tempeditaxes1.entry2.grid(row=2,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
-
-        self.tempeditaxes1.entry3 = ttk.Entry(self.tempeditaxes1,state=tk.NORMAL)
-        self.tempeditaxes1.entry3.grid(row=3,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
-
-        self.tempeditaxes1.entry4 = ttk.Entry(self.tempeditaxes1,state=tk.DISABLED)
-        self.tempeditaxes1.entry4.grid(row=4,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
-
-        self.tempeditaxes1.entry5 = ttk.Spinbox(self.tempeditaxes1,to=20)
-        self.tempeditaxes1.entry5.grid(row=5,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
-
-        self.tempeditaxes1.entry6 = ttk.Spinbox(self.tempeditaxes1,to=20,state=tk.DISABLED)
-        self.tempeditaxes1.entry6.grid(row=6,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
+        self.tempeditaxes1.check11 = ttk.Checkbutton(self.tempeditaxes1,text="Show Grids")
+        self.tempeditaxes1.check11.grid(row=11,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
         self.tempeditaxes1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
@@ -935,11 +986,6 @@ class dataset():
 
         self.tempeditlines0.listbox = tk.Listbox(self.tempeditlines0)
 
-        naxrows,naxcols = curtemp.get("subplots")
-
-        for index in range(naxrows*naxcols):
-            self.tempeditlines0.listbox.insert(tk.END,"Axis {}".format(index))
-
         self.tempeditlines0.listbox.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
 
         self.tempeditlines0.pack(side=tk.LEFT,expand=0,fill=tk.Y)
@@ -951,18 +997,12 @@ class dataset():
 
         self.tempeditlines1.listbox1 = tk.Listbox(self.tempeditlines1)
 
-        for index in range(curtemp.get("sublines")[0][0]):
-            self.tempeditlines1.listbox1.insert(tk.END,"Line {}".format(index))
-
         self.tempeditlines1.listbox1.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
 
         self.tempeditlines1.line2label = ttk.Label(self.tempeditlines1,text="Y-2 Lines")
         self.tempeditlines1.line2label.pack(side=tk.TOP,fill=tk.X)
 
         self.tempeditlines1.listbox2 = tk.Listbox(self.tempeditlines1)
-
-        for index in range(curtemp.get("sublines")[0][1]):
-            self.tempeditlines1.listbox2.insert(tk.END,"Line {}".format(index))
 
         self.tempeditlines1.listbox2.pack(side=tk.TOP,expand=1,fill=tk.BOTH)
 
