@@ -17,15 +17,13 @@ from interfaces.dataset import dataset
 
 class table(dataset):
 
-    def __init__(self,headers):
+    def __init__(self,**kwargs):
 
-        super().__init__(headers)
+        super().__init__(**kwargs)
 
         self.dirname = os.path.dirname(__file__)
 
-    def draw(self,window,func=None):
-
-        self.root = window
+    def draw(self,func=None):
 
         self.scrollbar = tk.Scrollbar(self.root)
 
@@ -353,8 +351,7 @@ if __name__ == "__main__":
 
     window = tk.Tk()
 
-    gui = table(headers=["First Name","Last Name","Contact"])
+    gui = table(window=window,headers=["First Name","Last Name","Contact"])
 
-    gui.draw(window)
-
+    gui.draw()
     window.mainloop()
