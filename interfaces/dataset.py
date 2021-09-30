@@ -769,7 +769,7 @@ class dataset():
 
         self.canvas.draw()
 
-    def get_temptoset(self,manipulation="add"):
+    def get_template(self,manipulation="add"):
 
         if manipulation=="add":
 
