@@ -38,13 +38,13 @@ temp0 = {
     "yticks": [None],
     "grid": [True],
     #
-    "sublines": [[3,0]],
+    "sublines": [[3]],
     "xaxes": [[1,1,1]],
     "yaxes": [[2,3,4]],
-    "drawstyles": [["default"]*3],
-    "linestyles": [["-","--","-"]],
-    "colors": [["k","b","r"]],
-}
+    "drawstyles": [[0,0,0]],
+    "linestyles": [[0,1,0]],
+    "linecolors": [[6,0,2]],
+    }
 
 temp1 = {
     "name": "Standard-dual horizontal stack",
@@ -58,13 +58,13 @@ temp1 = {
     "yticks": [None,None],
     "grid": [True,True],
     #
-    "sublines": [[1,0],[2,0]],
+    "sublines": [[1],[2]],
     "xaxes": [[1],[1,1]],
     "yaxes": [[2],[3,4]],
-    "drawstyles": [["default"],["default"]*2],
-    "linestyles": [["-"],[None,None]],
-    "colors": [["k"],["b","r"]],
-}
+    "drawstyles": [[0],[0,0]],
+    "linestyles": [[0],[None,None]],
+    "linecolors": [[6],[0,2]],
+    }
 
 temp2 = {
     "name": "Standard-dual vertical stack",
@@ -78,13 +78,13 @@ temp2 = {
     "yticks": [None,None],
     "grid": [True,True],
     #
-    "sublines": [[1,0],[2,0]],
+    "sublines": [[1],[2]],
     "xaxes": [[1],[1,1]],
     "yaxes": [[2],[3,4]],
-    "drawstyles": [["steps-post"],["default"]*2],
-    "linestyles": [["-"],[None,None]],
-    "colors": [["k"],["b","r"]],
-}
+    "drawstyles": [[4],[0,0]],
+    "linestyles": [[0],[]],
+    "linecolors": [[6],[0,2]],
+    }
 
 temp3 = {
     "name": "Standard-quadruple",
@@ -98,21 +98,19 @@ temp3 = {
     "yticks": [None,None,None,None],
     "grid": [True,True,True,True],
     #
-    "sublines": [[1,0],[1,0],[1,0],[0,0]],
+    "sublines": [[1],[1],[1],[0]],
     "xaxes": [[1],[1],[1],[]],
     "yaxes": [[2],[3],[4],[]],
-    "drawstyles": [["default"]]*4,
-    "linestyles": [["-"],["-"],["-"],[]],
-    "colors": [["k"],["b"],["r"],[]],
-}
+    "drawstyles": [[0],[0],[0],[0]],
+    "linestyles": [[0],[0],[0],[]],
+    "linecolors": [[6],[0],[2],[]],
+    }
 
 class dataset():
 
     special_extensions = (
-        ".db",".xlsx",".las",)
-
-    templates = (
-        temp0,temp1,temp2,temp3,)
+        ".db",".xlsx",".las",
+        )
 
     legendpos = (
         "best","right",
@@ -122,7 +120,8 @@ class dataset():
         )
 
     drawstyles = (
-        'default','steps','steps-pre','steps-mid','steps-post',)
+        'default','steps','steps-pre','steps-mid','steps-post',
+        )
 
     linestyles = (
         "({}) solid".format('-'),
@@ -154,9 +153,19 @@ class dataset():
         )
 
     linecolors = (
-        "b: blue","g: green","r: red",
-        "c: cyan","m: magenta","y: yellow",
-        "k: black","w: white",)
+        "b: blue",
+        "g: green",
+        "r: red",
+        "c: cyan",
+        "m: magenta",
+        "y: yellow",
+        "k: black",
+        "w: white",
+        )
+
+    templates = (
+        temp0,temp1,temp2,temp3,
+        )
 
     def __init__(self,window=None,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
@@ -553,7 +562,23 @@ class dataset():
         else:
             self.running = [np.asarray(column[match_index]) for column in self._running]
 
-    def set_gui(self):
+    def write(self,filepath,fstring=None,**kwargs):
+
+        header_fstring = ("{}\t"*len(self._headers))[:-1]+"\n"
+
+        if fstring is None:
+            running_fstring = ("{}\t"*len(self._headers))[:-1]+"\n"
+        else:
+            running_fstring = fstring
+
+        vprint = np.vectorize(lambda *args: running_fstring.format(*args))
+
+        with open(filepath,"w",encoding='utf-8') as wfile:
+            wfile.write(header_fstring.format(*self._headers))
+            for line in vprint(*self._running):
+                wfile.write(line)
+
+    def set_graphtop(self):
 
         # configuration of window pane
         self.pane_NS = ttk.PanedWindow(self.root,orient=tk.VERTICAL,width=1000)
@@ -724,8 +749,8 @@ class dataset():
             yaxes = self.curtemp.get("yaxes")[index]
             drawstyles = self.curtemp.get("drawstyles")[index]
             linestyles = self.curtemp.get("linestyles")[index]
-            colors = self.curtemp.get("colors")[index]
-            for xaxis,yaxis,dstyle,lstyle,color in zip(xaxes,yaxes,drawstyles,linestyles,colors):
+            linecolors = self.curtemp.get("linecolors")[index]
+            for xaxis,yaxis,dstyle,lstyle,color in zip(xaxes,yaxes,drawstyles,linestyles,linecolors):
                 line = axis.plot(
                     self.running[xaxis],
                     self.running[yaxis],
@@ -744,93 +769,55 @@ class dataset():
 
         self.canvas.draw()
 
-    def add_temp(self):
+    def get_template(self,manipulation="add"):
 
-        self.set_temptop()
+        if manipulation=="add":
 
-    def edit_temp(self):
+            self.curtemp = {# when creating a template
+                "name": "",
+                "subplots": [1,1],
+                "title": [""],
+                "twinx": [False],
+                "xlabel": [""],
+                "ylabel": [""],
+                "legends": [False],
+                "xticks": [None],
+                "yticks": [None],
+                "grid": [False],
+                #
+                "sublines": [[0]],
+                "xaxes": [[]],
+                "yaxes": [[]],
+                "drawstyles": [[]],
+                "linestyles": [[]],
+                "linecolors": [[]],
+                }
 
-        if not self.tempbox.listbox.curselection(): return
+            self.set_temptop() # when adding a new one
 
-        self.set_temptop(tempid=self.tempbox.listbox.curselection()[0])
+        elif manipulation=="edit":
 
-        self.curtemp = self.templates[self.tempbox.listbox.curselection()[0]]
+            if not self.tempbox.listbox.curselection(): return # when editing
 
-
-        temp1 = {
-            "name": "Standard-dual horizontal stack",
-            "subplots": [1,2],
-            "sublines": [[1,0],[2,0]],
-            "twinx": [False,False],
-            "title": ["Left","Right"],
-            "xlabel": ["x-axis","x-axis"],
-            "ylabel": [["y-axis"],["y-axis"]],
-            "legends": [True,True],
-            "xticks": [None,None],
-            "yticks": [[None],[None]],
-            "grids": [True,True],
-            #
+            self.curtemp = self.templates[self.tempbox.listbox.curselection()[0]] # when editing
+            self.set_temptop(tempid=self.tempbox.listbox.curselection()[0]) # editing the existing one
             
-            "xaxes": [[1],[1,1]],
-            "yaxes": [[2],[3,4]],
-            "drawstyles": [["default"],["default"]*2],
-            "linestyles": [["-"],[None,None]],
-            "colors": [["k"],["b","r"]],
-        }
+        elif manipulation=="delete"
+            # deleting a template
 
-        self.tempeditgeneral0.tempname.insert(0,curtemp.get("name"))
+            if not self.tempbox.listbox.curselection(): return
 
-        naxrows,naxcols = self.curtemp.get("subplots")
+            name = self.tempbox.listbox.get(self.tempbox.listbox.curselection())
 
-        self.tempeditgeneral1.naxrows.insert(0,naxrows)
-        self.tempeditgeneral1.naxcols.insert(0,naxcols)
+            item = self.curtemp.get("name").index(name)
+            
+            self.tempbox.listbox.delete(item)
 
-        for index in range(naxrows*naxcols):
-            self.tempeditaxes0.listbox.insert(tk.END,"Axis {}".format(index))
-            self.tempeditlines0.listbox.insert(tk.END,"Axis {}".format(index))
+            self.curtemp.get("name").pop(item)
+            # self.curtemp.get("naxrows").pop(item)
+            # self.curtemp.get("naxcols").pop(item)
 
-        for axis 0
-            self.tempeditaxes1.cehck00      self.curtemp.get("twinx")[0]
-            self.tempeditaxes1.entry01      self.curtemp.get("title")[0]
-            self.tempeditaxes1.enrty02      self.curtemp.get("xlabel")[0]
-            self.tempeditaxes1.enrty03      self.curtemp.get("ylabel")[0][0]
-            self.tempeditaxes1.enrty04      self.curtemp.get("ylabel")[0][1]
-            self.tempeditaxes1.spinb05      self.curtemp.get("sublines")[0][0]
-            self.tempeditaxes1.spinb06      self.curtemp.get("sublines")[0][1]
-            self.tempeditaxes1.check07      self.curtemp.get("legends")[0]
-            self.tempeditaxes1.check08      self.curtemp.get("xticks")[0]
-            self.tempeditaxes1.check09      self.curtemp.get("yticks")[0][0]
-            self.tempeditaxes1.check10      self.curtemp.get("yticks")[0][1]
-            self.tempeditaxes1.check11      self.curtemp.get("grids")[0]
-
-        for index in range(curtemp.get("sublines")[0][0]):
-            self.tempeditlines1.listbox1.insert(tk.END,"Line {}".format(index))
-
-        for index in range(curtemp.get("sublines")[0][1]):
-            self.tempeditlines1.listbox2.insert(tk.END,"Line {}".format(index))
-
-        for axis 0 and line0
-            self.tempeditlines2.menu0
-            self.tempeditlines2.menu1
-            self.tempeditlines2.menu2
-            self.tempeditlines2.menu3
-            self.tempeditlines2.menu4
-
-    def del_temp(self):
-
-        if not self.tempbox.listbox.curselection(): return
-
-        name = self.tempbox.listbox.get(self.tempbox.listbox.curselection())
-
-        item = self.curtemp.get("name").index(name)
-        
-        self.tempbox.listbox.delete(item)
-
-        self.curtemp.get("name").pop(item)
-        # self.curtemp.get("naxrows").pop(item)
-        # self.curtemp.get("naxcols").pop(item)
-
-    def set_temptop(self,tempid=None):
+    def set_temptop(self,manipulation):
 
         if hasattr(self,"temptop"):
             if self.temptop.winfo_exists(): return
@@ -888,18 +875,15 @@ class dataset():
         self.tempeditgeneral1.naxrowslabel = ttk.Label(self.tempeditgeneral1,text="Rows")
         self.tempeditgeneral1.naxrowslabel.grid(row=1,column=0,sticky=tk.E,padx=(10,10),pady=(2,2))
 
-        self.tempeditgeneral1.naxrows = ttk.Spinbox(self.tempeditgeneral1,from_=1,to=5)
-        # self.tempeditgeneral1.naxrows = ttk.Entry(
-        #     self.tempeditgeneral1,
-        #     width=10,
-        #     validate="key",
-        #     validatecommand=(self.root.register(lambda x,prop="naxrows": self.set_tempdict(x,prop)),'%P'))
+        self.tempeditgeneral1.naxval0 = tk.StringVar(self.root)
+        self.tempeditgeneral1.naxrows = ttk.Spinbox(self.tempeditgeneral1,textvariable=self.tempeditgeneral1.naxval0,from_=1,to=5,command=lambda:self.set_temptopdict("rows"))
         self.tempeditgeneral1.naxrows.grid(row=1,column=1,sticky=tk.EW,padx=(0,2),pady=(2,2))
 
         self.tempeditgeneral1.naxcolslabel = ttk.Label(self.tempeditgeneral1,text="Columns")
         self.tempeditgeneral1.naxcolslabel.grid(row=2,column=0,sticky=tk.E,padx=(10,10),pady=(2,2))
 
-        self.tempeditgeneral1.naxcols = ttk.Spinbox(self.tempeditgeneral1,from_=1,to=5)
+        self.tempeditgeneral1.naxval1 = tk.StringVar(self.root)
+        self.tempeditgeneral1.naxcols = ttk.Spinbox(self.tempeditgeneral1,textvariable=self.tempeditgeneral1.naxval1,from_=1,to=5,command=lambda:self.set_temptopdict("columns"))
         self.tempeditgeneral1.naxcols.grid(row=2,column=1,sticky=tk.EW,padx=(0,2),pady=(2,2))
 
         self.tempeditgeneral1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
@@ -923,8 +907,9 @@ class dataset():
 
         self.tempeditaxes1 = tk.Frame(self.tempeditaxes,borderwidth=2,relief=tk.GROOVE)
 
-        self.tempeditaxes1.check00 = ttk.Checkbutton(self.tempeditaxes1,text="Draw X Twin")
-        self.tempeditaxes1.cehck00.grid(row=0,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
+        self.tempeditaxes1.entry00 = tk.IntVar(self.root)
+        self.tempeditaxes1.check00 = ttk.Checkbutton(self.tempeditaxes1,text="Draw X Twin",variable=self.tempeditaxes1.entry00,command=lambda:self.set_temptopdict("entry00"))
+        self.tempeditaxes1.check00.grid(row=0,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
         self.tempeditaxes1.label01 = ttk.Label(self.tempeditaxes1,text="Title")
         self.tempeditaxes1.label01.grid(row=1,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
@@ -946,29 +931,36 @@ class dataset():
         self.tempeditaxes1.entry04 = ttk.Entry(self.tempeditaxes1,state=tk.DISABLED)
         self.tempeditaxes1.entry04.grid(row=4,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
+        self.tempeditaxes1.entry05 = tk.StringVar(self.root)
         self.tempeditaxes1.label05 = ttk.Label(self.tempeditaxes1,text="Y-1 Lines")
         self.tempeditaxes1.label05.grid(row=5,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
-        self.tempeditaxes1.spinb05 = ttk.Spinbox(self.tempeditaxes1,to=20)
+        self.tempeditaxes1.spinb05 = ttk.Spinbox(self.tempeditaxes1,to=20,textvariable=self.tempeditaxes1.entry05,command=lambda:self.set_temptopdict("entry05"))
         self.tempeditaxes1.spinb05.grid(row=5,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
+        self.tempeditaxes1.entry06 = tk.StringVar(self.root)
         self.tempeditaxes1.label06 = ttk.Label(self.tempeditaxes1,text="Y-2 Lines",state=tk.DISABLED)
         self.tempeditaxes1.label06.grid(row=6,column=0,sticky=tk.EW,padx=(30,),pady=(4,))
-        self.tempeditaxes1.spinb06 = ttk.Spinbox(self.tempeditaxes1,to=20,state=tk.DISABLED)
+        self.tempeditaxes1.spinb06 = ttk.Spinbox(self.tempeditaxes1,to=20,textvariable=self.tempeditaxes1.entry06,command=lambda:self.set_temptopdict("entry06"),state=tk.DISABLED)
         self.tempeditaxes1.spinb06.grid(row=6,column=1,sticky=tk.EW,padx=(0,10),pady=(4,))
 
-        self.tempeditaxes1.check07 = ttk.Checkbutton(self.tempeditaxes1,text="Show Legends")
+        self.tempeditaxes1.entry07 = tk.IntVar(self.root)
+        self.tempeditaxes1.check07 = ttk.Checkbutton(self.tempeditaxes1,text="Show Legends",variable=self.tempeditaxes1.entry07)
         self.tempeditaxes1.check07.grid(row=7,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.check08 = ttk.Checkbutton(self.tempeditaxes1,text="Show X Ticks")
+        self.tempeditaxes1.entry08 = tk.IntVar(self.root)
+        self.tempeditaxes1.check08 = ttk.Checkbutton(self.tempeditaxes1,text="Show X Ticks",variable=self.tempeditaxes1.entry08)
         self.tempeditaxes1.check08.grid(row=8,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.check09 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-1 Ticks")
+        self.tempeditaxes1.entry09 = tk.IntVar(self.root)
+        self.tempeditaxes1.check09 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-1 Ticks",variable=self.tempeditaxes1.entry09)
         self.tempeditaxes1.check09.grid(row=9,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.check10 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-2 Ticks",state=tk.DISABLED)
+        self.tempeditaxes1.entry10 = tk.IntVar(self.root)
+        self.tempeditaxes1.check10 = ttk.Checkbutton(self.tempeditaxes1,text="Show Y-2 Ticks",variable=self.tempeditaxes1.entry10,state=tk.DISABLED)
         self.tempeditaxes1.check10.grid(row=10,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
-        self.tempeditaxes1.check11 = ttk.Checkbutton(self.tempeditaxes1,text="Show Grids")
+        self.tempeditaxes1.entry11 = tk.IntVar(self.root)
+        self.tempeditaxes1.check11 = ttk.Checkbutton(self.tempeditaxes1,text="Show Grids",variable=self.tempeditaxes1.entry11)
         self.tempeditaxes1.check11.grid(row=11,column=0,sticky=tk.EW,padx=(10,),pady=(4,))
 
         self.tempeditaxes1.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
@@ -1069,15 +1061,83 @@ class dataset():
 
         self.temptop.mainloop()
 
-    def set_tempdict(self,x,prop):
+    def set_temptopdict(self):
+        pass
+        # self.tempeditgeneral0.tempname.insert(0,curtemp.get("name"))
+        # naxrows,naxcols = self.curtemp.get("subplots")
 
-        if x.isdigit() or x=="":
-            # print(prop)
-            return True
-        else:
-            return False
+        # self.tempeditgeneral1.naxrows.insert(0,naxrows)
+        # self.tempeditgeneral1.naxcols.insert(0,naxcols)
 
-    def apply_temptop(self,tempid=None,event=None):
+        # for index in range(naxrows*naxcols):
+        #     self.tempeditaxes0.listbox.insert(tk.END,"Axis {}".format(index))
+        #     self.tempeditlines0.listbox.insert(tk.END,"Axis {}".format(index))
+
+        # self.tempeditaxes1.entry00.set(self.curtemp.get("twinx")[0])
+        # self.tempeditaxes1.entry01.set(self.curtemp.get("title")[0])
+        # self.tempeditaxes1.enrty02.set(self.curtemp.get("xlabel")[0])
+        # self.tempeditaxes1.enrty03.set(self.curtemp.get("ylabel")[0])
+        # self.tempeditaxes1.enrty04.set(self.curtemp.get("ylabel")[1])
+        # self.tempeditaxes1.entry05.set(self.curtemp.get("sublines")[0])
+        # self.tempeditaxes1.entry06.set(self.curtemp.get("sublines")[1])
+        # self.tempeditaxes1.entry07.set(self.curtemp.get("legends")[0])
+        # self.tempeditaxes1.entry08.set(self.curtemp.get("xticks")[0])
+        # self.tempeditaxes1.entry09.set(self.curtemp.get("yticks")[0])
+        # self.tempeditaxes1.entry10.set(self.curtemp.get("yticks")[1])
+        # self.tempeditaxes1.entry11.set(self.curtemp.get("grids")[0])
+
+        # for index in range(curtemp.get("sublines")[0][0]):
+        #     self.tempeditlines1.listbox1.insert(tk.END,"Line {}".format(index))
+
+        # for index in range(curtemp.get("sublines")[0][1]):
+        #     self.tempeditlines1.listbox2.insert(tk.END,"Line {}".format(index))
+
+        # self.tempeditlines2.val0.set(self.headers[self.curtemp.get("xaxes")[0][0]])
+        # self.tempeditlines2.val1.set(self.headers[self.curtemp.get("yaxes")[0][0]])
+        # self.tempeditlines2.val2.set(self.drawstyles[self.curtemp.get("drawstyles")[0][0]])
+        # self.tempeditlines2.val3.set(self.linestyles[self.curtemp.get("linestyles")[0][0]])
+        # self.tempeditlines2.val4.set(self.linecolors[self.curtemp.get("linecolors")[0][0]])
+
+    def set_temptopedits(self,input_):
+
+        if input_=="rows" or input_=="columns":
+            numx = self.tempeditgeneral1.naxval0.get()
+            numy = self.tempeditgeneral1.naxval1.get()
+            numx = int(numx) if numx else 1
+            numy = int(numy) if numy else 1
+            numa = numx*numy
+            if numa>len(self.tempeditaxes0.listbox.get(0,tk.END)):
+                self.tempeditaxes0.listbox.insert(tk.END,"Axis {}".format(numa))
+                self.tempeditlines0.listbox.insert(tk.END,"Axis {}".format(numa))
+        elif input_=="entry00":
+            if self.tempeditaxes1.entry00.get():
+                self.tempeditaxes1.label04.config(state=tk.NORMAL)
+                self.tempeditaxes1.entry04.config(state=tk.NORMAL)
+                self.tempeditaxes1.label06.config(state=tk.NORMAL)
+                self.tempeditaxes1.spinb06.config(state=tk.NORMAL)
+                self.tempeditaxes1.check10.config(state=tk.NORMAL)
+            else:
+                self.tempeditaxes1.label04.config(state=tk.DISABLED)
+                self.tempeditaxes1.entry04.config(state=tk.DISABLED)
+                self.tempeditaxes1.label06.config(state=tk.DISABLED)
+                self.tempeditaxes1.spinb06.config(state=tk.DISABLED)
+                self.tempeditaxes1.check10.config(state=tk.DISABLED)
+        elif input_=="entry05":
+            num1 = int(self.tempeditaxes1.entry05.get())
+            if num1>len(self.tempeditlines1.listbox1.get(0,tk.END)):
+                self.tempeditlines1.listbox1.insert(tk.END,"Line {}".format(num1))
+        elif input_=="entry06":
+            num2 = int(self.tempeditaxes1.entry06.get())
+            if num2>len(self.tempeditlines1.listbox2.get(0,tk.END)):
+                self.tempeditlines1.listbox2.insert(tk.END,"Line {}".format(num2))
+
+        # if x.isdigit() or x=="":
+        #     # print(prop)
+        #     return True
+        # else:
+        #     return False
+
+    def set_template(self,tempid=None,event=None):
 
         if event is not None and event.widget!=self.temptop.button:
             return
@@ -1123,22 +1183,6 @@ class dataset():
         # self.curtemp.get("naxcols").insert(tempid,naxcols)
 
         self.temptop.destroy()
-
-    def write(self,filepath,fstring=None,**kwargs):
-
-        header_fstring = ("{}\t"*len(self._headers))[:-1]+"\n"
-
-        if fstring is None:
-            running_fstring = ("{}\t"*len(self._headers))[:-1]+"\n"
-        else:
-            running_fstring = fstring
-
-        vprint = np.vectorize(lambda *args: running_fstring.format(*args))
-
-        with open(filepath,"w",encoding='utf-8') as wfile:
-            wfile.write(header_fstring.format(*self._headers))
-            for line in vprint(*self._running):
-                wfile.write(line)
 
 def writexlsx(filepath,**kwargs):
 
@@ -1295,6 +1339,6 @@ if __name__ == "__main__":
 
     data.names = np.unique(data.running[0])
 
-    data.set_gui()
+    data.set_graphtop()
 
     window.mainloop()
