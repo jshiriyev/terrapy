@@ -62,7 +62,7 @@ temp1 = {
     "xaxes": [[1],[1,1]],
     "yaxes": [[2],[3,4]],
     "drawstyles": [[0],[0,0]],
-    "linestyles": [[0],[None,None]],
+    "linestyles": [[0],[0,0]],
     "linecolors": [[6],[0,2]],
     }
 
@@ -82,7 +82,7 @@ temp2 = {
     "xaxes": [[1],[1,1]],
     "yaxes": [[2],[3,4]],
     "drawstyles": [[4],[0,0]],
-    "linestyles": [[0],[]],
+    "linestyles": [[0],[0,0]],
     "linecolors": [[6],[0,2]],
     }
 
@@ -102,8 +102,8 @@ temp3 = {
     "xaxes": [[1],[1],[1],[]],
     "yaxes": [[2],[3],[4],[]],
     "drawstyles": [[0],[0],[0],[0]],
-    "linestyles": [[0],[0],[0],[]],
-    "linecolors": [[6],[0],[2],[]],
+    "linestyles": [[0],[0],[0],[0]],
+    "linecolors": [[6],[0],[2],[0]],
     }
 
 class dataset():
@@ -124,43 +124,43 @@ class dataset():
         )
 
     linestyles = (
-        "({}) solid".format('-'),
-        "({}) dashed".format('--'),
-        "({}) dash dot".format('-.'),
-        "({}) dotted".format(':'),
-        "({}) point marker".format('.'),
-        "({}) pixel marker".format(','),
-        "({}) circle marker".format('o'),
-        "({}) triangle_down marker".format('v'),
-        "({}) triangle_up marker".format('^'),
-        "({}) triangle_left marker".format('<'),
-        "({}) triangle_right marker".format('>'),
-        "({}) tri_down marker".format('1'),
-        "({}) tri_up marker".format('2'),
-        "({}) tri_left marker".format('3'),
-        "({}) tri_right marker".format('4'),
-        "({}) square marker".format('s'),
-        "({}) pentagon marker".format('p'),
-        "({}) star marker".format('*'),
-        "({}) hexagon1 marker".format('h'),
-        "({}) hexagon2 marker".format('H'),
-        "({}) plus marker".format('+'),
-        "({}) x marker".format('x'),
-        "({}) diamond marker".format('D'),
-        "({}) thin_diamond marker".format('d'),
-        "({}) vline marker".format('|'),
-        "({}) hline marker".format('_'),
+        ('-',  "({}) solid".format('-')),
+        ('--', "({}) dashed".format('--')),
+        ('-.', "({}) dash dot".format('-.')),
+        (':',  "({}) dotted".format(':')),
+        ('.',  "({}) point marker".format('.')),
+        (',',  "({}) pixel marker".format(',')),
+        ('o',  "({}) circle marker".format('o')),
+        ('v',  "({}) triangle_down marker".format('v')),
+        ('^',  "({}) triangle_up marker".format('^')),
+        ('<',  "({}) triangle_left marker".format('<')),
+        ('>',  "({}) triangle_right marker".format('>')),
+        ('1',  "({}) tri_down marker".format('1')),
+        ('2',  "({}) tri_up marker".format('2')),
+        ('3',  "({}) tri_left marker".format('3')),
+        ('4',  "({}) tri_right marker".format('4')),
+        ('s',  "({}) square marker".format('s')),
+        ('p',  "({}) pentagon marker".format('p')),
+        ('*',  "({}) star marker".format('*')),
+        ('h',  "({}) hexagon1 marker".format('h')),
+        ('H',  "({}) hexagon2 marker".format('H')),
+        ('+',  "({}) plus marker".format('+')),
+        ('x',  "({}) x marker".format('x')),
+        ('D',  "({}) diamond marker".format('D')),
+        ('d',  "({}) thin_diamond marker".format('d')),
+        ('|',  "({}) vline marker".format('|')),
+        ('_',  "({}) hline marker".format('_')),
         )
 
     linecolors = (
-        "b: blue",
-        "g: green",
-        "r: red",
-        "c: cyan",
-        "m: magenta",
-        "y: yellow",
-        "k: black",
-        "w: white",
+        ('b', "b: blue"),
+        ('g', "g: green"),
+        ('r', "r: red"),
+        ('c', "c: cyan"),
+        ('m', "m: magenta"),
+        ('y', "y: yellow"),
+        ('k', "k: black"),
+        ('w', "w: white"),
         )
 
     templates = (
@@ -562,6 +562,10 @@ class dataset():
         else:
             self.running = [np.asarray(column[match_index]) for column in self._running]
 
+    def filter_invert(self):
+
+        self.running = [np.asarray(column) for column in self._running]
+
     def write(self,filepath,fstring=None,**kwargs):
 
         header_fstring = ("{}\t"*len(self._headers))[:-1]+"\n"
@@ -637,13 +641,13 @@ class dataset():
         self.tempbox.iconedit = tk.PhotoImage(file=os.path.join(self.dirname,"graphics","Edit","Edit-9.png"))
         self.tempbox.icondel = tk.PhotoImage(file=os.path.join(self.dirname,"graphics","Delete","Delete-9.png"))
 
-        self.tempbox.buttonadd = ttk.Button(self.tempbox,image=self.tempbox.iconadd,command=self.add_temp)
+        self.tempbox.buttonadd = ttk.Button(self.tempbox,image=self.tempbox.iconadd,command=lambda:self.get_template("add"))
         self.tempbox.buttonadd.grid(row=0,column=1)
 
-        self.tempbox.buttonedit = ttk.Button(self.tempbox,image=self.tempbox.iconedit,command=self.edit_temp)
+        self.tempbox.buttonedit = ttk.Button(self.tempbox,image=self.tempbox.iconedit,command=lambda:self.get_template("edit"))
         self.tempbox.buttonedit.grid(row=0,column=2)
 
-        self.tempbox.buttondel = ttk.Button(self.tempbox,image=self.tempbox.icondel,command=self.del_temp)
+        self.tempbox.buttondel = ttk.Button(self.tempbox,image=self.tempbox.icondel,command=lambda:self.get_template("delete"))
         self.tempbox.buttondel.grid(row=0,column=3)
 
         self.tempbox.listbox = tk.Listbox(self.tempbox,exportselection=False)
@@ -747,16 +751,16 @@ class dataset():
         for index,axis in enumerate(self.axes):
             xaxes = self.curtemp.get("xaxes")[index]
             yaxes = self.curtemp.get("yaxes")[index]
-            drawstyles = self.curtemp.get("drawstyles")[index]
-            linestyles = self.curtemp.get("linestyles")[index]
-            linecolors = self.curtemp.get("linecolors")[index]
-            for xaxis,yaxis,dstyle,lstyle,color in zip(xaxes,yaxes,drawstyles,linestyles,linecolors):
+            dstyles = self.curtemp.get("drawstyles")[index]
+            lstyles = self.curtemp.get("linestyles")[index]
+            lcolors = self.curtemp.get("linecolors")[index]
+            for xaxis,yaxis,dstyle,lstyle,color in zip(xaxes,yaxes,dstyles,lstyles,lcolors):
                 line = axis.plot(
                     self.running[xaxis],
                     self.running[yaxis],
-                    drawstyle=dstyle,
-                    linestyle=lstyle,
-                    c=color,
+                    drawstyle=self.drawstyles[dstyle],
+                    linestyle=self.linestyles[lstyle][0],
+                    c=self.linecolors[color][0],
                     label=self.headers[yaxis])[0]
                 self.lines.append(line)
             if self.curtemp.get("legends")[index]:
@@ -769,7 +773,7 @@ class dataset():
 
         self.canvas.draw()
 
-    def get_template(self,manipulation="add"):
+    def get_template(self,manipulation):
 
         if manipulation=="add":
 
@@ -793,7 +797,7 @@ class dataset():
                 "linecolors": [[]],
                 }
 
-            self.set_temptop() # when adding a new one
+            self.set_temptop("add") # when adding a new one
 
         elif manipulation=="edit":
 
@@ -802,7 +806,7 @@ class dataset():
             self.curtemp = self.templates[self.tempbox.listbox.curselection()[0]] # when editing
             self.set_temptop(tempid=self.tempbox.listbox.curselection()[0]) # editing the existing one
             
-        elif manipulation=="delete"
+        elif manipulation=="delete":
             # deleting a template
 
             if not self.tempbox.listbox.curselection(): return
@@ -817,7 +821,7 @@ class dataset():
             # self.curtemp.get("naxrows").pop(item)
             # self.curtemp.get("naxcols").pop(item)
 
-    def set_temptop(self,manipulation):
+    def set_temptop(self,manipulation,tempid=None):
 
         if hasattr(self,"temptop"):
             if self.temptop.winfo_exists(): return
