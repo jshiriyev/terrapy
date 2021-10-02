@@ -107,6 +107,33 @@ class singlephase():
         sum_ = np.sum(1/n*exp_*sin_,axis=2)
 
         self.pressure = PL+(PU-PL)*((self.x/L).reshape((1,-1))+2/np.pi*sum_)
+
+class multicomponent():
+
+    def obj(XX,v,L):
+
+        data = np.loadtxt('Lecture_08_dispersion.txt',skiprows=1)
+
+        time = data[:,0]*3600   # seconds
+
+        cc0_c = concentration(XX,v,L,time)
+
+        cc0 = data[:,1]         # dimensionless
+
+        return np.sum((cc0-cc0_c)**2)
+
+    def concentration(XX,v,L,time):
+
+        DL = 10**(-XX)
+
+        term1 = erfc((L-v*time)/(2*np.sqrt(DL*time)))
+        term2 = erfc((L+v*time)/(2*np.sqrt(DL*time)))
+
+        if not np.any(term2):
+            return 1/2*(term1)
+        else:
+            term3 = np.exp(v*L/DL)
+            return 1/2*(term1+term2*term3)
         
 class multiphase():
     
@@ -252,7 +279,49 @@ if __name__ == "__main__":
 
     unittest.main(test_porous_media)
 
-    # Section below should be incorporated to the test of Buckley Leverett Model
+    # Section below should be used to test multicomponent model              !!!!
+
+    # data = np.loadtxt('Lecture_08_dispersion',skiprows=1)
+
+    # time = data[:,0]*3600   # seconds
+    # cc0 = data[:,1]         # dimensionless
+
+    # D = 6*1e-2              # meter
+    # L = 40*1e-2             # meter
+
+    # phi = 0.35              # dimensionless
+
+    # q = 1000*1e-6/3600      # meter3/seconds
+
+    # A = np.pi*D**2/4
+    # v = q/A/phi
+
+    # T = optimize.minimize(obj,0,args=(v,L),method="Powell",bounds=[(0,10)])
+    # ##T = optimize.minimize_scalar(obj,args=(v,L),method="bounded",bounds=(0,10))
+
+    # ##DL = np.logspace(-10,-1,10000)
+    # ##
+    # ##OF = np.empty_like(DL)
+    # ##
+    # ##for i in range(10000):
+    # ##    OF[i] = obj(DL[i],v,L)
+    # ##
+    # ##plt.loglog(DL,OF)
+    # ##plt.show()
+
+    # ##DL = 4.140*1e-7         # meter2/second
+
+    # t = np.linspace(1100,1700)
+
+    # Cr = concentration(T.x,v,L,t)
+
+    # plt.scatter(time/3600,cc0)
+    # plt.xlabel('time in hours')
+    # plt.ylabel('concentration ratio')
+    # plt.plot(t/3600,Cr,'r')
+    # plt.show()
+
+    # Section below should be incorporated to the test of Buckley Leverett Model        !!!!
 
 ##    Sw = 0.3
 ##    Sg = 0.3

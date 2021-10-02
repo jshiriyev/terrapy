@@ -6,7 +6,7 @@ from scipy.special import expi
 if __name__ == "__main__":
     import setup
 
-class radial():
+class singlephase():
 
     """
     line source solution based on exponential integral
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     totalCompressibility = 2e-5/6894.76
 
-    ls = radial(permeability,porosity,viscosity,totalCompressibility,well_radius,reservoir_radius,thickness)
+    ls = singlephase(permeability,porosity,viscosity,totalCompressibility,well_radius,reservoir_radius,thickness)
 
     ls.solve(radius,time,q)
 
