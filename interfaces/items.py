@@ -275,13 +275,13 @@ class Wells(graphics):
 
     # INPUT: PRODUCTION, COMPLETION, TRAJECTORY, BOREHOLE LOGGING
 
-    filename_prodraw    = "operation_raw.bbp"
-    filename_compraw    = "completion_raw.bbp"
-    filename_wtrackraw  = "wtrack_raw.bbp"
-    filename_wlograw    = "wlogging_raw.bbp"
+    filename_prodraw    = "operation_raw"
+    filename_compraw    = "completion_raw"
+    filename_wtrackraw  = "wtrack_raw"
+    filename_wlograw    = "wlogging_raw"
 
     headers_prodraw     = (
-        "WELL","DATE","DAYS","OPROD","WPROD","GPROD","WINJ",
+        "Wells","Date","Days","oil","water","gas","Wi",
         )
 
     headers_compraw     = (
@@ -298,12 +298,13 @@ class Wells(graphics):
 
     # OUTPUT: PRODUCTION, COMPLETION, TRAJECTORY, BOREHOLE LOGGING, SCHEDULE
 
-    filename_prod       = "OPERATION.BBP"
-    filename_comp       = "COMPLETION.BBP"
-    filename_compuni    = "COMPLETION_UNIFIED.BBP"
-    filename_wtrack     = "WELLTRACK.BBP"
-    filename_wlog       = "WELLOGGING.BBP"
-    filename_schedule   = "SCHEDULE.BBP"
+    filename_prod       = "operation"
+    filename_comp       = "completion"
+    filename_wtrack     = "welltrack"
+    filename_wlog       = "wellogging"
+
+    filename_compuni    = "completion_uni"
+    filename_schedule   = "schedule"
 
     headers_prod        = (
         "WELL","DATE","DAYS","OPTYPE","ROIL","RWATER","RGAS",
@@ -327,6 +328,12 @@ class Wells(graphics):
 
     headers_schedule    = (
         "DATE","KEYWORD","DETAILS",
+        )
+
+    attrnames = (
+        "prodraw","compraw","wtrackraw","wlograw",
+        "prod","comp","wtrack","wlog",
+        "compuni","schedule"
         )
 
     # SCHEDULE TO BE WRITTEN WITH KEYWORDS [DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN]
@@ -413,8 +420,6 @@ class Wells(graphics):
         self.wlograw      = dataset("wlograw",headers=self.headers_wlograw)
 
         self.wnamefstr    = wnamefstr       # string format to save well names
-
-        self.attrnames    = ["prodraw","compraw","wtrackraw","wlograw","prod","comp","wtrack","wlog","compuni","schedule"]
 
     def set_names(self,wellnames=None):
 
@@ -533,7 +538,6 @@ class Wells(graphics):
 
         if self.wnamefstr is not None:
             vname = np.vectorize(lambda x: self.wnamefstr.format(re.sub("[^0-9]","",x).zfill(3)))
-
             prod.set_column(vname(prod.running[0]),header_index=0)
 
         def shifting(x):
@@ -544,6 +548,12 @@ class Wells(graphics):
         vdate3 = np.vectorize(lambda x: shifting(x))
 
         prod.set_column(vdate3(prod.running[1]),header_index=1)
+
+        path = os.path.join(self.workdir,self.filename_prod+"0")
+
+        fstring = "{:6s}\t{:%Y-%m-%d}\t{:2d}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\n"
+
+        prod.write(filepath=path,fstring=fstring)
 
         prod.set_column(roil,header_new="ROIL")
         prod.set_column(rwater,header_new="RWATER")
@@ -558,8 +568,6 @@ class Wells(graphics):
         fstring = "{:6s}\t{:%Y-%m-%d}\t{:2d}\t{:10s}\t{:.1f}\t{:.1f}\t{:.1f}\n"
 
         prod.write(filepath=path,fstring=fstring)
-
-        self.prod = prod
 
     def prod_get(self,wellname=None):
 
@@ -717,9 +725,7 @@ class Wells(graphics):
 
         comp1.write(filepath=path,fstring=fstring)
 
-        self.comp = comp1
-
-        self.compuni = dataset("compuni",headers=self.headers_compuni)
+        compuni = dataset("compuni",headers=self.headers_compuni)
 
         for wname in self.itemnames:
 
@@ -761,17 +767,17 @@ class Wells(graphics):
 
             rows = np.array([update_wells,update_dates,update_counts]).T.tolist()
 
-            self.compuni.set_rows(rows)
+            compuni.set_rows(rows)
 
-        self.compuni.astype(header_index=2,dtype=int)
+        compuni.astype(header_index=2,dtype=int)
 
-        self.compuni.sort(header_indices=[1],inplace=True)
+        compuni.sort(header_indices=[1],inplace=True)
 
         path = os.path.join(self.workdir,self.filename_compuni)
 
         fstring = "{:6s}\t{:%Y-%m-%d}\t{:d}\n"
 
-        self.compuni.write(filepath=path,fstring=fstring)
+        compuni.write(filepath=path,fstring=fstring)
 
     def comp_get(self,wellname=None):
 
@@ -819,8 +825,6 @@ class Wells(graphics):
         traj.astype(header=headers_traj[1],dtype=np.float64)
         traj.astype(header=headers_traj[2],dtype=np.float64)
         traj.astype(header=headers_traj[3],dtype=np.float64)
-
-        return traj
 
     def track_get(self,wellname=None):
 
