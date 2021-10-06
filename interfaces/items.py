@@ -273,14 +273,16 @@ class Fractures():
 
 class Wells(graphics):
 
-    # INPUT: PRODUCTION, COMPLETION, TRAJECTORY, BOREHOLE LOGGING
+    # INPUT & OUTPUT: PRODUCTION, COMPLETION, TRAJECTORY, BOREHOLE LOGGING, SCHEDULE, COMPLETION UNIFIED
 
-    filename_prodraw    = "operation_raw"
-    filename_compraw    = "completion_raw"
-    filename_wtrackraw  = "wtrack_raw"
-    filename_wlograw    = "wlogging_raw"
+    filename_op         = "operation"
+    filename_comp       = "completion"
+    filename_wtrack     = "welltrack"
+    filename_wlog       = "wellogging"
 
-    headers_prodraw     = (
+    filename_schedule   = "schedule"
+
+    headers_opraw       = (
         "Wells","Date","Days","oil","water","gas","Wi",
         )
 
@@ -296,18 +298,8 @@ class Wells(graphics):
         "",
         )
 
-    # OUTPUT: PRODUCTION, COMPLETION, TRAJECTORY, BOREHOLE LOGGING, SCHEDULE
-
-    filename_prod       = "operation"
-    filename_comp       = "completion"
-    filename_wtrack     = "welltrack"
-    filename_wlog       = "wellogging"
-
-    filename_compuni    = "completion_uni"
-    filename_schedule   = "schedule"
-
-    headers_prod        = (
-        "WELL","DATE","DAYS","OPTYPE","ROIL","RWATER","RGAS",
+    headers_op          = (
+        "WELL","DATE","DAYS","OPTYPE","ROIL","RWATER","RGAS","TOIL","TWATER","TGAS",
         )
 
     headers_comp        = (
@@ -328,12 +320,6 @@ class Wells(graphics):
 
     headers_schedule    = (
         "DATE","KEYWORD","DETAILS",
-        )
-
-    attrnames = (
-        "prodraw","compraw","wtrackraw","wlograw",
-        "prod","comp","wtrack","wlog",
-        "compuni","schedule"
         )
 
     # SCHEDULE TO BE WRITTEN WITH KEYWORDS [DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN]
@@ -403,44 +389,42 @@ class Wells(graphics):
 
     templates = (welltemp0,welltemp1,)
 
-    def __init__(self,window,workdir,prodrawdir=None,comprawdir=None,wtrackrawdir=None,wlograwdir=None,wnamefstr=None,**kwargs):
+    def __init__(self,window,workdir,oprawdir=None,comprawdir=None,wtrackrawdir=None,wlograwdir=None,wnamefstr=None,**kwargs):
 
         super().__init__(window)
 
         self.workdir      = workdir         # working directory to save and retrieve saved data
 
-        self.prodrawdir   = prodrawdir      # production directory for each well
+        self.oprawdir     = oprawdir        # production directory for each well
         self.comprawdir   = comprawdir      # completion directory for each well
         self.wtrackrawdir = wtrackrawdir    # trajectory directory for each well
         self.wlograwdir   = wlograwdir      # wellogging directory for each well
 
-        self.prodraw      = dataset("prodraw",headers=self.headers_prodraw)
-        self.compraw      = dataset("compraw",headers=self.headers_compraw)
-        self.wtrackraw    = dataset("wtrackraw",headers=self.headers_wtrackraw)
-        self.wlograw      = dataset("wlograw",headers=self.headers_wlograw)
-
         self.wnamefstr    = wnamefstr       # string format to save well names
+
+        self.attrnames    = []              # prod, comp, wtrack, wlog, compuni, schedule
 
     def set_names(self,wellnames=None):
 
-        if wellnames is not None:
-            self.itemnames = wellnames
-            return
-
         warnNWIF = "No well name could be found."
 
-        if len(self.prod.running[0])!=0:
-            self.itemnames = np.unique(self.prod.running[0])
-        elif len(self.comp.running[0])!=0:
-            self.itemnames = np.unique(self.comp.running[0])
-        elif len(self.track.running[0])!=0:
-            self.itemnames = np.unique(self.track.running[0])
-        elif len(self.wlog.running[0])!=0:
-            self.itemnames = np.unique(self.wlog.running[0])
+        if wellnames is not None:
+            self.itemnames = wellnames
+        elif len(self.attrnames)==0:
+            # warnings.warn(warnNWIF)
+            self.op_get(filending="0")
+            attrvals = getattr(self,self.attrnames[0])
+            self.itemnames = np.unique(attrvals.running[0])
         else:
-            warnings.warn(warnNWIF)
+            attrvals = getattr(self,self.attrnames[0])
+            self.itemnames = np.unique(attrvals.running[0])
 
-    def prod_process(self):
+        if self.wnamefstr is not None:
+            get_windex = lambda x: self.wnamefstr.format(re.sub("[^0-9]","",x).zfill(3))
+            set_wnames = np.vectorize(get_windex)
+            self.itemnames = set_wnames(self.itemnames)
+
+    def op_process(self):
 
         warnDNEOM = "{:%d %b %Y} {} date is not the last day of month."
         warnADGDM = "{:%d %b %Y} {} active days is greater than the days in the month."
@@ -451,20 +435,20 @@ class Wells(graphics):
         warnHZPAI = "{:%d %b %Y} {} has zero production and injection."
         warnHBPAI = "{:%d %b %Y} {} has both production and injection data."
 
-        path = os.path.join(self.workdir,self.filename_prodraw)
+        path = os.path.join(self.workdir,self.filename_op+"0")
 
         prod = dataset(filepath=path,skiplines=1)
 
         prod.texttocolumn(0,deliminator="\t",maxsplit=7)
-        prod.get_columns(headers=self.headers_prodraw,inplace=True)
+        prod.get_columns(headers=self.headers_opraw,inplace=True)
         prod.sort(header_indices=[1],inplace=True)
 
-        prod.astype(header=self.headers_prodraw[1],datestring=True)
-        prod.astype(header=self.headers_prodraw[2],dtype=np.int64)
-        prod.astype(header=self.headers_prodraw[3],dtype=np.float64)
-        prod.astype(header=self.headers_prodraw[4],dtype=np.float64)
-        prod.astype(header=self.headers_prodraw[5],dtype=np.float64)
-        prod.astype(header=self.headers_prodraw[6],dtype=np.float64)
+        prod.astype(header=self.headers_opraw[1],datestring=True)
+        prod.astype(header=self.headers_opraw[2],dtype=np.int64)
+        prod.astype(header=self.headers_opraw[3],dtype=np.float64)
+        prod.astype(header=self.headers_opraw[4],dtype=np.float64)
+        prod.astype(header=self.headers_opraw[5],dtype=np.float64)
+        prod.astype(header=self.headers_opraw[6],dtype=np.float64)
 
         vdate1 = np.vectorize(lambda x: x.day!=calendar.monthrange(x.year,x.month)[1])
 
@@ -510,10 +494,6 @@ class Wells(graphics):
         rwater = prod.running[4]+prod.running[6]
         rgas = prod.running[5]
 
-        toil = np.cumsum(roil)
-        twater = np.cumsum(rwater)
-        tgas = np.cumsum(rgas)
-
         rprod = prod.running[3]+prod.running[4]+prod.running[5]
         rinj = prod.running[6]
 
@@ -549,7 +529,7 @@ class Wells(graphics):
 
         prod.set_column(vdate3(prod.running[1]),header_index=1)
 
-        path = os.path.join(self.workdir,self.filename_prod+"0")
+        path = os.path.join(self.workdir,self.filename_op+"1")
 
         fstring = "{:6s}\t{:%Y-%m-%d}\t{:2d}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\n"
 
@@ -561,44 +541,75 @@ class Wells(graphics):
 
         prod.set_column(optype,header_new="OPTYPE")
 
-        prod.get_columns(headers=self.headers_prod,inplace=True)
+        prod.set_header(0,self.headers_op[0])
+        prod.set_header(1,self.headers_op[1])
+        prod.set_header(2,self.headers_op[2])
+
+        prod.get_columns(headers=self.headers_op[:7],inplace=True)
         
-        path = os.path.join(self.workdir,self.filename_prod)
+        path = os.path.join(self.workdir,self.filename_op+"2")
 
         fstring = "{:6s}\t{:%Y-%m-%d}\t{:2d}\t{:10s}\t{:.1f}\t{:.1f}\t{:.1f}\n"
 
         prod.write(filepath=path,fstring=fstring)
 
-    def prod_get(self,wellname=None):
+    def op_get(self,filending=None,wellname=None):
 
-        path1 = os.path.join(self.workdir,self.filename_prodraw)
+        for filename in os.listdir(self.workdir):
 
-        self.prodraw = dataset(filepath=path1,skiplines=1)
+            if filename[:len("operation")]=="operation":
 
-        self.prodraw.texttocolumn(0,deliminator="\t")
+                path = os.path.join(self.workdir,filename)
 
-        self.prodraw.astype(header=self.headers_prodraw[1],datestring=True)
-        self.prodraw.astype(header=self.headers_prodraw[2],dtype=int)
-        self.prodraw.astype(header=self.headers_prodraw[3],dtype=np.float64)
-        self.prodraw.astype(header=self.headers_prodraw[4],dtype=np.float64)
-        self.prodraw.astype(header=self.headers_prodraw[5],dtype=np.float64)
-        self.prodraw.astype(header=self.headers_prodraw[6],dtype=np.float64)
+                ending = filename[len("operation"):]
 
-        path2 = os.path.join(self.workdir,self.filename_prod)
+                if filename[:2]+ending in self.attrnames:
+                    continue
 
-        self.prod = dataset(filepath=path2,skiplines=1)
+                if filending is not None:
+                    if filending!=ending:
+                        continue
 
-        self.prod.texttocolumn(0,deliminator="\t")
+                try:
+                    index = int(ending)
+                except ValueError:
+                    index = None
 
-        self.prod.astype(header=self.headers_prod[1],datestring=True)
-        self.prod.astype(header=self.headers_prod[2],dtype=int)
-        self.prod.astype(header=self.headers_prod[4],dtype=np.float64)
-        self.prod.astype(header=self.headers_prod[5],dtype=np.float64)
-        self.prod.astype(header=self.headers_prod[6],dtype=np.float64)
+                attrname = filename[:2]+ending
 
-        if wellname is not None:
-            self.prodraw.filter(0,keywords=[wellname],inplace=False)
-            self.prod.filter(0,keywords=[wellname],inplace=False)
+                attrvals = dataset(filepath=path,skiplines=1)
+
+                setattr(self,attrname,attrvals)
+
+                getattr(self,attrname).texttocolumn(0,deliminator="\t")
+
+                if index < 2:
+                    getattr(self,attrname).astype(header=self.headers_opraw[1],datestring=True)
+                    getattr(self,attrname).astype(header=self.headers_opraw[2],dtype=int)
+                    getattr(self,attrname).astype(header=self.headers_opraw[3],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_opraw[4],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_opraw[5],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_opraw[6],dtype=np.float64)         
+                elif index < 3:
+                    getattr(self,attrname).astype(header=self.headers_op[1],datestring=True)
+                    getattr(self,attrname).astype(header=self.headers_op[2],dtype=int)
+                    getattr(self,attrname).astype(header=self.headers_op[4],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_op[5],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_op[6],dtype=np.float64)
+                elif index == 3:
+                    getattr(self,attrname).astype(header=self.headers_op[1],datestring=True)
+                    getattr(self,attrname).astype(header=self.headers_op[2],dtype=int)
+                    getattr(self,attrname).astype(header=self.headers_op[4],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_op[5],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_op[6],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_op[7],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_op[8],dtype=np.float64)
+                    getattr(self,attrname).astype(header=self.headers_op[9],dtype=np.float64)
+
+                self.attrnames.append(attrname)
+
+                if wellname is not None:
+                    getattr(self,attrname).filter(0,keywords=[wellname],inplace=False)
 
     def comp_call(self,wellname=None):
 
@@ -610,6 +621,8 @@ class Wells(graphics):
         warnSTRTDATE = "{} start date is not set properly in completion directory."
         warnSTOPDATE = "{} stop date is not set properly in completion directory."
         warnSTARTEND = "{} start date is after or equal to stop date in completion directory."
+
+        compraw = dataset(headers=self.headers_compraw)
 
         for wname in self.itemnames:
 
@@ -660,7 +673,7 @@ class Wells(graphics):
 
             compraw.set_rows(comp.get_rows())
 
-        path = os.path.join(self.workdir,self.filename_compraw)
+        path = os.path.join(self.workdir,self.filename_comp+"0")
 
         fstring = "{:6s}\t{}\t{:.1f}\t{:.1f}\t{:%Y-%m-%d}\t{:%Y-%m-%d}\n"
 
@@ -668,7 +681,7 @@ class Wells(graphics):
 
     def comp_process(self):
 
-        path = os.path.join(self.workdir,self.filename_compraw)
+        path = os.path.join(self.workdir,self.filename_comp+"0")
 
         comp1 = dataset(filepath=path,skiplines=1)
         comp2 = dataset(filepath=path,skiplines=1)
@@ -710,43 +723,43 @@ class Wells(graphics):
 
         comp1.set_rows(comp2.get_rows())
 
-        comp1._headers[0] = self.headers_comp[0]
-        comp1._headers[2] = self.headers_comp[3]
-        comp1._headers[3] = self.headers_comp[4]
-        comp1._headers[4] = self.headers_comp[1]
+        comp1.set_header(0,self.headers_comp[0])
+        comp1.set_header(2,self.headers_comp[3])
+        comp1.set_header(3,self.headers_comp[4])
+        comp1.set_header(4,self.headers_comp[1])
 
         comp1.get_columns(headers=self.headers_comp,inplace=True)
 
         comp1.sort(header_indices=[1],inplace=True)
 
-        path = os.path.join(self.workdir,self.filename_comp)
+        path = os.path.join(self.workdir,self.filename_comp+"1")
 
         fstring = "{:6s}\t{:%Y-%m-%d}\t{:4s}\t{:.1f}\t{:.1f}\t{:4s}\n"
 
         comp1.write(filepath=path,fstring=fstring)
 
-        compuni = dataset("compuni",headers=self.headers_compuni)
+        compuni = dataset(headers=self.headers_compuni)
 
         for wname in self.itemnames:
 
-            self.comp.filter(0,keywords=[wname],inplace=False)
+            comp1.filter(0,keywords=[wname],inplace=False)
 
-            update_dates = np.unique(self.comp.running[1])
-            update_counts = np.zeros(update_dates.size,dtype=int)
+            update_dates = np.unique(comp1.running[1])
             update_wells = np.empty(update_dates.size,dtype=object)
+            update_counts = np.zeros(update_dates.size,dtype=int)
 
             update_wells[:] = wname
 
             update_indices = np.insert(
-                np.cumsum(np.sum(self.comp.running[1]==update_dates.reshape((-1,1)),axis=1)),0,0)
+                np.cumsum(np.sum(comp1.running[1]==update_dates.reshape((-1,1)),axis=1)),0,0)
 
             open_intervals = np.empty((0,2))
 
             for index,date in enumerate(update_dates):
 
-                compevents = self.comp.running[2][update_indices[index]:update_indices[index+1]]
-                compuppers = self.comp.running[3][update_indices[index]:update_indices[index+1]]
-                complowers = self.comp.running[4][update_indices[index]:update_indices[index+1]]
+                compevents = comp1.running[2][update_indices[index]:update_indices[index+1]]
+                compuppers = comp1.running[3][update_indices[index]:update_indices[index+1]]
+                complowers = comp1.running[4][update_indices[index]:update_indices[index+1]]
 
                 perfevents = compevents=="PERF"
 
@@ -773,36 +786,65 @@ class Wells(graphics):
 
         compuni.sort(header_indices=[1],inplace=True)
 
-        path = os.path.join(self.workdir,self.filename_compuni)
+        path = os.path.join(self.workdir,self.filename_comp+"uni")
 
         fstring = "{:6s}\t{:%Y-%m-%d}\t{:d}\n"
 
         compuni.write(filepath=path,fstring=fstring)
 
-    def comp_get(self,wellname=None):
+    def comp_get(self,filending=None,wellname=None):
 
-        path1 = os.path.join(self.workdir,self.filename_comp)
+        for filename in os.listdir(self.workdir):
 
-        self.comp = dataset(filepath=path1,skiplines=1)
+            if filename[:len("completion")]=="completion":
 
-        self.comp.texttocolumn(0,deliminator="\t",maxsplit=6)
+                path = os.path.join(self.workdir,filename)
 
-        self.comp.astype(header=self.headers_comp[1],datestring=True)
-        self.comp.astype(header=self.headers_comp[3],dtype=np.float64)
-        self.comp.astype(header=self.headers_comp[4],dtype=np.float64)
+                ending = filename[len("completion"):]
 
-        path2 = os.path.join(self.workdir,self.filename_compuni)
+                if filename[:4]+ending in self.attrnames:
+                    continue
 
-        self.compuni = dataset(filepath=path2,skiplines=1)
+                if filending is not None:
+                    if filending!=ending:
+                        continue
 
-        self.compuni.texttocolumn(0,deliminator="\t")
+                try:
+                    index = int(ending)
+                except ValueError:
+                    index = None
 
-        self.compuni.astype(header=self.headers_compuni[1],datestring=True)
-        self.compuni.astype(header=self.headers_compuni[2],dtype=int)
+                attrname = filename[:4]+ending
 
-        if wellname is not None:
-            self.comp.filter(0,keywords=[wellname],inplace=False)
-            self.compuni.filter(0,keywords=[wellname],inplace=False)
+                attrvals = dataset(filepath=path,skiplines=1)
+
+                setattr(self,attrname,attrvals)
+
+                if index is not None:
+
+                    if index==0:
+                        getattr(self,attrname).texttocolumn(0,deliminator="\t")
+                        getattr(self,attrname).astype(header=self.headers_compraw[2],dtype=np.float64)
+                        getattr(self,attrname).astype(header=self.headers_compraw[3],dtype=np.float64)
+                        getattr(self,attrname).astype(header=self.headers_compraw[4],datestring=True)
+                        getattr(self,attrname).astype(header=self.headers_compraw[5],datestring=True)
+                    else:
+                        getattr(self,attrname).texttocolumn(0,deliminator="\t",maxsplit=6)
+                        getattr(self,attrname).astype(header=self.headers_comp[1],datestring=True)
+                        getattr(self,attrname).astype(header=self.headers_comp[3],dtype=np.float64)
+                        getattr(self,attrname).astype(header=self.headers_comp[4],dtype=np.float64)
+
+                else:
+
+                    if ending == "uni":
+                        getattr(self,attrname).texttocolumn(0,deliminator="\t")
+                        getattr(self,attrname).astype(header=self.headers_compuni[1],datestring=True)
+                        getattr(self,attrname).astype(header=self.headers_compuni[2],dtype=int)
+
+                self.attrnames.append(attrname)
+
+                if wellname is not None:
+                    getattr(self,attrname).filter(0,keywords=[wellname],inplace=False)
 
     def track_call(self,wellname=None):
 
@@ -838,7 +880,7 @@ class Wells(graphics):
 
         pass
 
-    def schedule_process(self,flagShowSteps=False):
+    def schedule_process(self,wellname=None,flagShowSteps=False):
 
         warnNOPROD = "{} has completion but no production data."
         warnNOCOMP = "{} has production but no completion data."
@@ -850,28 +892,37 @@ class Wells(graphics):
         warnWPLUG = "{:%Y-%m-%d}: {} last plug date does not fit production days."
         warnWEFAC = "{:%Y-%m-%d}: {} efficiency is more than unit [{:2d} out of {:2d} days]."
 
-        self.prod_get()
-        self.comp_get()
+        path1 = os.path.join(self.workdir,self.filename_op+"2")
+        path2 = os.path.join(self.workdir,self.filename_comp+"1")
+        path3 = os.path.join(self.workdir,self.filename_comp+"uni")
 
-        prodwellnames = np.unique(self.prod.running[0])
-        compwellnames = np.unique(self.comp.running[0])
+        self.op_get(filending="2")
+        self.comp_get(filending="1")
+        self.comp_get(filending="uni")
 
-        for wellname in np.setdiff1d(prodwellnames,compwellnames):
-            warnings.warn(warnNOCOMP.format(wellname))
+        prodwellnames = np.unique(self.op2.running[0])
+        compwellnames = np.unique(self.comp1.running[0])
 
-        for wellname in np.setdiff1d(compwellnames,prodwellnames):
-            warnings.warn(warnNOPROD.format(wellname))
+        for wname in np.setdiff1d(prodwellnames,compwellnames):
+            warnings.warn(warnNOCOMP.format(wname))
 
-        self.schedule = dataset("schedule",headers=self.headers_schedule)
+        for wname in np.setdiff1d(compwellnames,prodwellnames):
+            warnings.warn(warnNOPROD.format(wname))
 
-        for wellname in self.itemnames:
+        schedule = dataset(headers=self.headers_schedule)
 
-            self.prod.filter(0,keywords=[wellname],inplace=False)
-            self.comp.filter(0,keywords=[wellname],inplace=False)
-            self.compuni.filter(0,keywords=[wellname],inplace=False)
+        for wname in self.itemnames:
+
+            if wellname is not None:
+                if wellname!=wname:
+                    continue
+
+            self.op2.filter(0,keywords=[wname],inplace=False)
+            self.comp1.filter(0,keywords=[wname],inplace=False)
+            self.compuni.filter(0,keywords=[wname],inplace=False)
 
             try:
-                datemin = self.prod.running[1].min()
+                datemin = self.op2.running[1].min()
             except ValueError:
                 datemin = datetime(3000,1,1)
 
@@ -882,19 +933,19 @@ class Wells(graphics):
             date = datetime(date.year,date.month,days)
 
             if self.compuni.running[1].min()>=date:
-                warnings.warn(warnCROSS.format(wellname))
+                warnings.warn(warnCROSS.format(wname))
 
             compdata = zip(
-                self.comp.running[1],
-                self.comp.running[2],
-                self.comp.running[3],
-                self.comp.running[4],
+                self.comp1.running[1],
+                self.comp1.running[2],
+                self.comp1.running[3],
+                self.comp1.running[4],
                 )
 
             for index,(compdate,compevent,comptop,compbottom) in enumerate(compdata):
 
                 if index==0:
-                    self.schedule.set_rows([[compdate,"WELSPECS",self.schedule_welspecs.format(wellname)]])
+                    schedule.set_rows([[compdate,"WELSPECS",self.schedule_welspecs.format(wname)]])
 
                 if compevent == "PERF":
                     bottom = compbottom
@@ -903,20 +954,20 @@ class Wells(graphics):
                     bottom = "1*"
                     perfs = "SHUT"
 
-                self.schedule.set_rows([[compdate,"COMPDATMD",self.schedule_compdat.format(wellname,comptop,bottom,perfs)]])
-                self.schedule.set_rows([[compdate,"COMPORD",self.schedule_compord.format(wellname)]])
+                schedule.set_rows([[compdate,"COMPDATMD",self.schedule_compdat.format(wname,comptop,bottom,perfs)]])
+                schedule.set_rows([[compdate,"COMPORD",self.schedule_compord.format(wname)]])
 
             flagNoPrevProd = True
 
-            print("{} schedule is in progress ...".format(wellname))
+            print("{} schedule is in progress ...".format(wname))
 
             opdata = zip(
-                self.prod.running[1],
-                self.prod.running[2],
-                self.prod.running[3],
-                self.prod.running[4],
-                self.prod.running[5],
-                self.prod.running[6],
+                self.op2.running[1],
+                self.op2.running[2],
+                self.op2.running[3],
+                self.op2.running[4],
+                self.op2.running[5],
+                self.op2.running[6],
                 )
 
             shutdates = []
@@ -943,7 +994,7 @@ class Wells(graphics):
                 plugdates = compupdatedates[compupdatecounts==0]
 
                 try:
-                    flagNoPostProd = True if self.prod.running[1][index+1]-relativedelta(months=1)>prodmonthENDday else False
+                    flagNoPostProd = True if self.op2.running[1][index+1]-relativedelta(months=1)>prodmonthENDday else False
                 except IndexError:
                     flagNoPostProd = True
 
@@ -960,12 +1011,12 @@ class Wells(graphics):
                     compday = plugdates[-1].day-perfdates[0].day
                     prodeff = days/compday
                     if optype == "production":
-                        self.schedule.set_rows([[perfdates[0],"WCONHIST",self.schedule_prodhist.format(wellname,oil,water,gas)]])
+                        schedule.set_rows([[perfdates[0],"WCONHIST",self.schedule_prodhist.format(wname,oil,water,gas)]])
                     elif optype == "injection":
-                        self.schedule.set_rows([[perfdates[0],"WCONINJH",self.schedule_injhist.format(wellname,water)]])
-                    self.schedule.set_rows([[perfdates[0],"WEFAC",self.schedule_wefac.format(wellname,prodeff)]])
-                    self.prod.running[1][index] = perfdates[0]
-                    self.schedule.set_rows([[plugdates[-1],"WELOPEN",self.schedule_welopen.format(wellname)]])
+                        schedule.set_rows([[perfdates[0],"WCONINJH",self.schedule_injhist.format(wname,water)]])
+                    schedule.set_rows([[perfdates[0],"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                    self.op2.running[1][index] = perfdates[0]
+                    schedule.set_rows([[plugdates[-1],"WELOPEN",self.schedule_welopen.format(wname)]])
                     shutdates.append(plugdates[-1])
                     flagNoPrevProd = True
                     if flagShowSteps:
@@ -975,13 +1026,13 @@ class Wells(graphics):
                     compday = prodmonthENDday.day-perfdates[0].day
                     prodeff = days/compday
                     if optype == "production":
-                        self.schedule.set_rows([[perfdates[0],"WCONHIST",self.schedule_prodhist.format(wellname,oil,water,gas)]])
+                        schedule.set_rows([[perfdates[0],"WCONHIST",self.schedule_prodhist.format(wname,oil,water,gas)]])
                     elif optype == "injection":
-                        self.schedule.set_rows([[perfdates[0],"WCONINJH",self.schedule_injhist.format(wellname,water)]])
-                    self.schedule.set_rows([[perfdates[0],"WEFAC",self.schedule_wefac.format(wellname,prodeff)]])
-                    self.prod.running[1][index] = perfdates[0]
+                        schedule.set_rows([[perfdates[0],"WCONINJH",self.schedule_injhist.format(wname,water)]])
+                    schedule.set_rows([[perfdates[0],"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                    self.op2.running[1][index] = perfdates[0]
                     if flagNoPostProd:
-                        self.schedule.set_rows([[prodmonthENDday,"WELOPEN",self.schedule_welopen.format(wellname)]])
+                        schedule.set_rows([[prodmonthENDday,"WELOPEN",self.schedule_welopen.format(wname)]])
                         shutdates.append(prodmonthENDday)
                         flagNoPrevProd = True
                         if flagShowSteps:
@@ -995,15 +1046,15 @@ class Wells(graphics):
                     for plugdate in plugdates:
                         if plugdate.day>=days: break
                     if not plugdate.day>=days:
-                        warnings.warn(warnWPLUG.format(prodmonthENDday,wellname))
+                        warnings.warn(warnWPLUG.format(prodmonthENDday,wname))
                     compday = plugdate.day
                     prodeff = days/compday
                     if optype == "production":
-                        self.schedule.set_rows([[date,"WCONHIST",self.schedule_prodhist.format(wellname,oil,water,gas)]])
+                        schedule.set_rows([[date,"WCONHIST",self.schedule_prodhist.format(wname,oil,water,gas)]])
                     elif optype == "injection":
-                        self.schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wellname,water)]])
-                    self.schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wellname,prodeff)]])
-                    self.schedule.set_rows([[plugdate,"WELOPEN",self.schedule_welopen.format(wellname)]])
+                        schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wname,water)]])
+                    schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                    schedule.set_rows([[plugdate,"WELOPEN",self.schedule_welopen.format(wname)]])
                     shutdates.append(plugdate)
                     flagNoPrevProd = True
                     if flagShowSteps:
@@ -1014,16 +1065,16 @@ class Wells(graphics):
                         # shift the start day to the first perf day
                         # shut the well at the last plug day
                         if not plugdates[-1].day-perfdates[1].day>=days:
-                            warnings.warn(warnWPGPF.format(prodmonthENDday,wellname))
+                            warnings.warn(warnWPGPF.format(prodmonthENDday,wname))
                         compday = plugdates[-1].day-perfdates[1].day
                         prodeff = days/compday
                         if optype == "production":
-                            self.schedule.set_rows([[perfdates[1],"WCONHIST",self.schedule_prodhist.format(wellname,oil,water,gas)]])
+                            schedule.set_rows([[perfdates[1],"WCONHIST",self.schedule_prodhist.format(wname,oil,water,gas)]])
                         elif optype == "injection":
-                            self.schedule.set_rows([[perfdates[1],"WCONINJH",self.schedule_injhist.format(wellname,water)]])
-                        self.schedule.set_rows([[perfdates[1],"WEFAC",self.schedule_wefac.format(wellname,prodeff)]])
-                        self.prod.running[1][index] = perfdates[1]
-                        self.schedule.set_rows([[plugdates[-1],"WELOPEN",self.schedule_welopen.format(wellname)]])
+                            schedule.set_rows([[perfdates[1],"WCONINJH",self.schedule_injhist.format(wname,water)]])
+                        schedule.set_rows([[perfdates[1],"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                        self.op2.running[1][index] = perfdates[1]
+                        schedule.set_rows([[plugdates[-1],"WELOPEN",self.schedule_welopen.format(wname)]])
                         shutdates.append(plugdates[-1])
                         flagNoPrevProd = True
                         if flagShowSteps:
@@ -1033,15 +1084,15 @@ class Wells(graphics):
                         for perfdate in np.flip(perfdates[1:]):
                             if prodmonthENDday.day-perfdate.day>=days: break
                         if not prodmonthENDday.day-perfdate.day>=days:
-                            warnings.warn(warnWPERF.format(prodmonthENDday,wellname))
+                            warnings.warn(warnWPERF.format(prodmonthENDday,wname))
                         compday = prodmonthENDday.day-perfdate.day
                         prodeff = days/compday
                         if optype == "production":
-                            self.schedule.set_rows([[perfdate,"WCONHIST",self.schedule_prodhist.format(wellname,oil,water,gas)]])
+                            schedule.set_rows([[perfdate,"WCONHIST",self.schedule_prodhist.format(wname,oil,water,gas)]])
                         elif optype == "injection":
-                            self.schedule.set_rows([[perfdate,"WCONINJH",self.schedule_injhist.format(wellname,water)]])
-                        self.schedule.set_rows([[perfdate,"WEFAC",self.schedule_wefac.format(wellname,prodeff)]])
-                        self.prod.running[1][index] = perfdate
+                            schedule.set_rows([[perfdate,"WCONINJH",self.schedule_injhist.format(wname,water)]])
+                        schedule.set_rows([[perfdate,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                        self.op2.running[1][index] = perfdate
                         flagNoPrevProd = False
                         if flagShowSteps:
                             print("{:%d %b %Y} Plugged and Perforated: OPEN ({:%d %b %Y}) and CONT WEFAC ({:.3f})".format(prodmonthENDday,perfdate,prodeff))
@@ -1054,11 +1105,11 @@ class Wells(graphics):
                         compday = plugdate.day
                         prodeff = days/compday
                         if optype == "production":
-                            self.schedule.set_rows([[date,"WCONHIST",self.schedule_prodhist.format(wellname,oil,water,gas)]])
+                            schedule.set_rows([[date,"WCONHIST",self.schedule_prodhist.format(wname,oil,water,gas)]])
                         elif optype == "injection":
-                            self.schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wellname,water)]])
-                        self.schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wellname,prodeff)]])
-                        self.schedule.set_rows([[plugdate,"WELOPEN",self.schedule_welopen.format(wellname)]])
+                            schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wname,water)]])
+                        schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                        schedule.set_rows([[plugdate,"WELOPEN",self.schedule_welopen.format(wname)]])
                         shutdates.append(plugdate)
                         flagNoPrevProd = True
                         if flagShowSteps:
@@ -1076,27 +1127,27 @@ class Wells(graphics):
                         else:
                             compday = plugdate.day
                             prodeff = days/compday
-                            self.schedule.set_rows([[plugdate,"WELOPEN",self.schedule_welopen.format(wellname)]])
+                            schedule.set_rows([[plugdate,"WELOPEN",self.schedule_welopen.format(wname)]])
                             shutdates.append(plugdate)
                             flagNoPrevProd = True
                             if flagShowSteps:
                                 print("{:%d %b %Y} Plugged and Perforated: CONT and SHUT ({:%d %b %Y}) WEFAC ({:.3f})".format(prodmonthENDday,plugdate,prodeff))
                         if optype == "production":
-                            self.schedule.set_rows([[date,"WCONHIST",self.schedule_prodhist.format(wellname,oil,water,gas)]])
+                            schedule.set_rows([[date,"WCONHIST",self.schedule_prodhist.format(wname,oil,water,gas)]])
                         elif optype == "injection":
-                            self.schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wellname,water)]])
-                        self.schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wellname,prodeff)]])
+                            schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wname,water)]])
+                        schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
 
                 else:
                     compday = prodmonthdaycount
                     prodeff = days/compday
                     if optype == "production":
-                        self.schedule.set_rows([[date,"WCONHIST",self.schedule_prodhist.format(wellname,oil,water,gas)]])
+                        schedule.set_rows([[date,"WCONHIST",self.schedule_prodhist.format(wname,oil,water,gas)]])
                     elif optype == "injection":
-                        self.schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wellname,water)]])
-                    self.schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wellname,prodeff)]])
+                        schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wname,water)]])
+                    schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
                     if flagNoPostProd:
-                        self.schedule.set_rows([[prodmonthENDday,"WELOPEN",self.schedule_welopen.format(wellname)]])
+                        schedule.set_rows([[prodmonthENDday,"WELOPEN",self.schedule_welopen.format(wname)]])
                         shutdates.append(prodmonthENDday)
                         flagNoPrevProd = True
                         if flagShowSteps:
@@ -1107,12 +1158,12 @@ class Wells(graphics):
                             print("{:%d %b %Y} No completion events: CONT and CONT WEFAC ({:.3f})".format(prodmonthENDday,prodeff))
 
                 if prodeff>1:
-                    warnings.warn(warnWEFAC.format(prodmonthENDday,wellname,days,compday))
+                    warnings.warn(warnWEFAC.format(prodmonthENDday,wname,days,compday))
 
             shutdates = np.array(shutdates,dtype=object)
             shutwells = np.empty(shutdates.shape,dtype=object)
 
-            shutwells[:] = wellname
+            shutwells[:] = wname
 
             shutdays = np.zeros(shutdates.shape,dtype=int)
 
@@ -1126,30 +1177,45 @@ class Wells(graphics):
 
             rows = np.array([shutwells,shutdates,shutdays,shutoptype,shutroil,shutrwater,shutrgas]).T.tolist()
 
-            self.prod.set_rows(rows)
+            self.op2.set_rows(rows)
 
             if flagShowSteps:
-                print("{} check is complete.".format(wellname))
+                print("{} check is complete.".format(wname))
 
-        self.prod.sort(header_indices=[1],inplace=True)
+        self.op2.filter_invert()
+        self.op2.sort(header_indices=[1],inplace=True)
+
+        toil = np.cumsum(self.op2.running[7])
+        twater = np.cumsum(self.op2.running[8])
+        tgas = np.cumsum(self.op2.running[9])
+
+        self.op2.set_column(toil,header_new="TOIL")
+        self.op2.set_column(twater,header_new="TWATER")
+        self.op2.set_column(tgas,header_new="TGAS")
+
+        path = os.path.join(self.workdir,self.filename_op+"3") 
+
+        fstring = "{:6s}\t{:%Y-%m-%d}\t{:2d}\t{:10s}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\n"
+
+        self.op2.write(filepath=path,fstring=fstring)
 
         path = os.path.join(self.workdir,self.filename_schedule)
 
         with open(path,"w",encoding='utf-8') as wfile:
 
-            welspec = self.schedule.running[1]=="WELSPECS"
-            compdat = self.schedule.running[1]=="COMPDATMD"
-            compord = self.schedule.running[1]=="COMPORD"
-            prodhst = self.schedule.running[1]=="WCONHIST"
-            injdhst = self.schedule.running[1]=="WCONINJH"
-            wefffac = self.schedule.running[1]=="WEFAC"
-            welopen = self.schedule.running[1]=="WELOPEN"
+            welspec = schedule.running[1]=="WELSPECS"
+            compdat = schedule.running[1]=="COMPDATMD"
+            compord = schedule.running[1]=="COMPORD"
+            prodhst = schedule.running[1]=="WCONHIST"
+            injdhst = schedule.running[1]=="WCONINJH"
+            wefffac = schedule.running[1]=="WEFAC"
+            welopen = schedule.running[1]=="WELOPEN"
 
-            for date in np.unique(self.schedule.running[0]):
+            for date in np.unique(schedule.running[0]):
 
-                currentdate = self.schedule.running[0]==date
+                currentdate = schedule.running[0]==date
 
-                currentcont = self.schedule.running[1][currentdate]
+                currentcont = schedule.running[1][currentdate]
 
                 wfile.write("\n\n")
                 wfile.write("DATES\n")
@@ -1160,7 +1226,7 @@ class Wells(graphics):
                 if any(currentcont=="WELSPECS"):
                     indices = np.logical_and(currentdate,welspec)
                     wfile.write("WELSPECS\n")
-                    for detail in self.schedule.running[2][indices]:
+                    for detail in schedule.running[2][indices]:
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")
@@ -1168,7 +1234,7 @@ class Wells(graphics):
                 if any(currentcont=="COMPDATMD"):
                     indices = np.logical_and(currentdate,compdat)
                     wfile.write("COMPDATMD\n")
-                    for detail in self.schedule.running[2][indices]:
+                    for detail in schedule.running[2][indices]:
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")
@@ -1176,7 +1242,7 @@ class Wells(graphics):
                 if any(currentcont=="COMPORD"):
                     indices = np.logical_and(currentdate,compord)
                     wfile.write("COMPORD\n")
-                    for detail in self.schedule.running[2][indices]:
+                    for detail in schedule.running[2][indices]:
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")
@@ -1184,7 +1250,7 @@ class Wells(graphics):
                 if any(currentcont=="WCONHIST"):
                     indices = np.logical_and(currentdate,prodhst)
                     wfile.write("WCONHIST\n")
-                    for detail in self.schedule.running[2][indices]:
+                    for detail in schedule.running[2][indices]:
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")
@@ -1192,7 +1258,7 @@ class Wells(graphics):
                 if any(currentcont=="WCONINJH"):
                     indices = np.logical_and(currentdate,injdhst)
                     wfile.write("WCONINJH\n")
-                    for detail in self.schedule.running[2][indices]:
+                    for detail in schedule.running[2][indices]:
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")
@@ -1200,7 +1266,7 @@ class Wells(graphics):
                 if any(currentcont=="WEFAC"):
                     indices = np.logical_and(currentdate,wefffac)
                     wfile.write("WEFAC\n")
-                    for detail in self.schedule.running[2][indices]:
+                    for detail in schedule.running[2][indices]:
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")
@@ -1208,7 +1274,7 @@ class Wells(graphics):
                 if any(currentcont=="WELOPEN"):
                     indices = np.logical_and(currentdate,welopen)
                     wfile.write("WELOPEN\n")
-                    for detail in self.schedule.running[2][indices]:
+                    for detail in schedule.running[2][indices]:
                         wfile.write(detail)
                         wfile.write("\n")
                     wfile.write("/\n\n")

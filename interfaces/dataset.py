@@ -17,7 +17,7 @@ class dataset():
         ".db",".xlsx",".las",
         )
 
-    def __init__(self,attrname=None,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
+    def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
         # There are two uses of dataset, case 1 or case 2:
         #   case 1: headers
@@ -25,10 +25,7 @@ class dataset():
         #    - reading plain text: comment,endline,endfile
         #    - reading scpecial extensions: **kwargs
         #   case 3: no input
-
-        if attrname is not None:
-            self.attrname = attrname
-
+        
         if headers is not None:
             self._headers = headers
             self._running = [np.array([])]*len(self._headers)
@@ -157,6 +154,12 @@ class dataset():
             self._headers = las.keys()
 
             self._running = [np.asarray(column) for column in las.data.transpose()]
+
+    def set_header(self,header_index,header):
+
+        self._headers[header_index] = header
+
+        self.headers = self._headers
 
     def set_subheaders(self,header_index=None,header=None,regex=None,regex_builtin="INC_HEADERS",title="SUB-HEADERS"):
 
