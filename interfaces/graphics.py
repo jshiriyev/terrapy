@@ -10,6 +10,7 @@ from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
 import numpy as np
 
@@ -36,7 +37,8 @@ class graphics():
         ('',     "Empty String"),
         )
 
-    markerstyles = (
+    markers = (
+        (None, "no marker"),
         ('.',  "point marker"),
         (',',  "pixel marker"),
         ('o',  "circle marker"),
@@ -88,9 +90,10 @@ class graphics():
         "sublines": [[3]],
         "xaxes": [[(0,1),(0,1),(0,1)]],
         "yaxes": [[(0,2),(0,3),(0,4)]],
-        "drawstyles": [[0,0,0]],
+        "colors": [[6,0,2]],
+        "markers": [[0,0,0]],
         "linestyles": [[0,1,0]],
-        "linecolors": [[6,0,2]],
+        "drawstyles": [[0,0,0]],
         }
 
     template1 = {
@@ -109,9 +112,10 @@ class graphics():
         "sublines": [[1],[2]],
         "xaxes": [[(0,1)],[(0,1),(0,1)]],
         "yaxes": [[(0,2)],[(0,3),(0,4)]],
-        "drawstyles": [[0],[0,0]],
+        "colors": [[6],[0,2]],
+        "markers": [[0],[0,0]],
         "linestyles": [[0],[0,0]],
-        "linecolors": [[6],[0,2]],
+        "drawstyles": [[0],[0,0]],
         }
 
     template2 = {
@@ -130,9 +134,10 @@ class graphics():
         "sublines": [[1],[2]],
         "xaxes": [[(0,1)],[(0,1),(0,1)]],
         "yaxes": [[(0,2)],[(0,3),(0,4)]],
-        "drawstyles": [[4],[0,0]],
+        "colors": [[6],[0,2]],
+        "markers": [[0],[0,0]],
         "linestyles": [[0],[0,0]],
-        "linecolors": [[6],[0,2]],
+        "drawstyles": [[4],[0,0]],
         }
 
     template3 = {
@@ -151,9 +156,10 @@ class graphics():
         "sublines": [[1],[1],[1],[0]],
         "xaxes": [[(0,1)],[(0,1)],[(0,1)],[]],
         "yaxes": [[(0,2)],[(0,3)],[(0,4)],[]],
-        "drawstyles": [[0],[0],[0],[0]],
+        "colors": [[6],[0],[2],[0]],
+        "markers": [[0],[0],[0],[0]],
         "linestyles": [[0],[0],[0],[0]],
-        "linecolors": [[6],[0],[2],[0]],
+        "drawstyles": [[0],[0],[0],[0]],
         }
 
     templates = (
@@ -192,6 +198,9 @@ class graphics():
         self.canvas = FigureCanvasTkAgg(self.figure,self.frame_body)
 
         self.plotbox = self.canvas.get_tk_widget()
+
+        self.plotbar = NavigationToolbar2Tk(self.canvas,self.root)
+        self.plotbar.update()
 
         self.pane_EW.add(self.plotbox,weight=1)
 
@@ -337,18 +346,23 @@ class graphics():
         self.lines = []
 
         for index,axis in enumerate(self.axes):
+
             xaxes = self.curtemp.get("xaxes")[index]
             yaxes = self.curtemp.get("yaxes")[index]
-            dstyles = self.curtemp.get("drawstyles")[index]
+
+            colors = self.curtemp.get("colors")[index]
+            markers = self.curtemp.get("markers")[index]
             lstyles = self.curtemp.get("linestyles")[index]
-            lcolors = self.curtemp.get("linecolors")[index]
-            for xaxis,yaxis,dstyle,lstyle,lcolor in zip(xaxes,yaxes,dstyles,lstyles,lcolors):
+            dstyles = self.curtemp.get("drawstyles")[index]
+
+            for xaxis,yaxis,color,marker,lstyle,dstyle in zip(xaxes,yaxes,colors,markers,lstyles,dstyles):
                 line = axis.plot(
                     getattr(self,self.attrnames[xaxis[0]]).running[xaxis[1]],
                     getattr(self,self.attrnames[yaxis[0]]).running[yaxis[1]],
-                    drawstyle=self.drawstyles[dstyle],
+                    color=self.linecolors[color][0],
+                    marker=self.markers[marker][0],
                     linestyle=self.linestyles[lstyle][0],
-                    c=self.linecolors[lcolor][0],
+                    drawstyle=self.drawstyles[dstyle],
                     label=getattr(self,self.attrnames[yaxis[0]]).headers[yaxis[1]])[0]
                 self.lines.append(line)
             # if self.curtemp.get("legends")[index]:
@@ -380,9 +394,10 @@ class graphics():
                 "sublines": [[0]],
                 "xaxes": [[]],
                 "yaxes": [[]],
-                "drawstyles": [[]],
+                "colors": [[]],
+                "markers": [[]],
                 "linestyles": [[]],
-                "linecolors": [[]],
+                "drawstyles": [[]],
                 }
 
             self.set_temptop("add") # when adding a new one
@@ -1132,7 +1147,7 @@ if __name__ == "__main__":
 
             path = os.path.join(os.path.dirname(__file__),"tests",self.filename)
 
-            self.data = dataset("data",filepath=path,skiplines=1)
+            self.data = dataset(filepath=path,skiplines=1)
 
             self.data.texttocolumn(0,deliminator="\t")
 

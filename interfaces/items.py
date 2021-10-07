@@ -334,61 +334,6 @@ class Wells(graphics):
     schedule_wefac      = " '{}'\t{} / "#.format(wellname,efficiency)
     schedule_welopen    = " '{}'\tSHUT\t3* / "#.format(wellname)
 
-    # GRAPH TEMPLATES
-
-    welltemp0 = {
-        "name": "Production-Completion Cross Plot",
-        #
-        "subplots": [1,2],
-        "twinx": [True,True],
-        "title": ["BEFORE CORRECTIONS","AFTER CORRECTIONS"],
-        "xlabel": ["Dates","Dates"],
-        "ylabel": ["Total Production or Injection [m3/day]",None,None,
-                   "Open Perforation Intervals"],
-        "legends": [True,True],
-        "xticks": [None,None],
-        "yticks": [None,None,None,None],
-        "grid": [True,True],
-        #
-        "sublines": [[2,1],[2,1]],
-        "xaxes": [[(0,1),(0,1)],[(8,1)],[(4,1),(4,1)],[(8,1)]],
-        "yaxes": [[(0,4),(0,4)],[(8,2)],[(4,5),(4,5)],[(8,2)]],
-        "drawstyles": [[0,4],[4],[0,4],[4]],
-        "linestyles": [[4,0],[0],[4,0],[0]],
-        "linecolors": [[0,0],[2],[0,0],[2]],
-        }
-
-    welltemp1 = {
-        "name": "Production History Match",
-        #
-        "subplots": [2,2],
-        "twinx": [True,True,True,False],
-        "title": ["NW","NE","SW","SE"],
-        "xlabel": ["Dates","Dates","Dates","Dates"],
-        "ylabel": [
-            "Liquid Rate, sm3/day",
-            "Liquid Volume, th. sm3",
-            "Gas Rate, th. sm3/day",
-            "Surface Gas Volume, mln. sm3",
-            "Liquid Rate, sm3/day",
-            "Liquid Volume, th. sm3",
-            "Pressure, Bars"
-            ],
-        "legends": [True,True,True,False],
-        "xticks": [None,None,None,None],
-        "yticks": [None,None,None,None,None,None,None],
-        "grid": [True,True,True,True],
-        #
-        "sublines": [[1,1],[1,1],[1,1],[0]],
-        "xaxes": [[(1)],[(1)],[(1)],[(1)],[(1)],[(1)],[(0)]],
-        "yaxes": [[(3)],[(10)],[(4)],[(11)],[(5)],[(12)],[(0)]],
-        "drawstyles": [[0],[0],[0],[0],[0],[0],[0]], 
-        "linestyles": [[0],[1],[0],[1],[0],[1],[0]],
-        "colors": [[1],[1],[0],[0],[2],[2],[0]],
-        }
-
-    templates = (welltemp0,welltemp1,)
-
     def __init__(self,window,workdir,oprawdir=None,comprawdir=None,wtrackrawdir=None,wlograwdir=None,wnamefstr=None,**kwargs):
 
         super().__init__(window)
@@ -423,6 +368,8 @@ class Wells(graphics):
             get_windex = lambda x: self.wnamefstr.format(re.sub("[^0-9]","",x).zfill(3))
             set_wnames = np.vectorize(get_windex)
             self.itemnames = set_wnames(self.itemnames)
+
+        self.itemnames.sort()
 
     def op_process(self):
 
@@ -880,7 +827,9 @@ class Wells(graphics):
 
         pass
 
-    def schedule_process(self,wellname=None,flagShowSteps=False):
+    def schedule_process(self,wellname=None):
+
+        flagShowSteps = False if wellname is None else True
 
         warnNOPROD = "{} has completion but no production data."
         warnNOCOMP = "{} has production but no completion data."
@@ -1185,9 +1134,9 @@ class Wells(graphics):
         self.op2.filter_invert()
         self.op2.sort(header_indices=[1],inplace=True)
 
-        toil = np.cumsum(self.op2.running[7])
-        twater = np.cumsum(self.op2.running[8])
-        tgas = np.cumsum(self.op2.running[9])
+        toil = np.cumsum(self.op2.running[4])
+        twater = np.cumsum(self.op2.running[5])
+        tgas = np.cumsum(self.op2.running[6])
 
         self.op2.set_column(toil,header_new="TOIL")
         self.op2.set_column(twater,header_new="TWATER")
