@@ -14,6 +14,10 @@ from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
 import numpy as np
 
+if __name__ == "__main__":
+
+    import setup
+
 class graphics():
 
     legendpos = (
@@ -194,17 +198,27 @@ class graphics():
 
         self.pane_EW.add(self.frame_side,weight=0)
 
+        self.frame_plot = ttk.Frame(self.frame_body)
+
+        self.pane_EW.add(self.frame_plot,weight=1)
+
+        self.pane_EW.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+        self.frame_plot.columnconfigure(0,weight=1)
+        self.frame_plot.columnconfigure(1,weight=0)
+
+        self.frame_plot.rowconfigure(0,weight=1)
+        self.frame_plot.rowconfigure(1,weight=0)
+
         self.figure = plt.Figure()
-        self.canvas = FigureCanvasTkAgg(self.figure,self.frame_body)
+        self.canvas = FigureCanvasTkAgg(self.figure,self.frame_plot)
 
         self.plotbox = self.canvas.get_tk_widget()
+        self.plotbox.grid(row=0,column=0,sticky=tk.NSEW)        
 
-        self.plotbar = NavigationToolbar2Tk(self.canvas,self.root)
+        self.plotbar = VerticalNavigationToolbar2Tk(self.canvas,self.frame_plot)
         self.plotbar.update()
-
-        self.pane_EW.add(self.plotbox,weight=1)
-
-        self.pane_EW.pack(expand=1,fill=tk.BOTH)
+        self.plotbar.grid(row=0,column=1,sticky=tk.N)
 
         # configuration of top left pane
         self.pane_ns = ttk.PanedWindow(self.frame_side,orient=tk.VERTICAL,width=300)
@@ -278,7 +292,8 @@ class graphics():
             if flagTwinAxis: self.curtemp["flagMainAxes"].append(False)
 
         if hasattr(self,"axes"):
-            [self.figure.delaxes(axis) for axis in self.axes]
+            self.figure.clear()
+            # [self.figure.delaxes(axis) for axis in self.axes]
 
         self.axes = []
 
@@ -345,6 +360,8 @@ class graphics():
                 
         self.lines = []
 
+        self.plotbar.update()
+
         for index,axis in enumerate(self.axes):
 
             xaxes = self.curtemp.get("xaxes")[index]
@@ -365,10 +382,12 @@ class graphics():
                     drawstyle=self.drawstyles[dstyle],
                     label=getattr(self,self.attrnames[yaxis[0]]).headers[yaxis[1]])[0]
                 self.lines.append(line)
+
             # if self.curtemp.get("legends")[index]:
             #     axis.legend()
+
             axis.relim()
-            axis.autoscale_view()
+            axis.autoscale()
             axis.set_ylim(bottom=0,top=None,auto=True)
 
         self.figure.set_tight_layout(True)
@@ -791,6 +810,28 @@ class graphics():
 
         self.temptop.destroy()
 
+class VerticalNavigationToolbar2Tk(NavigationToolbar2Tk):
+
+    def __init__(self,canvas,window):
+
+        super().__init__(canvas,window,pack_toolbar=False)
+
+        self.message = tk.StringVar(master=window)
+        self._message_label = tk.Label(master=window,textvariable=self.message)
+        self._message_label.grid(row=1,column=0,columnspan=2,sticky=tk.W)
+
+    # override _Button() to re-pack the toolbar button in vertical direction
+    def _Button(self,text,image_file,toggle,command):
+        b = super()._Button(text,image_file,toggle,command)
+        b.pack(side=tk.TOP) # re-pack button in vertical direction
+        return b
+
+    # override _Spacer() to create vertical separator
+    def _Spacer(self):
+        s = tk.Frame(self,width=26,relief=tk.RIDGE,bg="DarkGray",padx=2)
+        s.pack(side=tk.TOP,pady=5) # pack in vertical direction
+        return s
+
 class table():
 
     def __init__(self,**kwargs):
@@ -1124,8 +1165,6 @@ class table():
         self.root.destroy()
 
 if __name__ == "__main__":
-
-    import setup
 
     from interfaces.dataset import dataset
 
