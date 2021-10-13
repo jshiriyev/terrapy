@@ -282,45 +282,45 @@ class Wells(graphics):
 
     filename_schedule   = "schedule"
 
-    headers_opraw       = (
+    headers_opraw       = [
         "Wells","Date","Days","oil","water","gas","Wi",
-        )
+        ]
 
-    headers_compraw     = (
+    headers_compraw     = [
         "Wells","Horizont","Top","Bottom","start","stoped",
-        )
+        ]
 
-    headers_wtrackraw   = (
+    headers_wtrackraw   = [
         "X","Y","Z","MD",
-        )
+        ]
 
-    headers_wlograw     = (
+    headers_wlograw     = [
         "",
-        )
+        ]
 
-    headers_op          = (
+    headers_op          = [
         "WELL","DATE","DAYS","OPTYPE","ROIL","RWATER","RGAS","TOIL","TWATER","TGAS",
-        )
+        ]
 
-    headers_comp        = (
+    headers_comp        = [
         "WELL","DATE","EVENT","TOP","BOTTOM","DIAM",
-        )
+        ]
 
-    headers_compuni     = (
+    headers_compuni     = [
         "WELL","DATE","COUNT",
-        )
+        ]
 
-    headers_wtrack      = (
+    headers_wtrack      = [
         "WELL","X","Y","Z","MD",
-        )
+        ]
 
-    headers_wlog        = (
+    headers_wlog        = [
         "WELL",
-        )
+        ]
 
-    headers_schedule    = (
+    headers_schedule    = [
         "DATE","KEYWORD","DETAILS",
-        )
+        ]
 
     # SCHEDULE TO BE WRITTEN WITH KEYWORDS [DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN]
 
@@ -858,6 +858,7 @@ class Wells(graphics):
         for wname in np.setdiff1d(compwellnames,prodwellnames):
             warnings.warn(warnNOPROD.format(wname))
 
+        proddata = dataset(headers=self.headers_op[:7])
         schedule = dataset(headers=self.headers_schedule)
 
         for wname in self.itemnames:
@@ -867,6 +868,7 @@ class Wells(graphics):
                     continue
 
             self.op2.filter(0,keywords=[wname],inplace=False)
+
             self.comp1.filter(0,keywords=[wname],inplace=False)
             self.compuni.filter(0,keywords=[wname],inplace=False)
 
@@ -964,7 +966,7 @@ class Wells(graphics):
                     elif optype == "injection":
                         schedule.set_rows([[perfdates[0],"WCONINJH",self.schedule_injhist.format(wname,water)]])
                     schedule.set_rows([[perfdates[0],"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
-                    self.op2.running[1][index] = perfdates[0]
+                    proddata.set_rows([[wname,perfdates[0],days,optype,oil,water,gas]])
                     schedule.set_rows([[plugdates[-1],"WELOPEN",self.schedule_welopen.format(wname)]])
                     shutdates.append(plugdates[-1])
                     flagNoPrevProd = True
@@ -979,7 +981,7 @@ class Wells(graphics):
                     elif optype == "injection":
                         schedule.set_rows([[perfdates[0],"WCONINJH",self.schedule_injhist.format(wname,water)]])
                     schedule.set_rows([[perfdates[0],"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
-                    self.op2.running[1][index] = perfdates[0]
+                    proddata.set_rows([[wname,perfdates[0],days,optype,oil,water,gas]])
                     if flagNoPostProd:
                         schedule.set_rows([[prodmonthENDday,"WELOPEN",self.schedule_welopen.format(wname)]])
                         shutdates.append(prodmonthENDday)
@@ -1003,6 +1005,7 @@ class Wells(graphics):
                     elif optype == "injection":
                         schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wname,water)]])
                     schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                    proddata.set_rows([[wname,date,days,optype,oil,water,gas]])
                     schedule.set_rows([[plugdate,"WELOPEN",self.schedule_welopen.format(wname)]])
                     shutdates.append(plugdate)
                     flagNoPrevProd = True
@@ -1022,7 +1025,7 @@ class Wells(graphics):
                         elif optype == "injection":
                             schedule.set_rows([[perfdates[1],"WCONINJH",self.schedule_injhist.format(wname,water)]])
                         schedule.set_rows([[perfdates[1],"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
-                        self.op2.running[1][index] = perfdates[1]
+                        proddata.set_rows([[wname,perfdates[1],days,optype,oil,water,gas]])
                         schedule.set_rows([[plugdates[-1],"WELOPEN",self.schedule_welopen.format(wname)]])
                         shutdates.append(plugdates[-1])
                         flagNoPrevProd = True
@@ -1041,7 +1044,7 @@ class Wells(graphics):
                         elif optype == "injection":
                             schedule.set_rows([[perfdate,"WCONINJH",self.schedule_injhist.format(wname,water)]])
                         schedule.set_rows([[perfdate,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
-                        self.op2.running[1][index] = perfdate
+                        proddata.set_rows([[wname,perfdate,days,optype,oil,water,gas]])
                         flagNoPrevProd = False
                         if flagShowSteps:
                             print("{:%d %b %Y} Plugged and Perforated: OPEN ({:%d %b %Y}) and CONT WEFAC ({:.3f})".format(prodmonthENDday,perfdate,prodeff))
@@ -1058,6 +1061,7 @@ class Wells(graphics):
                         elif optype == "injection":
                             schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wname,water)]])
                         schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                        proddata.set_rows([[wname,date,days,optype,oil,water,gas]])
                         schedule.set_rows([[plugdate,"WELOPEN",self.schedule_welopen.format(wname)]])
                         shutdates.append(plugdate)
                         flagNoPrevProd = True
@@ -1086,6 +1090,7 @@ class Wells(graphics):
                         elif optype == "injection":
                             schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wname,water)]])
                         schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                        proddata.set_rows([[wname,date,days,optype,oil,water,gas]])
 
                 else:
                     compday = prodmonthdaycount
@@ -1095,6 +1100,7 @@ class Wells(graphics):
                     elif optype == "injection":
                         schedule.set_rows([[date,"WCONINJH",self.schedule_injhist.format(wname,water)]])
                     schedule.set_rows([[date,"WEFAC",self.schedule_wefac.format(wname,prodeff)]])
+                    proddata.set_rows([[wname,date,days,optype,oil,water,gas]])
                     if flagNoPostProd:
                         schedule.set_rows([[prodmonthENDday,"WELOPEN",self.schedule_welopen.format(wname)]])
                         shutdates.append(prodmonthENDday)
@@ -1126,28 +1132,29 @@ class Wells(graphics):
 
             rows = np.array([shutwells,shutdates,shutdays,shutoptype,shutroil,shutrwater,shutrgas]).T.tolist()
 
-            self.op2.set_rows(rows)
+            proddata.set_rows(rows)
 
             if flagShowSteps:
                 print("{} check is complete.".format(wname))
 
-        self.op2.filter_invert()
-        self.op2.sort(header_indices=[1],inplace=True)
+        proddata.sort(header_indices=[1],inplace=True)
 
-        toil = np.cumsum(self.op2.running[4])
-        twater = np.cumsum(self.op2.running[5])
-        tgas = np.cumsum(self.op2.running[6])
+        toil = np.cumsum(proddata.running[4])
+        twater = np.cumsum(proddata.running[5])
+        tgas = np.cumsum(proddata.running[6])
 
-        self.op2.set_column(toil,header_new="TOIL")
-        self.op2.set_column(twater,header_new="TWATER")
-        self.op2.set_column(tgas,header_new="TGAS")
+        proddata.set_column(toil,header_new="TOIL")
+        proddata.set_column(twater,header_new="TWATER")
+        proddata.set_column(tgas,header_new="TGAS")
 
-        path = os.path.join(self.workdir,self.filename_op+"3") 
+        proddata.astype(header=self.headers_op[2],dtype=int)
+
+        path = os.path.join(self.workdir,self.filename_op+"3")
 
         fstring = "{:6s}\t{:%Y-%m-%d}\t{:2d}\t{:10s}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}\n"
 
-        self.op2.write(filepath=path,fstring=fstring)
-
+        proddata.write(filepath=path,fstring=fstring)
+        
         path = os.path.join(self.workdir,self.filename_schedule)
 
         with open(path,"w",encoding='utf-8') as wfile:

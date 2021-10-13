@@ -317,11 +317,11 @@ class dataset():
         for row in rows:
 
             if row_indices is None:
-                for index,column in enumerate(self._running):
-                    self._running[index] = np.append(column,row[index])
+                for col_index,column in enumerate(self._running):
+                    self._running[col_index] = np.append(column,row[col_index])
             else:
-                for index, _ in enumerate(self._running):
-                    self._running[index][row_indices] = row[index]
+                for col_index, _ in enumerate(self._running):
+                    self._running[col_index][row_indices] = row[col_index]
 
             self.running = [np.asarray(column) for column in self._running]
 
