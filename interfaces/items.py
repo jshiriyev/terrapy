@@ -886,17 +886,9 @@ class Wells(graphics):
             if self.compuni.running[1].min()>=date:
                 warnings.warn(warnCROSS.format(wname))
 
-            compdata = zip(
-                self.comp1.running[1],
-                self.comp1.running[2],
-                self.comp1.running[3],
-                self.comp1.running[4],
-                )
+            schedule.set_rows([[self.comp1.running[1][0],"WELSPECS",self.schedule_welspecs.format(wname)]])
 
-            for index,(compdate,compevent,comptop,compbottom) in enumerate(compdata):
-
-                if index==0:
-                    schedule.set_rows([[compdate,"WELSPECS",self.schedule_welspecs.format(wname)]])
+            for compdate,compevent,comptop,compbottom in zip(self.comp1.running[1],self.comp1.running[2],self.comp1.running[3],self.comp1.running[4]):
 
                 if compevent == "PERF":
                     bottom = compbottom
@@ -906,7 +898,10 @@ class Wells(graphics):
                     perfs = "SHUT"
 
                 schedule.set_rows([[compdate,"COMPDATMD",self.schedule_compdat.format(wname,comptop,bottom,perfs)]])
-                schedule.set_rows([[compdate,"COMPORD",self.schedule_compord.format(wname)]])
+
+            for compunidate in self.compuni.running[1]:
+
+                schedule.set_rows([[compunidate,"COMPORD",self.schedule_compord.format(wname)]])
 
             flagNoPrevProd = True
 
