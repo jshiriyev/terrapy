@@ -327,7 +327,8 @@ class Wells(graphics):
     schedule_dates      = " {} / "#.format(date)
 
     schedule_welspecs   = " '{}'\t1*\t2* / "
-    schedule_compdat    = " '{}'\t1*\t{}\t{}\tMD\t{}\t2*\t0.14 / "#.format(wellname,top,bottom,optype)
+    schedule_compdatop  = " '{}'\t1*\t{}\t{}\tMD\t{}\t2*\t0.14 / "#.format(wellname,top,bottom,optype)
+    schedule_compdatsh  = " '{}'\t1*\t{}\t{}\tMD\t{} / "#.format(wellname,top,bottom,optype)
     schedule_compord    = " '{}'\tINPUT\t/ "#.format(wellname)
     schedule_prodhist   = " '{}'\tOPEN\tORAT\t{}\t{}\t{} / "#.format(wellname,oilrate,waterrate,gasrate)
     schedule_injhist    = " '{}'\tWATER\tOPEN\t{}\t7*\tRATE / "#.format(wellname,waterrate)
@@ -891,13 +892,9 @@ class Wells(graphics):
             for compdate,compevent,comptop,compbottom in zip(self.comp1.running[1],self.comp1.running[2],self.comp1.running[3],self.comp1.running[4]):
 
                 if compevent == "PERF":
-                    bottom = compbottom
-                    perfs = "OPEN"
+                    schedule.set_rows([[compdate,"COMPDATMD",self.schedule_compdatop.format(wname,comptop,compbottom,"OPEN")]])
                 elif compevent == "PLUG":
-                    bottom = "1*"
-                    perfs = "SHUT"
-
-                schedule.set_rows([[compdate,"COMPDATMD",self.schedule_compdat.format(wname,comptop,bottom,perfs)]])
+                    schedule.set_rows([[compdate,"COMPDATMD",self.schedule_compdatsh.format(wname,comptop,"1*","SHUT")]])
 
             for compunidate in self.compuni.running[1]:
 
