@@ -304,6 +304,7 @@ class dataset():
             header_new = "Col ##"+str(len(self._headers))
         
         if header_index is None or header_index==-1:
+            
             self._headers.append(header_new)
             self._running.append(column)
         else:

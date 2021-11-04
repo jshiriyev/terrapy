@@ -78,53 +78,7 @@ class Pipes():
 
         self.elevation = elevation
 
-class Core():
-
-    def __init__(self):
-
-        pass
-
 class Formation():
-
-    def __init__(self):
-        pass
-
-    def get_tops(self,formations,wellname=None):
-        pass
-
-class FormationCylindrical():
-    # regular radial both numerically discretized and homogenous one
-    def __init__(self,height,radius,porosity,permeability,compressibility):
-
-        self.height = height
-        self.radius = radius
-
-        self.porosity = porosity
-        self.permeability = permeability
-        self.compressibility = compressibility
-
-    def set_total_compressibility(self,fluid):
-
-        self.ct = self.cr+fluid.cf
-        
-    def set_diffusivity(self,viscosity,total_compressibility):
-        
-        self.eta = (self.k)/(self.phi*self.mu*self.ct)
-
-    def set_well(self,radius,location,true_vertical_depth,measured_depth):
-
-        self.radius = radius
-        
-    def set_fracture_nodes(self,thickness,nodes):
-
-        self.thickness = thickness
-
-    def set_hydraulic_diffusivity(self,hydraulic_diffusivity=None):
-
-        if hydraulic_diffusivity is not None:
-            self.eta = hydraulic_diffusivity
-
-class FormationRectangular():
 
     # fileDir
     # Length
@@ -150,10 +104,25 @@ class FormationRectangular():
     # totCompressibility
 
     def __init__(self):
-
         pass
 
-    def cartesian(self,length,grid_num):
+    def get_tops(self,formations,wellname=None):
+        pass
+
+    def set_diffusivity(self,viscosity,total_compressibility):
+        
+        self.eta = (self.k)/(self.phi*self.mu*self.ct)
+
+    def set_total_compressibility(self,fluid):
+
+        self.ct = self.cr+fluid.cf
+
+    def set_hydraulic_diffusivity(self,hydraulic_diffusivity=None):
+
+        if hydraulic_diffusivity is not None:
+            self.eta = hydraulic_diffusivity
+
+    def rectangle(self,length,grid_num):
 
         """
         length is a tuple with three entries for size in x,y,z direction
@@ -238,6 +207,17 @@ class FormationRectangular():
         self.center[:,0] = np.tile(xcenter,self.num_y*self.num_z)
         self.center[:,1] = np.tile(ycenter.repeat(self.num_x),self.num_z)
         self.center[:,2] = zcenter.repeat(self.num_x*self.num_y)
+
+    def cylinder(self,height,radius,porosity,permeability,compressibility):
+
+        # regular radial both numerically discretized and homogenous one
+
+        self.height = height
+        self.radius = radius
+
+        self.porosity = porosity
+        self.permeability = permeability
+        self.compressibility = compressibility
 
 class Fractures():
 
@@ -1233,14 +1213,28 @@ class Wells(graphics):
 
 if __name__ == "__main__":
 
-    import unittest
+    # import unittest
 
-    from tests import pipes
-    from tests import porous_media
-    from tests import fractures
-    from tests import wells
+    # from tests import pipes
+    # from tests import porous_media
+    # from tests import fractures
+    # from tests import wells
 
-    unittest.main(pipes)
-    unittest.main(porous_media)
-    unittest.main(fractures)
-    unittest.main(wells)
+    # unittest.main(pipes)
+    # unittest.main(porous_media)
+    # unittest.main(fractures)
+    # unittest.main(wells)
+
+    res = Formation()
+
+    res.rectangle((10,10,10),(10,10,10))
+
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+
+    ax = plt.axes(projection='3d')
+
+    ax.scatter3D(res.center[:,0],res.center[:,1],res.center[:,2])
+
+    plt.show()
