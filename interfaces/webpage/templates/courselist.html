@@ -1,0 +1,26 @@
+{% extends "header.html" %}
+
+{% block content %}
+
+<div class="row">
+
+{% load static %}
+
+{% for course in object_list %}
+
+<div class="col-offset-0">
+ <div class="card" style="width:210px;height:320px">
+ <center><br><img class="card-img" src="{% static 'img/'|add:course.logopath %}" style="height:auto;width:70%;"/></center>
+  <div class="card-body">
+   <h5 class="card-title">{{course.title}}</h5>
+   <p class="card-text">Some example text</p>
+   <a href="/courses/{{course.id}}" class="btn btn-primary float-right">View</a>
+  </div>
+ </div>
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endblock %}

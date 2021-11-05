@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+<title>Welcome | Javid Shiriyev</title>
+<meta charset="utf-8" />
+
+<meta name="viewport" content = "width=device-width, initial-scale=1.0">
+
+<style>
+
+html,
+body {
+ max-width: 1200px;
+ margin: auto;
+ height: 100%;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333;
+}
+
+li {
+  float: left;
+}
+
+li a {
+  display: block;
+  color: #666;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+li a:hover {
+  color: white;
+  text-decoration: none;
+  background-color: #111;
+}
+
+.active {
+  color: #666;
+  text-decoration: none;
+  background-color: #4CAF50;
+}
+
+.passive {
+  color: #666;
+  text-decoration: none;
+  background-color: #333;  
+}
+
+</style>
+</head>
+
+<body class="body" style="background-color:#f6f6f6">
+
+<script>
+    function changeClass(){
+      document.getElementById("myNAVlnk").className = "active";
+    }
+    window.onload = function(){
+      document.getElementById("myNAVlnk").addEventListener('click',changeClass);
+    }
+</script>
+
+<div class="container-fluid" style="min-height:90%;">
+
+<div class='container-fluid'>
+  <br>
+  <center>
+   <h3>Scientific Computation Tools</h3>
+  </center>   
+</div>
+
+<hr>
+
+<ul id="myNAV">
+  <li><a id="myNAVlnk" class="passive" href="/">Home</a></li>
+  <li><a id="myNAVlnk" class="passive" href="/blog/">Blog</a></li>
+  <li><a id="myNAVlnk" class="passive" href="/courses/">Courses</a></li>
+  <li><a id="myNAVlnk" class="active" href="/bio/">Bio</a></li>
+</ul>
+
+
+</div>
+
+<footer><hr>
+ <div class="container-fluid" style='margin-left:15px'>
+  <p>
+   <a href="/contact/" target="blank">Contact</a> |
+   <a href="https://www.linkedin.com/in/jshiriyev/" target="blank">LinkedIn</a> |
+   <a href="https://github.com/jshiriyev/" target="blank">GitHub</a> |
+   <a href="#" target="blank">Google+</a>
+  </p>
+ </div>
+</footer>
+<!--type="text/javascript"-->
+
+</body>
+
+</html>
