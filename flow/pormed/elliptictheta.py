@@ -48,12 +48,12 @@ class kind3():
                     s1 += newterm
 
                     if not np.any(np.abs(newterm)>self.tol*np.abs(s1)):
-                            print("Convergence of elliptic theta function is obtained after {} iterations".format(n1))
-                            break
+                        # print("Convergence of elliptic theta function is obtained after {} iterations".format(n1))
+                        break
 
                     if n1>self.nmax:
-                            print("Elliptic theta function could not converge ...")
-                            break
+                        print("Elliptic theta function could not converge ...")
+                        break
 
                 yield 1+2*s1
 
@@ -77,12 +77,12 @@ class kind3():
                     s2 += newterm
 
                     if not np.any(np.abs(newterm)>self.tol*np.abs(s2)):
-                            print("Convergence of elliptic theta function is obtained after {} iterations".format(n1))
-                            break
+                        # print("Convergence of elliptic theta function is obtained after {} iterations".format(n1))
+                        break
 
                     if n1>self.nmax:
-                            print("Elliptic theta function could not converge ...")
-                            break
+                        print("Elliptic theta function could not converge ...")
+                        break
 
                 yield 1./np.sqrt(np.pi*step)*s2
 
@@ -106,12 +106,12 @@ class kind3():
                     s1 += newterm
 
                     if not np.any(np.abs(newterm)>self.tol*np.abs(s1)):
-                            print("Convergence of elliptic theta function integral is obtained after {} iterations".format(n1))
-                            break
+                        # print("Convergence of elliptic theta function integral is obtained after {} iterations".format(n1))
+                        break
 
                     if n1>self.nmax:
-                            print("Elliptic theta function integral could not converge ...")
-                            break
+                        print("Elliptic theta function integral could not converge ...")
+                        break
 
                 yield self.distance+1/np.pi*s1
 
@@ -135,12 +135,12 @@ class kind3():
                     s2 += newterm
 
                     if not np.any(np.abs(newterm)>self.tol*np.abs(s2)):
-                            print("Convergence of elliptic theta function integral is obtained after {} iterations".format(n1))
-                            break
+                        # print("Convergence of elliptic theta function integral is obtained after {} iterations".format(n1))
+                        break
 
                     if n1>self.nmax:
-                            print("Elliptic theta function integral could not converge ...")
-                            break
+                        print("Elliptic theta function integral could not converge ...")
+                        break
 
                 yield 1/2*s2
 
@@ -158,13 +158,13 @@ if __name__ == "__main__":
 
     for t in T:
 
-            print("Current time step is {}".format(t))
+        print("Current time step is {}".format(t))
 
-            func = next(iterator1)
-            # intg = next(iterator2)
+        func = next(iterator1)
+        intg = next(iterator2)
 
     plt.plot(X,func,label="function")
-    # plt.plot(X,intg,label="integral")
+    plt.plot(X,intg,label="integral")
 
     plt.legend()
 
