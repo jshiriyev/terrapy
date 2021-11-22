@@ -4,6 +4,10 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
+class darcy_relation():
+
+    pass
+
 class relative_permeability():
 
     """
