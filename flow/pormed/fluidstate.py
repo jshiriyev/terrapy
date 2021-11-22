@@ -4,33 +4,31 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-class compressible():
+class singlephase():
 
-    def __init__(self,compressibility):
+    # formation volume factor
+    # viscosity
+    # compressibility
+
+    def compressible(self,compressibility):
 
         self.viscosity = viscosity
         self.compressibility = compressibility
 
-class slightly_compressible():
-
-    def __init__(self,viscosity):
+    def slightly_compressible(self,viscosity):
 
         self.viscosity = viscosity
 
-class incompressible():
-
-    def __init__(self,viscosity):
+    def incompressible(self,viscosity):
 
         self.viscosity = viscosity
 
-class homogeneous_mixture():
-
-    def __init__(self,solvent,solute):
+    def homogeneous_mixture(self,solvent,solute):
 
         self.solvent = solvent
         self.solute = solute
 
-class multiphase():
+class multiphase(singlephase):
 
     def __init__(self,phases):
 

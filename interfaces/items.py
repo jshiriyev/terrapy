@@ -21,6 +21,118 @@ if __name__ == "__main__":
 from interfaces.dataset import dataset
 from interfaces.graphics import graphics
 
+class Units():
+
+    def __init__(self):
+
+        pass
+    
+        # obj.prop1.(value)(unit)(system)(quantity)
+        # obj.prop2.(value)(unit)(system)(quantity)
+        # .
+        # .
+        # obj.list.(value)(unit)(system)(quantity)
+            
+    def conversion(var)
+                
+        # input variable structure consist of:
+        # var.value -- the value of variable -- ex. 5 (any value)
+        # var.unit -- the unit of variable -- ex. m, ft, psi, Pa or sec
+        # var.system -- the system of units for output -- ex. SI or FU
+
+        # the following field is added to the output variable structure:
+        # var.quantity -- ex. length, time, or pressure
+        
+        unitLib(1,:) = {'length','m','ft'};
+        unitLib(2,:) = {'mass','kg','lbm'};
+        unitLib(3,:) = {'time','sec','day'};
+        unitLib(4,:) = {'temperature','K','F'};
+        unitLib(5,:) = {'pressure','Pa','psi'};
+        unitLib(6,:) = {'permeability','m2','mD'};
+        unitLib(7,:) = {'compressibility','1/Pa','1/psi'};
+        unitLib(8,:) = {'viscosity','Pa.s','cp'};
+        unitLib(9,:) = {'flowrate','m3/sec','bbl/day'};
+        unitLib(10,:) = {'velocity','m/sec','ft/day'};
+        
+        cond.value = inpput.isfieldnull(var,'value');
+        cond.unit = inpput.isfieldnull(var,'unit');
+        cond.system = inpput.isfieldnull(var,'system');
+        
+        if cond.value
+            error('The value of variable is not defined.')
+        elseif cond.unit
+            var.unit = [];
+            var.system = [];
+            var.quantity = [];
+        elseif cond.system
+            error('The system of units for output is not defined.')
+        else
+            [row,col] = find(strcmp(var.unit,unitLib));
+            if isempty(col)
+                error(['Check the unit of value. ',var.unit,' is not defined'])
+            elseif col(1) == 2
+                var.quantity = unitLib(row(1),1);
+                if and(~strcmpi(var.system,'SI'),strcmpi(var.system,'FU'))
+                    convFactor = inpput.convFactorDetermine(var.quantity);
+                    var.value = var.value/convFactor;
+                    var.unit = unitLib(row(1),3);
+                elseif and(~strcmpi(var.system,'SI'),~strcmpi(var.system,'FU'))
+                    error('Check the required system of units for outputs')
+                end
+            elseif col(1) == 3
+                var.quantity = unitLib(row(1),1);
+                if and(~strcmpi(var.system,'FU'),strcmpi(var.system,'SI'))
+                    convFactor = inpput.convFactorDetermine(var.quantity);
+                    var.value = var.value*convFactor;
+                    var.unit = unitLib(row(1),2);
+                elseif and(~strcmpi(var.system,'SI'),~strcmpi(var.system,'FU'))
+                    error('Check the required system of units for outputs')
+                end
+            else
+                error('Something wrong went while mathcing input unit.')
+            end
+
+        return var
+    
+            
+    def convFactorDetermine(quantity)
+                
+        # convFactor is defined as from FU (field units) to SI units
+        
+        if strcmp(quantity,'length')
+            convFactor = 0.3048;             # [ft] to [m]
+        elseif strcmp(quantity,'pressure')
+            convFactor = 6894.76;            # [psi] to [Pa]
+        elseif strcmp(quantity,'permeability')
+            convFactor = 9.869233e-16;       # [mD] to [m2]
+        elseif strcmp(quantity,'compressibility')
+            convFactor = 1/6894.76;          # [1/psi] to [1/Pa]
+        elseif strcmp(quantity,'viscosity')
+            convFactor = 1e-3;               # [cp] to [Pa.s]
+        elseif strcmp(quantity,'flowrate')
+            convFactor = 1/(6.29*24*60*60);  # [bbl/day] to [m3/sec]
+        elseif strcmp(quantity,'time')
+            convFactor = 24*60*60;           # [day] to [sec]
+        elseif strcmp(quantity,'velocity')
+            convFactor = 0.3048/(24*60*60);  # [ft/day] to [m/sec]
+        end
+
+        return convFactor
+    
+    def isfieldnull(var,fieldName)
+        
+        cond = false;
+        
+        try
+           if isempty(var.(fieldName))
+               cond = true;
+           end
+        catch
+            cond = true;
+        end
+
+        return cond
+
 class Pipes():
 
     def __init__(self):
@@ -78,205 +190,374 @@ class Pipes():
 
         self.elevation = elevation
 
-class Formation():
+class Formation(dataset):
 
     # fileDir
-    # Length
-    # xLength
-    # yLength
-    # zLength
-    # porosity
-    # permeability
-    # xPermeability
-    # yPermeability
-    # zPermeability
     # initPressure
-    # diffusivity
-    # xDiffusivity
-    # yDiffusivity
-    # zDiffusivity
-    # isotropic
-    # anisotropic
-    # rockCompressibility
-    # oilViscosity
-    # oilFVF      % formation volume factor
-    # oilCompressibility
-    # totCompressibility
+    # compressibility
 
-    def __init__(self):
-        pass
+    def __init__(self,geometry="rectangular"):
+
+        # Geometry can be:
+        #  - rectangular
+        #  - cylindrical
+        #  - unstructured
+
+        self.geometry = geometry
+
+    def set_dimensions(self,dimensions=(1,1,1)):
+
+        # For rectangular parallelepiped, dimensions is a tuple with three entries for sizes in x,y,z direction
+        # For cylindrical disk, dimensions is a tuple with two entries for sizes in r,z direction
+
+        if self.geometry == "rectangular":
+
+            self.length_x = dimensions[0]
+            self.length_y = dimensions[1]
+            self.length_z = dimensions[2]
+
+        elif self.geometry == "cylindrical":
+
+            self.length_r = dimensions[0]
+            self.length_z = dimensions[1]
+
+        elif self.geometry == "unstructured":
+
+            pass
+
+    def discretize(self,length,grid_num):
+
+        """
+        self.grid_num   : number of grids in all directions
+        self.num        : number of total grids
+        self.id         : connectivity map containing index of all grids and their neighbours.
+        self.size       : size of grids in all directions.
+        self.area       : area of all faces
+        self.volume     : volume of grids
+        self.center     : coordinates of the center of grids
+        """
+
+        if self.geometry = "rectangular":
+
+            self.num_x = grid_num[0]
+            self.num_y = grid_num[1]
+            self.num_z = grid_num[2]
+
+            self.num = self.num_x*self.num_y*self.num_z
+
+            idx = np.arange(self.num)
+            
+            self.id = np.tile(idx,(7,1)).T
+
+            self.id[idx.reshape(-1,self.num_x)[:,1:].ravel(),1] -= 1
+            self.id[idx.reshape(-1,self.num_x)[:,:-1].ravel(),2] += 1
+            self.id[idx.reshape(self.num_z,-1)[:,self.num_x:],3] -= self.num_x
+            self.id[idx.reshape(self.num_z,-1)[:,:-self.num_x],4] += self.num_x
+            self.id[idx.reshape(self.num_z,-1)[1:,:],5] -= self.num_x*self.num_y
+            self.id[idx.reshape(self.num_z,-1)[:-1,:],6] += self.num_x*self.num_y
+
+            node_x = np.linspace(0,self.length_x,self.num_x+1)
+            node_y = np.linspace(0,self.length_y,self.num_y+1)
+            node_z = np.linspace(0,self.length_z,self.num_z+1)
+            
+            xsize = node_x[1:]-node_x[:-1]
+            ysize = node_y[1:]-node_y[:-1]
+            zsize = node_z[1:]-node_z[:-1]
+            
+            self.size = np.zeros((self.num,3))
+            self.size[:,0] = np.tile(xsize,self.num_y*self.num_z)
+            self.size[:,1] = np.tile(ysize.repeat(self.num_x),self.num_z)
+            self.size[:,2] = zsize.repeat(self.num_x*self.num_y)
+
+            self.area = np.zeros((self.num,3))
+            self.area[:,0] = self.size[:,1]*self.size[:,2]
+            self.area[:,1] = self.size[:,2]*self.size[:,0]
+            self.area[:,2] = self.size[:,0]*self.size[:,1]
+
+            self.volume = np.prod(self.size,axis=1)
+
+            xcenter = node_x[:-1]+xsize/2
+            ycenter = node_y[:-1]+ysize/2
+            zcenter = node_z[:-1]+zsize/2
+            
+            self.center = np.zeros((self.num,3))
+            self.center[:,0] = np.tile(xcenter,self.num_y*self.num_z)
+            self.center[:,1] = np.tile(ycenter.repeat(self.num_x),self.num_z)
+            self.center[:,2] = zcenter.repeat(self.num_x*self.num_y)
+
+        elif self.geometry == "cylindrical":
+
+            pass
+
+        elif self.geometry == "unstructured":
+
+            pass
+
+    def set_porosity(self,porosity)
+
+        self.porosity = porosity
+
+    def set_permeability(self,permeability,isotropy=True):
+
+        # permeability can be isotropic, anisotropic
+
+        self.permeability = permeability
+
+    def set_compressibility(self,compressibility):
+
+        self.compressibility = compressibility
+
+    def set_depth(self,depth):
+
+        self.depth = depth
 
     def get_tops(self,formations,wellname=None):
         pass
 
-    def set_diffusivity(self,viscosity,total_compressibility):
+    def vtkwrite(res,frac,well,time,sol):
+
+        pass
         
-        self.eta = (self.k)/(self.phi*self.mu*self.ct)
-
-    def set_total_compressibility(self,fluid):
-
-        self.ct = self.cr+fluid.cf
-
-    def set_hydraulic_diffusivity(self,hydraulic_diffusivity=None):
-
-        if hydraulic_diffusivity is not None:
-            self.eta = hydraulic_diffusivity
-
-    def rectangle(self,length,grid_num):
-
-        """
-        length is a tuple with three entries for size in x,y,z direction
-        for rectangular parallelepiped:
-        """
-
-        self.length_x = length[0]
-        self.length_y = length[1]
-        self.length_z = length[2]
-
-        """
-        grid_num is a tuple with three entries for discretization in x,y,z direction
-        for rectangular parallelepiped:
-        """
-
-        self.num_x = grid_num[0]
-        self.num_y = grid_num[1]
-        self.num_z = grid_num[2]
-
-        """
-        self.num is a total number of grids for rectangular parallelepiped
-        """
-        self.num = self.num_x*self.num_y*self.num_z
-
-        """
-        self.id is a connectivity map and contain index of all grids
-        their neighbours.
-        """
-
-        idx = np.arange(self.num)
+        # % deleteing files in results file
+        # delete 'results\*.fig'
+        # delete 'results\*.vtk'
         
-        self.id = np.tile(idx,(7,1)).T
-
-        self.id[idx.reshape(-1,self.num_x)[:,1:].ravel(),1] -= 1
-        self.id[idx.reshape(-1,self.num_x)[:,:-1].ravel(),2] += 1
-        self.id[idx.reshape(self.num_z,-1)[:,self.num_x:],3] -= self.num_x
-        self.id[idx.reshape(self.num_z,-1)[:,:-self.num_x],4] += self.num_x
-        self.id[idx.reshape(self.num_z,-1)[1:,:],5] -= self.num_x*self.num_y
-        self.id[idx.reshape(self.num_z,-1)[:-1,:],6] += self.num_x*self.num_y
-
-        """
-        self.size is the size of grids in x,y,z direction
-        """
-
-        node_x = np.linspace(0,self.length_x,self.num_x+1)
-        node_y = np.linspace(0,self.length_y,self.num_y+1)
-        node_z = np.linspace(0,self.length_z,self.num_z+1)
+        # % conversion to field units    
+        # time.tau = time.tau/inpput.convFactorDetermine('time');
+        # sol.pressure = sol.pressure/inpput.convFactorDetermine('pressure');
         
-        xsize = node_x[1:]-node_x[:-1]
-        ysize = node_y[1:]-node_y[:-1]
-        zsize = node_z[1:]-node_z[:-1]
+        # % writing time values
+        # for j = 1:time.numTimeStep
         
-        self.size = np.zeros((self.num,3))
-        self.size[:,0] = np.tile(xsize,self.num_y*self.num_z)
-        self.size[:,1] = np.tile(ysize.repeat(self.num_x),self.num_z)
-        self.size[:,2] = zsize.repeat(self.num_x*self.num_y)
-
-        """
-        self.area is the area of three faces of grids in x,y,z direction
-        """
+        # fid = fopen(['results\fracPressure',num2str(j),'.vtk'],'w');
         
-        self.area = np.zeros((self.num,3))
-        self.area[:,0] = self.size[:,1]*self.size[:,2]
-        self.area[:,1] = self.size[:,2]*self.size[:,0]
-        self.area[:,2] = self.size[:,0]*self.size[:,1]
-
-        """
-        self.volume is the volume of grids in x,y,z direction
-        """
-
-        self.volume = np.prod(self.size,axis=1)
-
-        xcenter = node_x[:-1]+xsize/2
-        ycenter = node_y[:-1]+ysize/2
-        zcenter = node_z[:-1]+zsize/2
-
-        """
-        self.center is the x,y,z coordinate of the center of grids
-        """
+        # fprintf(fid,'# vtk DataFile Version 1.0\r\n');
+        # fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
+        # fprintf(fid,'ASCII\r\n');
         
-        self.center = np.zeros((self.num,3))
-        self.center[:,0] = np.tile(xcenter,self.num_y*self.num_z)
-        self.center[:,1] = np.tile(ycenter.repeat(self.num_x),self.num_z)
-        self.center[:,2] = zcenter.repeat(self.num_x*self.num_y)
+        # fprintf(fid,'\r\nDATASET UNSTRUCTURED_GRID\r\n');
+        
+        # fprintf(fid,'\r\nPOINTS %d FLOAT\r\n',frac.numAnode*2);
+        
+        # for i = 1:frac.numAnode
+        #     fprintf(fid,'%f %f %f\r\n',frac.nodeCoord(i,:));
+        # end
+        
+        # for i = 1:frac.numAnode
+        #     fprintf(fid,'%f %f %f\r\n',[frac.nodeCoord(i,1:2),0]);
+        # end
 
-    def cylinder(self,height,radius,porosity,permeability,compressibility):
+        # fprintf(fid,'\r\nCELLS %d %d\r\n',frac.numAfrac,5*frac.numAfrac);
+        
+        # for i = 1:frac.numAfrac
+        #     fprintf(fid,'%d %d %d %d %d\r\n',[4,frac.map(i,:)-1,frac.map(i,:)+frac.numAnode-1]);
+        # end
+        
+        # fprintf(fid,'\r\nCELL_TYPES %d\r\n',frac.numAfrac);
+        
+        # for i = 1:frac.numAfrac
+        #     fprintf(fid,'%d\r\n',8);
+        # end
+        
+        # fprintf(fid,'\r\nCELL_DATA %d\r\n',frac.numAfrac);
+        # fprintf(fid,'SCALARS pressure float\r\n');
+        # fprintf(fid,'LOOKUP_TABLE default\r\n');
+        
+        # for i = 1:frac.numAfrac
+        #     fprintf(fid,'%f\r\n',sol.pressure(i,j));
+        # end
+        
+        # fclose(fid);
+        
+        # end
 
-        # regular radial both numerically discretized and homogenous one
+    def drawmap(self):
 
-        self.height = height
-        self.radius = radius
+        pass
+    
+    #     methods (Static)
+            
+    #         function node(frac,prop)
+                
+    #             switch nargin
+    #                 case 1
+    #                     plot(frac.nodeCoord(:,1),frac.nodeCoord(:,2),'.');
+    #                 case 2
+    #                     plot(frac.nodeCoord(:,1),frac.nodeCoord(:,2),'.',prop);
+    #             end
+                
+    #         end
+            
+    #         function fracture(frac,prop)
+                
+    #             switch nargin
+    #                 case 1
+    #                     plot([frac.point1.Xcoord,frac.point2.Xcoord]',...
+    #                          [frac.point1.Ycoord,frac.point2.Ycoord]');
+    #                 case 2
+    #                     plot([frac.point1.Xcoord,frac.point2.Xcoord]',...
+    #                          [frac.point1.Ycoord,frac.point2.Ycoord]',prop);
+    #             end
+                
+    #         end
+            
+    #         function well(frac,well,prop)
+                
+    #             switch nargin
+    #                 case 2
+    #                     plot(frac.center.Xcoord(well.wellID),...
+    #                          frac.center.Ycoord(well.wellID),'x');
+    #                 case 3
+    #                     plot(frac.center.Xcoord(well.wellID),...
+    #                          frac.center.Ycoord(well.wellID),'x',prop);
+    #             end
+                 
+    #         end
+            
+    #         function pressure1D(obs,pressure,time)
+                
+    #             time.snapTime = time.snapTime/inpput.convFactorDetermine('time');
+                
+    #             if length(unique(obs.Xcoord))>1
+    #                 xaxis = obs.Xcoord;
+    #             elseif length(unique(obs.Ycoord))>1
+    #                 xaxis = obs.Ycoord;
+    #             end
+                
+    #             figName = 'Reservoir Pressure';
+                
+    #             figure('Name',figName,'NumberTitle','off')
+                
+    #             plot(xaxis,pressure); hold on
+                
+    #             xlim([min(xaxis),max(xaxis)]);
+    # %           ylim([2000,4500]);
+                
+    #             xlabel('distance [m]');
+    #             ylabel('pressure [psi]');
+                
+    # %           legend('0.1 day','10 day','1000 day','Location','SouthEast');
+                
+    #             savefig(gcf,['results/',figName,'.fig'])
+    #             close(gcf)
+                
+    #         end
+                
+    #         function pressure2D(obs,pressure,frac,time,interp)
+                
+    #             time.snapTime = time.snapTime/inpput.convFactorDetermine('time');
+                
+    #             for i = 1:time.numSnaps
+                    
+    #                 switch nargin
+    #                     case 4
+    #                         OBS = obs;
+    #                         vq = reshape(pressure(:,i),obs.Ynum,obs.Xnum);
+    #                     case 5
+    #                         OBS = plotAll.calc2Dnodes(...
+    #                             [min(obs.Xcoord),max(obs.Xcoord),interp(1)],...
+    #                             [min(obs.Ycoord),max(obs.Ycoord),interp(2)]);
+    #                         vq = griddata(obs.Xcoord,obs.Ycoord,pressure(:,i),...
+    #                               OBS.Xcoord,OBS.Ycoord,'natural');
+    #                         vq = reshape(vq,OBS.Ynum,OBS.Xnum);
+    #                 end
+                
+    #                 figName = ['time ',num2str(time.snapTime(i)),' days'];
 
-        self.porosity = porosity
-        self.permeability = permeability
-        self.compressibility = compressibility
+    #                 figure('Name',figName,'NumberTitle','off')
 
-# function vtkwrite(res,frac,well,time,sol)
-    
-#     % deleteing files in results file
-#     delete 'results\*.fig'
-#     delete 'results\*.vtk'
-    
-#     % conversion to field units    
-#     time.tau = time.tau/inpput.convFactorDetermine('time');
-#     sol.pressure = sol.pressure/inpput.convFactorDetermine('pressure');
-    
-#     % writing time values
-#     for j = 1:time.numTimeStep
-    
-#     fid = fopen(['results\fracPressure',num2str(j),'.vtk'],'w');
-    
-#     fprintf(fid,'# vtk DataFile Version 1.0\r\n');
-#     fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
-#     fprintf(fid,'ASCII\r\n');
-    
-#     fprintf(fid,'\r\nDATASET UNSTRUCTURED_GRID\r\n');
-    
-#     fprintf(fid,'\r\nPOINTS %d FLOAT\r\n',frac.numAnode*2);
-    
-#     for i = 1:frac.numAnode
-#         fprintf(fid,'%f %f %f\r\n',frac.nodeCoord(i,:));
-#     end
-    
-#     for i = 1:frac.numAnode
-#         fprintf(fid,'%f %f %f\r\n',[frac.nodeCoord(i,1:2),0]);
-#     end
+    #                 imagesc(OBS.Xcoord,OBS.Ycoord,vq);
 
-#     fprintf(fid,'\r\nCELLS %d %d\r\n',frac.numAfrac,5*frac.numAfrac);
-    
-#     for i = 1:frac.numAfrac
-#         fprintf(fid,'%d %d %d %d %d\r\n',[4,frac.map(i,:)-1,frac.map(i,:)+frac.numAnode-1]);
-#     end
-    
-#     fprintf(fid,'\r\nCELL_TYPES %d\r\n',frac.numAfrac);
-    
-#     for i = 1:frac.numAfrac
-#         fprintf(fid,'%d\r\n',8);
-#     end
-    
-#     fprintf(fid,'\r\nCELL_DATA %d\r\n',frac.numAfrac);
-#     fprintf(fid,'SCALARS pressure float\r\n');
-#     fprintf(fid,'LOOKUP_TABLE default\r\n');
-    
-#     for i = 1:frac.numAfrac
-#         fprintf(fid,'%f\r\n',sol.pressure(i,j));
-#     end
-    
-#     fclose(fid);
-    
-#     end
+    #     %           set(h,'EdgeColor','none');
+    #     %           shading interp
 
-# end
+    #                 colormap(jet)
+    #                 colorbar
+    #     %           caxis([2000,4200])
 
-class Fractures():
+    #                 xlim([min(OBS.Xcoord),max(OBS.Xcoord)]);
+    #                 ylim([min(OBS.Ycoord),max(OBS.Ycoord)]);
+
+    #                 hold on
+
+    #                 prop.Color = 'w';
+    #     %           prop.LineWidth = 1;
+
+    #                 plotAll.fracture(frac,prop);
+
+    #                 savefig(gcf,['results/',figName,'.fig'])
+                    
+    #                 close(gcf)
+                
+    #             end
+                    
+    #         end
+            
+    #         function obs = calc1Dnodes(Lmin,Lmax,Ndata)
+                
+    #             switch nargin
+    #                 case 1
+    #                     obs.num = 1;
+    #                     obs.range = Lmin;
+    #                 case 2
+    #                     obs.num = 20;
+    #                     obs.range = linspace(Lmin,Lmax,obs.num);
+    #                 case 3
+    #                     obs.num = Ndata;
+    #                     obs.range = linspace(Lmin,Lmax,obs.num);
+    #             end
+                
+    #         end
+            
+    #         function obs = calc2Dnodes(X,Y)
+                
+    #             % xnum and ynum are the number of nodes
+    #             % number of elements = number of nodes - 1
+                
+    #             if length(X) == 1
+    #                 XX = plotAll.calc1Dnodes(X(1));
+    #             elseif length(X) == 2
+    #                 XX = plotAll.calc1Dnodes(X(1),X(2));
+    #             elseif length(X) == 3
+    #                 XX = plotAll.calc1Dnodes(X(1),X(2),X(3));
+    #             end
+                
+    #             if length(Y) == 1
+    #                 YY = plotAll.calc1Dnodes(Y(1));
+    #             elseif length(Y) == 2
+    #                 YY = plotAll.calc1Dnodes(Y(1),Y(2));
+    #             elseif length(Y) == 3
+    #                 YY = plotAll.calc1Dnodes(Y(1),Y(2),Y(3));
+    #             end
+                
+    #             [Xmat,Ymat] = meshgrid(XX.range,YY.range);
+                
+    #             obs.Xnum = XX.num;
+    #             obs.Ynum = YY.num;
+                
+    #             obs.Xcoord = Xmat(:);
+    #             obs.Ycoord = Ymat(:);
+    #             obs.Zcoord = ones((XX.num)*(YY.num),1);
+                
+    #         end
+            
+    #         function pressure = calcPressure(sol,res,time,green)
+                
+    #             gterm = green*time.deltaTime;
+                
+    #             pressure = zeros(size(green,1),time.numSnaps);
+                
+    #             for i = 1:time.numSnaps
+                    
+    #                 P = res.initPressure-...
+    #                  solver.convolution(gterm,sol.fracflux,1,time.idxSnapTime(i));
+                    
+    #                 pressure(:,i) = P/inpput.convFactorDetermine('pressure');
+                    
+    #             end
+    #         end
+            
+class Fractures(dataset):
 
     # % The fracture segment is defined as a plane joining two node points
     # % (point1 and point2). The heigth of fracture plane is taken the same
@@ -1268,403 +1549,52 @@ class Wells(graphics):
 
         pass
 
-# classdef wellControl
-    
-#     properties
-#         fileDir
-#         radius
-#         consPressure
-#         consFlowrate
-#         wellID
-#         numWnode
-#     end
-    
-#     methods (Static)
-        
-#         function obj = wellControl(string,outSystem)
-            
-#             obj.fileDir = [string,'\well\'];
-            
-#             file1Name = [obj.fileDir,'input.txt'];
-            
-#             well = inpput.read(file1Name,outSystem);
-            
-#             obj.radius = well.prop1.value;
-            
-#             if strcmp(well.prop2.quantity,'pressure')
-#                 obj.consPressure = well.prop2.value;
-#             elseif strcmp(well.prop2.quantity,'flowrate')
-#                 obj.consFlowrate = well.prop2.value;
-#             end
-            
-#             obj.wellID = well.list.value;
-            
-#             obj = wellControl.calculate(obj);
-            
-#         end
-        
-#         function obj = calculate(obj)
-            
-#             % index number of fracture containing well
-            
-#             obj.numWnode = size(obj.wellID,1);  
-            
-#         end
-        
-#     end
-    
-# end
+    def control(self):
 
-# classdef plotAll
-    
-#     methods (Static)
+        pass
         
-#         function node(frac,prop)
-            
-#             switch nargin
-#                 case 1
-#                     plot(frac.nodeCoord(:,1),frac.nodeCoord(:,2),'.');
-#                 case 2
-#                     plot(frac.nodeCoord(:,1),frac.nodeCoord(:,2),'.',prop);
-#             end
-            
-#         end
+        # properties
+        #     fileDir
+        #     radius
+        #     consPressure
+        #     consFlowrate
+        #     wellID
+        #     numWnode
+        # end
         
-#         function fracture(frac,prop)
+        # methods (Static)
             
-#             switch nargin
-#                 case 1
-#                     plot([frac.point1.Xcoord,frac.point2.Xcoord]',...
-#                          [frac.point1.Ycoord,frac.point2.Ycoord]');
-#                 case 2
-#                     plot([frac.point1.Xcoord,frac.point2.Xcoord]',...
-#                          [frac.point1.Ycoord,frac.point2.Ycoord]',prop);
-#             end
-            
-#         end
-        
-#         function well(frac,well,prop)
-            
-#             switch nargin
-#                 case 2
-#                     plot(frac.center.Xcoord(well.wellID),...
-#                          frac.center.Ycoord(well.wellID),'x');
-#                 case 3
-#                     plot(frac.center.Xcoord(well.wellID),...
-#                          frac.center.Ycoord(well.wellID),'x',prop);
-#             end
-             
-#         end
-        
-#         function pressure1D(obs,pressure,time)
-            
-#             time.snapTime = time.snapTime/inpput.convFactorDetermine('time');
-            
-#             if length(unique(obs.Xcoord))>1
-#                 xaxis = obs.Xcoord;
-#             elseif length(unique(obs.Ycoord))>1
-#                 xaxis = obs.Ycoord;
-#             end
-            
-#             figName = 'Reservoir Pressure';
-            
-#             figure('Name',figName,'NumberTitle','off')
-            
-#             plot(xaxis,pressure); hold on
-            
-#             xlim([min(xaxis),max(xaxis)]);
-# %           ylim([2000,4500]);
-            
-#             xlabel('distance [m]');
-#             ylabel('pressure [psi]');
-            
-# %           legend('0.1 day','10 day','1000 day','Location','SouthEast');
-            
-#             savefig(gcf,['results/',figName,'.fig'])
-#             close(gcf)
-            
-#         end
-            
-#         function pressure2D(obs,pressure,frac,time,interp)
-            
-#             time.snapTime = time.snapTime/inpput.convFactorDetermine('time');
-            
-#             for i = 1:time.numSnaps
+        #     function obj = wellControl(string,outSystem)
                 
-#                 switch nargin
-#                     case 4
-#                         OBS = obs;
-#                         vq = reshape(pressure(:,i),obs.Ynum,obs.Xnum);
-#                     case 5
-#                         OBS = plotAll.calc2Dnodes(...
-#                             [min(obs.Xcoord),max(obs.Xcoord),interp(1)],...
-#                             [min(obs.Ycoord),max(obs.Ycoord),interp(2)]);
-#                         vq = griddata(obs.Xcoord,obs.Ycoord,pressure(:,i),...
-#                               OBS.Xcoord,OBS.Ycoord,'natural');
-#                         vq = reshape(vq,OBS.Ynum,OBS.Xnum);
-#                 end
-            
-#                 figName = ['time ',num2str(time.snapTime(i)),' days'];
-
-#                 figure('Name',figName,'NumberTitle','off')
-
-#                 imagesc(OBS.Xcoord,OBS.Ycoord,vq);
-
-#     %           set(h,'EdgeColor','none');
-#     %           shading interp
-
-#                 colormap(jet)
-#                 colorbar
-#     %           caxis([2000,4200])
-
-#                 xlim([min(OBS.Xcoord),max(OBS.Xcoord)]);
-#                 ylim([min(OBS.Ycoord),max(OBS.Ycoord)]);
-
-#                 hold on
-
-#                 prop.Color = 'w';
-#     %           prop.LineWidth = 1;
-
-#                 plotAll.fracture(frac,prop);
-
-#                 savefig(gcf,['results/',figName,'.fig'])
+        #         obj.fileDir = [string,'\well\'];
                 
-#                 close(gcf)
-            
-#             end
+        #         file1Name = [obj.fileDir,'input.txt'];
                 
-#         end
-        
-#         function obs = calc1Dnodes(Lmin,Lmax,Ndata)
-            
-#             switch nargin
-#                 case 1
-#                     obs.num = 1;
-#                     obs.range = Lmin;
-#                 case 2
-#                     obs.num = 20;
-#                     obs.range = linspace(Lmin,Lmax,obs.num);
-#                 case 3
-#                     obs.num = Ndata;
-#                     obs.range = linspace(Lmin,Lmax,obs.num);
-#             end
-            
-#         end
-        
-#         function obs = calc2Dnodes(X,Y)
-            
-#             % xnum and ynum are the number of nodes
-#             % number of elements = number of nodes - 1
-            
-#             if length(X) == 1
-#                 XX = plotAll.calc1Dnodes(X(1));
-#             elseif length(X) == 2
-#                 XX = plotAll.calc1Dnodes(X(1),X(2));
-#             elseif length(X) == 3
-#                 XX = plotAll.calc1Dnodes(X(1),X(2),X(3));
-#             end
-            
-#             if length(Y) == 1
-#                 YY = plotAll.calc1Dnodes(Y(1));
-#             elseif length(Y) == 2
-#                 YY = plotAll.calc1Dnodes(Y(1),Y(2));
-#             elseif length(Y) == 3
-#                 YY = plotAll.calc1Dnodes(Y(1),Y(2),Y(3));
-#             end
-            
-#             [Xmat,Ymat] = meshgrid(XX.range,YY.range);
-            
-#             obs.Xnum = XX.num;
-#             obs.Ynum = YY.num;
-            
-#             obs.Xcoord = Xmat(:);
-#             obs.Ycoord = Ymat(:);
-#             obs.Zcoord = ones((XX.num)*(YY.num),1);
-            
-#         end
-        
-#         function pressure = calcPressure(sol,res,time,green)
-            
-#             gterm = green*time.deltaTime;
-            
-#             pressure = zeros(size(green,1),time.numSnaps);
-            
-#             for i = 1:time.numSnaps
+        #         well = inpput.read(file1Name,outSystem);
                 
-#                 P = res.initPressure-...
-#                  solver.convolution(gterm,sol.fracflux,1,time.idxSnapTime(i));
+        #         obj.radius = well.prop1.value;
                 
-#                 pressure(:,i) = P/inpput.convFactorDetermine('pressure');
+        #         if strcmp(well.prop2.quantity,'pressure')
+        #             obj.consPressure = well.prop2.value;
+        #         elseif strcmp(well.prop2.quantity,'flowrate')
+        #             obj.consFlowrate = well.prop2.value;
+        #         end
                 
-#             end
-#         end
-        
-#     end
-    
-# end
-
-
-
-# classdef inpput
-    
-#     % obj.prop1.(value)(unit)(system)(quantity)
-#     % obj.prop2.(value)(unit)(system)(quantity)
-#     % .
-#     % .
-#     % obj.list.(value)(unit)(system)(quantity)
-    
-#     methods (Static)
-        
-#         function obj = read(string,outputInUnitSystem)
-            
-#             numtoskip = 0;
-
-#             fid = fopen(string);
-
-#             numProp = 1;
-            
-#             while true
+        #         obj.wellID = well.list.value;
                 
-#                 lineRead = fgetl(fid);
-
-#                 firstNonSpaceChar = lineRead(find(~isspace(lineRead),1));
-
-#                 strUptoPer = strtok(lineRead,'%');
-
-#                 if lineRead == -1
-#                     fclose(fid);
-#                     break
-#                 elseif strcmp(firstNonSpaceChar,'%')
-#                     numtoskip = numtoskip+1;
-#                 elseif and(isstrprop(firstNonSpaceChar,'digit'),contains(lineRead,'#'))
-#                     [token,remain] = strtok(strUptoPer,'#');
-#                     str = ['prop',num2str(numProp)];
-#                     prop.value = str2num(token);
-#                     prop.system = outputInUnitSystem;
-#                     prop.unit = strtrim(extractAfter(remain,'#'));
-#                     obj.(str) = inpput.conversion(prop);
-#                     numProp = numProp+1;
-#                     numtoskip = numtoskip+1;
-#                 elseif firstNonSpaceChar == "#"
-#                     list.unit = strtrim(extractAfter(strUptoPer,'#'));
-#                     numtoskip = numtoskip+1;
-#                 elseif isstrprop(firstNonSpaceChar,'digit')
-#                     fclose(fid);
-#                     list.value = dlmread(string,'',numtoskip,0);
-#                     list.system = outputInUnitSystem;
-#                     obj.list = inpput.conversion(list);
-#                     break
-#                 end
+        #         obj = wellControl.calculate(obj);
                 
-#             end
-
-#         end
-        
-#         function var = conversion(var)
+        #     end
             
-#             % input variable structure consist of:
-#             % var.value -- the value of variable -- ex. 5 (any value)
-#             % var.unit -- the unit of variable -- ex. m, ft, psi, Pa or sec
-#             % var.system -- the system of units for output -- ex. SI or FU
+        #     function obj = calculate(obj)
+                
+        #         % index number of fracture containing well
+                
+        #         obj.numWnode = size(obj.wellID,1);  
+                
+        #     end
             
-#             % the following field is added to the output variable structure:
-#             % var.quantity -- ex. length, time, or pressure
-            
-#             unitLib(1,:) = {'length','m','ft'};
-#             unitLib(2,:) = {'mass','kg','lbm'};
-#             unitLib(3,:) = {'time','sec','day'};
-#             unitLib(4,:) = {'temperature','K','F'};
-#             unitLib(5,:) = {'pressure','Pa','psi'};
-#             unitLib(6,:) = {'permeability','m2','mD'};
-#             unitLib(7,:) = {'compressibility','1/Pa','1/psi'};
-#             unitLib(8,:) = {'viscosity','Pa.s','cp'};
-#             unitLib(9,:) = {'flowrate','m3/sec','bbl/day'};
-#             unitLib(10,:) = {'velocity','m/sec','ft/day'};
-            
-#             cond.value = inpput.isfieldnull(var,'value');
-#             cond.unit = inpput.isfieldnull(var,'unit');
-#             cond.system = inpput.isfieldnull(var,'system');
-            
-#             if cond.value
-#                 error('The value of variable is not defined.')
-#             elseif cond.unit
-#                 var.unit = [];
-#                 var.system = [];
-#                 var.quantity = [];
-#             elseif cond.system
-#                 error('The system of units for output is not defined.')
-#             else
-#                 [row,col] = find(strcmp(var.unit,unitLib));
-#                 if isempty(col)
-#                     error(['Check the unit of value. ',var.unit,' is not defined'])
-#                 elseif col(1) == 2
-#                     var.quantity = unitLib(row(1),1);
-#                     if and(~strcmpi(var.system,'SI'),strcmpi(var.system,'FU'))
-#                         convFactor = inpput.convFactorDetermine(var.quantity);
-#                         var.value = var.value/convFactor;
-#                         var.unit = unitLib(row(1),3);
-#                     elseif and(~strcmpi(var.system,'SI'),~strcmpi(var.system,'FU'))
-#                         error('Check the required system of units for outputs')
-#                     end
-#                 elseif col(1) == 3
-#                     var.quantity = unitLib(row(1),1);
-#                     if and(~strcmpi(var.system,'FU'),strcmpi(var.system,'SI'))
-#                         convFactor = inpput.convFactorDetermine(var.quantity);
-#                         var.value = var.value*convFactor;
-#                         var.unit = unitLib(row(1),2);
-#                     elseif and(~strcmpi(var.system,'SI'),~strcmpi(var.system,'FU'))
-#                         error('Check the required system of units for outputs')
-#                     end
-#                 else
-#                     error('Something wrong went while mathcing input unit.')
-#                 end
-#             end
-            
-#         end
-        
-#         function convFactor = convFactorDetermine(quantity)
-            
-#             % convFactor is defined as from FU (field units) to SI units
-            
-#             if strcmp(quantity,'length')
-#                 convFactor = 0.3048;             % [ft] to [m]
-#             elseif strcmp(quantity,'pressure')
-#                 convFactor = 6894.76;            % [psi] to [Pa]
-#             elseif strcmp(quantity,'permeability')
-#                 convFactor = 9.869233e-16;       % [mD] to [m2]
-#             elseif strcmp(quantity,'compressibility')
-#                 convFactor = 1/6894.76;          % [1/psi] to [1/Pa]
-#             elseif strcmp(quantity,'viscosity')
-#                 convFactor = 1e-3;               % [cp] to [Pa.s]
-#             elseif strcmp(quantity,'flowrate')
-#                 convFactor = 1/(6.29*24*60*60);  % [bbl/day] to [m3/sec]
-#             elseif strcmp(quantity,'time')
-#                 convFactor = 24*60*60;           % [day] to [sec]
-#             elseif strcmp(quantity,'velocity')
-#                 convFactor = 0.3048/(24*60*60);  % [ft/day] to [m/sec]
-#             end
-            
-#         end
-        
-#         function cond = isfieldnull(var,fieldName)
-            
-#             cond = false;
-            
-#             try
-#                if isempty(var.(fieldName))
-#                    cond = true;
-#                end
-#             catch
-#                 cond = true;
-#             end
-            
-#         end
-        
-#     end
-    
-# end
-
-
+        # end
 
 if __name__ == "__main__":
 

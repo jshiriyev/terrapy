@@ -5,7 +5,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from flow.pormed import green
+from flow.pormed.complex import rectangular_parallelepiped
 
 class TestComplexFlow(unittest.TestCase):
 
