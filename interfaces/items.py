@@ -19,119 +19,9 @@ if __name__ == "__main__":
     import setup
 
 from interfaces.dataset import dataset
-from interfaces.graphics import graphics
 
-class Units():
-
-    def __init__(self):
-
-        pass
-    
-        # obj.prop1.(value)(unit)(system)(quantity)
-        # obj.prop2.(value)(unit)(system)(quantity)
-        # .
-        # .
-        # obj.list.(value)(unit)(system)(quantity)
-            
-    def conversion(var)
-                
-        # input variable structure consist of:
-        # var.value -- the value of variable -- ex. 5 (any value)
-        # var.unit -- the unit of variable -- ex. m, ft, psi, Pa or sec
-        # var.system -- the system of units for output -- ex. SI or FU
-
-        # the following field is added to the output variable structure:
-        # var.quantity -- ex. length, time, or pressure
-        
-        unitLib(1,:) = {'length','m','ft'};
-        unitLib(2,:) = {'mass','kg','lbm'};
-        unitLib(3,:) = {'time','sec','day'};
-        unitLib(4,:) = {'temperature','K','F'};
-        unitLib(5,:) = {'pressure','Pa','psi'};
-        unitLib(6,:) = {'permeability','m2','mD'};
-        unitLib(7,:) = {'compressibility','1/Pa','1/psi'};
-        unitLib(8,:) = {'viscosity','Pa.s','cp'};
-        unitLib(9,:) = {'flowrate','m3/sec','bbl/day'};
-        unitLib(10,:) = {'velocity','m/sec','ft/day'};
-        
-        cond.value = inpput.isfieldnull(var,'value');
-        cond.unit = inpput.isfieldnull(var,'unit');
-        cond.system = inpput.isfieldnull(var,'system');
-        
-        if cond.value
-            error('The value of variable is not defined.')
-        elseif cond.unit
-            var.unit = [];
-            var.system = [];
-            var.quantity = [];
-        elseif cond.system
-            error('The system of units for output is not defined.')
-        else
-            [row,col] = find(strcmp(var.unit,unitLib));
-            if isempty(col)
-                error(['Check the unit of value. ',var.unit,' is not defined'])
-            elseif col(1) == 2
-                var.quantity = unitLib(row(1),1);
-                if and(~strcmpi(var.system,'SI'),strcmpi(var.system,'FU'))
-                    convFactor = inpput.convFactorDetermine(var.quantity);
-                    var.value = var.value/convFactor;
-                    var.unit = unitLib(row(1),3);
-                elseif and(~strcmpi(var.system,'SI'),~strcmpi(var.system,'FU'))
-                    error('Check the required system of units for outputs')
-                end
-            elseif col(1) == 3
-                var.quantity = unitLib(row(1),1);
-                if and(~strcmpi(var.system,'FU'),strcmpi(var.system,'SI'))
-                    convFactor = inpput.convFactorDetermine(var.quantity);
-                    var.value = var.value*convFactor;
-                    var.unit = unitLib(row(1),2);
-                elseif and(~strcmpi(var.system,'SI'),~strcmpi(var.system,'FU'))
-                    error('Check the required system of units for outputs')
-                end
-            else
-                error('Something wrong went while mathcing input unit.')
-            end
-
-        return var
-    
-            
-    def convFactorDetermine(quantity)
-                
-        # convFactor is defined as from FU (field units) to SI units
-        
-        if strcmp(quantity,'length')
-            convFactor = 0.3048;             # [ft] to [m]
-        elseif strcmp(quantity,'pressure')
-            convFactor = 6894.76;            # [psi] to [Pa]
-        elseif strcmp(quantity,'permeability')
-            convFactor = 9.869233e-16;       # [mD] to [m2]
-        elseif strcmp(quantity,'compressibility')
-            convFactor = 1/6894.76;          # [1/psi] to [1/Pa]
-        elseif strcmp(quantity,'viscosity')
-            convFactor = 1e-3;               # [cp] to [Pa.s]
-        elseif strcmp(quantity,'flowrate')
-            convFactor = 1/(6.29*24*60*60);  # [bbl/day] to [m3/sec]
-        elseif strcmp(quantity,'time')
-            convFactor = 24*60*60;           # [day] to [sec]
-        elseif strcmp(quantity,'velocity')
-            convFactor = 0.3048/(24*60*60);  # [ft/day] to [m/sec]
-        end
-
-        return convFactor
-    
-    def isfieldnull(var,fieldName)
-        
-        cond = false;
-        
-        try
-           if isempty(var.(fieldName))
-               cond = true;
-           end
-        catch
-            cond = true;
-        end
-
-        return cond
+from interfaces.graphics import plot2D
+from interfaces.graphics import table
 
 class Pipes():
 
@@ -190,18 +80,20 @@ class Pipes():
 
         self.elevation = elevation
 
-class Formation(dataset):
+class Formation(plot2D):
 
     # fileDir
     # initPressure
     # compressibility
 
-    def __init__(self,geometry="rectangular"):
+    def __init__(self,workdir,geometry="rectangular"):
 
         # Geometry can be:
         #  - rectangular
         #  - cylindrical
         #  - unstructured
+
+        self.workdir = workdir
 
         self.geometry = geometry
 
@@ -225,7 +117,7 @@ class Formation(dataset):
 
             pass
 
-    def discretize(self,length,grid_num):
+    def discretize(self,grid_num):
 
         """
         self.grid_num   : number of grids in all directions
@@ -237,7 +129,7 @@ class Formation(dataset):
         self.center     : coordinates of the center of grids
         """
 
-        if self.geometry = "rectangular":
+        if self.geometry == "rectangular":
 
             self.num_x = grid_num[0]
             self.num_y = grid_num[1]
@@ -293,7 +185,7 @@ class Formation(dataset):
 
             pass
 
-    def set_porosity(self,porosity)
+    def set_porosity(self,porosity):
 
         self.porosity = porosity
 
@@ -312,6 +204,7 @@ class Formation(dataset):
         self.depth = depth
 
     def get_tops(self,formations,wellname=None):
+
         pass
 
     def vtkwrite(res,frac,well,time,sol):
@@ -374,188 +267,183 @@ class Formation(dataset):
     def drawmap(self):
 
         pass
-    
-    #     methods (Static)
+        
+        # function node(frac,prop)
             
-    #         function node(frac,prop)
-                
-    #             switch nargin
-    #                 case 1
-    #                     plot(frac.nodeCoord(:,1),frac.nodeCoord(:,2),'.');
-    #                 case 2
-    #                     plot(frac.nodeCoord(:,1),frac.nodeCoord(:,2),'.',prop);
-    #             end
-                
-    #         end
+        #     switch nargin
+        #         case 1
+        #             plot(frac.nodeCoord(:,1),frac.nodeCoord(:,2),'.');
+        #         case 2
+        #             plot(frac.nodeCoord(:,1),frac.nodeCoord(:,2),'.',prop);
+        #     end
             
-    #         function fracture(frac,prop)
-                
-    #             switch nargin
-    #                 case 1
-    #                     plot([frac.point1.Xcoord,frac.point2.Xcoord]',...
-    #                          [frac.point1.Ycoord,frac.point2.Ycoord]');
-    #                 case 2
-    #                     plot([frac.point1.Xcoord,frac.point2.Xcoord]',...
-    #                          [frac.point1.Ycoord,frac.point2.Ycoord]',prop);
-    #             end
-                
-    #         end
+        # end
+        
+        # function fracture(frac,prop)
             
-    #         function well(frac,well,prop)
-                
-    #             switch nargin
-    #                 case 2
-    #                     plot(frac.center.Xcoord(well.wellID),...
-    #                          frac.center.Ycoord(well.wellID),'x');
-    #                 case 3
-    #                     plot(frac.center.Xcoord(well.wellID),...
-    #                          frac.center.Ycoord(well.wellID),'x',prop);
-    #             end
-                 
-    #         end
+        #     switch nargin
+        #         case 1
+        #             plot([frac.point1.Xcoord,frac.point2.Xcoord]',...
+        #                  [frac.point1.Ycoord,frac.point2.Ycoord]');
+        #         case 2
+        #             plot([frac.point1.Xcoord,frac.point2.Xcoord]',...
+        #                  [frac.point1.Ycoord,frac.point2.Ycoord]',prop);
+        #     end
             
-    #         function pressure1D(obs,pressure,time)
-                
-    #             time.snapTime = time.snapTime/inpput.convFactorDetermine('time');
-                
-    #             if length(unique(obs.Xcoord))>1
-    #                 xaxis = obs.Xcoord;
-    #             elseif length(unique(obs.Ycoord))>1
-    #                 xaxis = obs.Ycoord;
-    #             end
-                
-    #             figName = 'Reservoir Pressure';
-                
-    #             figure('Name',figName,'NumberTitle','off')
-                
-    #             plot(xaxis,pressure); hold on
-                
-    #             xlim([min(xaxis),max(xaxis)]);
-    # %           ylim([2000,4500]);
-                
-    #             xlabel('distance [m]');
-    #             ylabel('pressure [psi]');
-                
-    # %           legend('0.1 day','10 day','1000 day','Location','SouthEast');
-                
-    #             savefig(gcf,['results/',figName,'.fig'])
-    #             close(gcf)
-                
-    #         end
-                
-    #         function pressure2D(obs,pressure,frac,time,interp)
-                
-    #             time.snapTime = time.snapTime/inpput.convFactorDetermine('time');
-                
-    #             for i = 1:time.numSnaps
-                    
-    #                 switch nargin
-    #                     case 4
-    #                         OBS = obs;
-    #                         vq = reshape(pressure(:,i),obs.Ynum,obs.Xnum);
-    #                     case 5
-    #                         OBS = plotAll.calc2Dnodes(...
-    #                             [min(obs.Xcoord),max(obs.Xcoord),interp(1)],...
-    #                             [min(obs.Ycoord),max(obs.Ycoord),interp(2)]);
-    #                         vq = griddata(obs.Xcoord,obs.Ycoord,pressure(:,i),...
-    #                               OBS.Xcoord,OBS.Ycoord,'natural');
-    #                         vq = reshape(vq,OBS.Ynum,OBS.Xnum);
-    #                 end
-                
-    #                 figName = ['time ',num2str(time.snapTime(i)),' days'];
-
-    #                 figure('Name',figName,'NumberTitle','off')
-
-    #                 imagesc(OBS.Xcoord,OBS.Ycoord,vq);
-
-    #     %           set(h,'EdgeColor','none');
-    #     %           shading interp
-
-    #                 colormap(jet)
-    #                 colorbar
-    #     %           caxis([2000,4200])
-
-    #                 xlim([min(OBS.Xcoord),max(OBS.Xcoord)]);
-    #                 ylim([min(OBS.Ycoord),max(OBS.Ycoord)]);
-
-    #                 hold on
-
-    #                 prop.Color = 'w';
-    #     %           prop.LineWidth = 1;
-
-    #                 plotAll.fracture(frac,prop);
-
-    #                 savefig(gcf,['results/',figName,'.fig'])
-                    
-    #                 close(gcf)
-                
-    #             end
-                    
-    #         end
+        # end
+        
+        # function well(frac,well,prop)
             
-    #         function obs = calc1Dnodes(Lmin,Lmax,Ndata)
-                
-    #             switch nargin
-    #                 case 1
-    #                     obs.num = 1;
-    #                     obs.range = Lmin;
-    #                 case 2
-    #                     obs.num = 20;
-    #                     obs.range = linspace(Lmin,Lmax,obs.num);
-    #                 case 3
-    #                     obs.num = Ndata;
-    #                     obs.range = linspace(Lmin,Lmax,obs.num);
-    #             end
-                
-    #         end
+        #     switch nargin
+        #         case 2
+        #             plot(frac.center.Xcoord(well.wellID),...
+        #                  frac.center.Ycoord(well.wellID),'x');
+        #         case 3
+        #             plot(frac.center.Xcoord(well.wellID),...
+        #                  frac.center.Ycoord(well.wellID),'x',prop);
+        #     end
+             
+        # end
+        
+        # function pressure1D(obs,pressure,time)
             
-    #         function obs = calc2Dnodes(X,Y)
-                
-    #             % xnum and ynum are the number of nodes
-    #             % number of elements = number of nodes - 1
-                
-    #             if length(X) == 1
-    #                 XX = plotAll.calc1Dnodes(X(1));
-    #             elseif length(X) == 2
-    #                 XX = plotAll.calc1Dnodes(X(1),X(2));
-    #             elseif length(X) == 3
-    #                 XX = plotAll.calc1Dnodes(X(1),X(2),X(3));
-    #             end
-                
-    #             if length(Y) == 1
-    #                 YY = plotAll.calc1Dnodes(Y(1));
-    #             elseif length(Y) == 2
-    #                 YY = plotAll.calc1Dnodes(Y(1),Y(2));
-    #             elseif length(Y) == 3
-    #                 YY = plotAll.calc1Dnodes(Y(1),Y(2),Y(3));
-    #             end
-                
-    #             [Xmat,Ymat] = meshgrid(XX.range,YY.range);
-                
-    #             obs.Xnum = XX.num;
-    #             obs.Ynum = YY.num;
-                
-    #             obs.Xcoord = Xmat(:);
-    #             obs.Ycoord = Ymat(:);
-    #             obs.Zcoord = ones((XX.num)*(YY.num),1);
-                
-    #         end
+        #     time.snapTime = time.snapTime/inpput.convFactorDetermine('time');
             
-    #         function pressure = calcPressure(sol,res,time,green)
+        #     if length(unique(obs.Xcoord))>1
+        #         xaxis = obs.Xcoord;
+        #     elseif length(unique(obs.Ycoord))>1
+        #         xaxis = obs.Ycoord;
+        #     end
+            
+        #     figName = 'Reservoir Pressure';
+            
+        #     figure('Name',figName,'NumberTitle','off')
+            
+        #     plot(xaxis,pressure); hold on
+            
+        #     xlim([min(xaxis),max(xaxis)]);
+        #     ylim([2000,4500]);
+            
+        #     xlabel('distance [m]');
+        #     ylabel('pressure [psi]');
+            
+        #     legend('0.1 day','10 day','1000 day','Location','SouthEast');
+            
+        #     savefig(gcf,['results/',figName,'.fig'])
+        #     close(gcf)
+            
+        # end
+            
+        # function pressure2D(obs,pressure,frac,time,interp)
+            
+        #     time.snapTime = time.snapTime/inpput.convFactorDetermine('time');
+            
+        #     for i = 1:time.numSnaps
                 
-    #             gterm = green*time.deltaTime;
+        #         switch nargin
+        #             case 4
+        #                 OBS = obs;
+        #                 vq = reshape(pressure(:,i),obs.Ynum,obs.Xnum);
+        #             case 5
+        #                 OBS = plotAll.calc2Dnodes(...
+        #                     [min(obs.Xcoord),max(obs.Xcoord),interp(1)],...
+        #                     [min(obs.Ycoord),max(obs.Ycoord),interp(2)]);
+        #                 vq = griddata(obs.Xcoord,obs.Ycoord,pressure(:,i),...
+        #                       OBS.Xcoord,OBS.Ycoord,'natural');
+        #                 vq = reshape(vq,OBS.Ynum,OBS.Xnum);
+        #         end
+            
+        #         figName = ['time ',num2str(time.snapTime(i)),' days'];
+
+        #         figure('Name',figName,'NumberTitle','off')
+
+        #         imagesc(OBS.Xcoord,OBS.Ycoord,vq);
+
+        #         set(h,'EdgeColor','none');
+        #         shading interp
+
+        #         colormap(jet)
+        #         colorbar
+        #         caxis([2000,4200])
+
+        #         xlim([min(OBS.Xcoord),max(OBS.Xcoord)]);
+        #         ylim([min(OBS.Ycoord),max(OBS.Ycoord)]);
+
+        #         hold on
+
+        #         prop.Color = 'w';
+        #         prop.LineWidth = 1;
+
+        #         plotAll.fracture(frac,prop);
+
+        #         savefig(gcf,['results/',figName,'.fig'])
                 
-    #             pressure = zeros(size(green,1),time.numSnaps);
+        #         close(gcf)
+            
+        #     end
                 
-    #             for i = 1:time.numSnaps
-                    
-    #                 P = res.initPressure-...
-    #                  solver.convolution(gterm,sol.fracflux,1,time.idxSnapTime(i));
-                    
-    #                 pressure(:,i) = P/inpput.convFactorDetermine('pressure');
-                    
-    #             end
-    #         end
+        # end
+        
+        # function obs = calc1Dnodes(Lmin,Lmax,Ndata)
+            
+        #     switch nargin
+        #         case 1
+        #             obs.num = 1;
+        #             obs.range = Lmin;
+        #         case 2
+        #             obs.num = 20;
+        #             obs.range = linspace(Lmin,Lmax,obs.num);
+        #         case 3
+        #             obs.num = Ndata;
+        #             obs.range = linspace(Lmin,Lmax,obs.num);
+        #     end
+            
+        # end
+        
+        # function obs = calc2Dnodes(X,Y)
+            
+        #     % xnum and ynum are the number of nodes
+        #     % number of elements = number of nodes - 1
+            
+        #     if length(X) == 1
+        #         XX = plotAll.calc1Dnodes(X(1));
+        #     elseif length(X) == 2
+        #         XX = plotAll.calc1Dnodes(X(1),X(2));
+        #     elseif length(X) == 3
+        #         XX = plotAll.calc1Dnodes(X(1),X(2),X(3));
+        #     end
+            
+        #     if length(Y) == 1
+        #         YY = plotAll.calc1Dnodes(Y(1));
+        #     elseif length(Y) == 2
+        #         YY = plotAll.calc1Dnodes(Y(1),Y(2));
+        #     elseif length(Y) == 3
+        #         YY = plotAll.calc1Dnodes(Y(1),Y(2),Y(3));
+        #     end
+            
+        #     [Xmat,Ymat] = meshgrid(XX.range,YY.range);
+            
+        #     obs.Xnum = XX.num;
+        #     obs.Ynum = YY.num;
+            
+        #     obs.Xcoord = Xmat(:);
+        #     obs.Ycoord = Ymat(:);
+        #     obs.Zcoord = ones((XX.num)*(YY.num),1);
+            
+        # end
+        
+        # function pressure = calcPressure(sol,res,time,green)
+            
+        #     gterm = green*time.deltaTime;
+            
+        #     pressure = zeros(size(green,1),time.numSnaps);
+            
+        #     for i = 1:time.numSnaps
+                
+        #         P = res.initPressure-...
+        #          solver.convolution(gterm,sol.fracflux,1,time.idxSnapTime(i));
+                
+        #         pressure(:,i) = P/inpput.convFactorDetermine('pressure');
             
 class Fractures(dataset):
 
@@ -589,7 +477,7 @@ class Fractures(dataset):
 
         pass
 
-class Wells(graphics):
+class Wells(plot2D):
 
     # INPUT & OUTPUT: PRODUCTION, COMPLETION, TRAJECTORY, BOREHOLE LOGGING, SCHEDULE, COMPLETION UNIFIED
 
@@ -653,9 +541,10 @@ class Wells(graphics):
     schedule_wefac      = " '{}'\t{} / "#.format(wellname,efficiency)
     schedule_welopen    = " '{}'\tSHUT\t3* / "#.format(wellname)
 
-    def __init__(self,window,workdir,oprawdir=None,comprawdir=None,wtrackrawdir=None,wlograwdir=None,wnamefstr=None,**kwargs):
+    def __init__(self,workdir,window=None,oprawdir=None,comprawdir=None,wtrackrawdir=None,wlograwdir=None,wnamefstr=None,**kwargs):
 
-        super().__init__(window)
+        if window is not None:
+            super().__init__(window)
 
         self.workdir      = workdir         # working directory to save and retrieve saved data
 
@@ -1598,28 +1487,32 @@ class Wells(graphics):
 
 if __name__ == "__main__":
 
+    import matplotlib.pyplot as plt
+
     # import unittest
 
     # from tests import pipes
-    # from tests import porous_media
+    # from tests import formations
     # from tests import fractures
     # from tests import wells
 
     # unittest.main(pipes)
-    # unittest.main(porous_media)
+    # unittest.main(pormed)
     # unittest.main(fractures)
     # unittest.main(wells)
 
-    res = Formation()
+    res = Formation(None)
 
-    res.rectangle((10,10,10),(10,10,10))
+    res.set_dimensions(dimensions=(10,10,10))
 
-    import matplotlib.pyplot as plt
+    res.discretize((10,10,10))
 
     fig = plt.figure()
 
     ax = plt.axes(projection='3d')
 
     ax.scatter3D(res.center[:,0],res.center[:,1],res.center[:,2])
+
+    plt.axis("off")
 
     plt.show()

@@ -5,24 +5,30 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from interfaces.items import Core
-from interfaces.items import FormationCylindrical
-from interfaces.items import FormationRectangular
+from interfaces.items import Formation
 
-class TestCore(unittest.TestCase):
+class TestSimpleFormation(unittest.TestCase):
 
-    def geometry(self):
-        pass
+    def rectangular(self):
 
-    def singlephase(self):
-        pass
+        res = Formation()
 
-    def multiphase(self):
+        res.set_dimensions(dimensions=(10,10,10))
+
+        res.discretize((10,1,1))
+
+        res.center[:,0]
+        res.center[:,1]
+        res.center[:,2]
+
+    def cylindrical(self):
+
         pass
 
 class TestRegularCartesianMesh(unittest.TestCase):
 
     def mesh1D(self):
+
         pass
 
     def mesh2D(self):
@@ -98,7 +104,7 @@ class TestRegularRadialMesh(unittest.TestCase):
     def mesh3D(self):
         pass
 
-class TestIrregularCartesianMesh(unittest.TestCase):
+class TestUnstructuredMesh(unittest.TestCase):
 
     def mesh1D(self):
         pass

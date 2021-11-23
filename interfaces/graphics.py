@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     import setup
 
-class graphics():
+class plot2D():
 
     legendpos = (
         "best","right",
@@ -810,6 +810,57 @@ class graphics():
 
         self.temptop.destroy()
 
+class plot3D():
+
+    def __init__(self,window):
+
+        self.dirname = os.path.dirname(__file__)
+
+        self.root = window
+
+    def set_plot(self):
+
+        self.pane_EW = ttk.PanedWindow(self.root,orient=tk.HORIZONTAL)
+
+        self.frame_side = ttk.Frame(self.root)
+
+        self.pane_EW.add(self.frame_side,weight=1)
+
+        self.frame_plot = ttk.Frame(self.root)
+
+        self.pane_EW.add(self.frame_plot,weight=1)
+
+        self.pane_EW.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+
+        self.frame_plot.columnconfigure(0,weight=1)
+        self.frame_plot.columnconfigure(1,weight=0)
+
+        self.frame_plot.rowconfigure(0,weight=1)
+        self.frame_plot.rowconfigure(1,weight=0)
+
+        self.figure = plt.Figure()
+        self.canvas = FigureCanvasTkAgg(self.figure,self.frame_plot)
+
+        self.plotbox = self.canvas.get_tk_widget()
+        self.plotbox.grid(row=0,column=0,sticky=tk.NSEW)        
+
+        self.plotbar = VerticalNavigationToolbar2Tk(self.canvas,self.frame_plot)
+        self.plotbar.update()
+        self.plotbar.grid(row=0,column=1,sticky=tk.N)
+
+        self.itembox = AutocompleteEntryListbox(self.frame_side,height=250,padding=0)
+
+        self.itembox.content = self.itemnames.tolist()
+        self.itembox.config(completevalues=self.itembox.content,allow_other_values=True)
+
+        self.itembox.listbox.bind('<<ListboxSelect>>',lambda event: self.set_object(event))
+
+        self.itembox.pack(expand=1,fill=tk.BOTH)
+
+    def set_object(self,event):
+
+        pass
+
 class VerticalNavigationToolbar2Tk(NavigationToolbar2Tk):
 
     def __init__(self,canvas,window):
@@ -1168,15 +1219,7 @@ if __name__ == "__main__":
 
     from interfaces.dataset import dataset
 
-    # window = tk.Tk()
-
-    # gui = table(window=window,headers=["First Name","Last Name","Contact"])
-
-    # gui.draw()
-
-    # window.mainloop()
-
-    class collection(graphics):
+    class collection(plot3D):
 
         def __init__(self,window,filename):
 
@@ -1202,6 +1245,7 @@ if __name__ == "__main__":
     window = tk.Tk()
 
     gui = collection(window,"datatest")
+    # gui = table(window=window,headers=["First Name","Last Name","Contact"])
 
     gui.set_plot()
 
