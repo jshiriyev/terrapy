@@ -591,10 +591,10 @@ class Wells(plot2D):
 
     def __init__(self,workdir,window=None,oprawdir=None,comprawdir=None,wtrackrawdir=None,wlograwdir=None,wnamefstr=None,**kwargs):
 
+        self.workdir      = workdir         # working directory to save and retrieve saved data
+
         if window is not None:
             super().__init__(window)
-
-        self.workdir      = workdir         # working directory to save and retrieve saved data
 
         self.oprawdir     = oprawdir        # production directory for each well
         self.comprawdir   = comprawdir      # completion directory for each well
