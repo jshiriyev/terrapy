@@ -591,19 +591,22 @@ class Wells(plot2D):
 
     def __init__(self,workdir,window=None,oprawdir=None,comprawdir=None,wtrackrawdir=None,wlograwdir=None,wnamefstr=None,**kwargs):
 
-        self.workdir      = workdir         # working directory to save and retrieve saved data
+        self.workdir = workdir         # working directory to save and retrieve saved data
 
         if window is not None:
             super().__init__(window)
 
-        self.oprawdir     = oprawdir        # production directory for each well
-        self.comprawdir   = comprawdir      # completion directory for each well
+        self.oprawdir = oprawdir        # production directory for each well
+
+        self.comprawdir = comprawdir      # completion directory for each well
+
         self.wtrackrawdir = wtrackrawdir    # trajectory directory for each well
-        self.wlograwdir   = wlograwdir      # wellogging directory for each well
 
-        self.wnamefstr    = wnamefstr       # string format to save well names
+        self.wlograwdir = wlograwdir      # wellogging directory for each well
 
-        self.attrnames    = []              # prod, comp, wtrack, wlog, compuni, schedule
+        self.wnamefstr = wnamefstr       # string format to save well names
+
+        self.attrnames = []              # prod, comp, wtrack, wlog, compuni, schedule
 
     def set_names(self,wellnames=None):
 
@@ -626,6 +629,22 @@ class Wells(plot2D):
             self.itemnames = set_wnames(self.itemnames)
 
         self.itemnames.sort()
+
+    def set_tracks(self,tracks):
+
+        self.tracks = tracks
+
+    def set_radii(self,radii):
+
+        self.radii = radii
+
+    def set_flowconds(self,flowconds):
+
+        self.flowconds = flowconds
+
+    def set_skinfactors(self,skinfactors):
+
+        self.skinfactors = skinfactors
 
     def op_process(self):
 
@@ -1549,11 +1568,17 @@ if __name__ == "__main__":
     # unittest.main(fractures)
     # unittest.main(wells)
 
-    res = Formation(None,geometry="cylindrical")
+    res = Formation(None,geometry="rectangular")
 
     res.set_dimensions(lengths=(10,10,2))
 
     res.discretize((11,11,2))
+
+    well = Wells(None)
+
+    well.set_names(["GD-601"])
+
+    # well.set_tracks(tracks=(()))
 
     fig = plt.figure()
 
@@ -1563,6 +1588,8 @@ if __name__ == "__main__":
 
     for line in res.edge_lines:
         ax.plot3D(*line,color='grey')
+
+    ax.plot3D((5,5),(5,5),(0,4))
 
     # ax.scatter3D(*res.grid_centers.T)
 
