@@ -18,7 +18,11 @@ from scipy.optimize import root_scalar
 if __name__ == "__main__":
     import setup
 
+from flow.pormed.fluidstate import singlephase
+from flow.pormed.fluidstate import multiphase
+
 from interfaces.items import formation
+from interfaces.items import wells 
 
 def toarray(x):
 
@@ -35,50 +39,41 @@ class transient(self):
     line source solution based on exponential integral
     """
 
-    def __init__(self,permeability,porosity,viscosity,compressibility,well_radius,reservoir_radius,thickness):
+    def __init__(self,formation,fluid,well,time):
 
-        self.permeability = permeability
-        self.porosity = porosity
-        self.viscosity = viscosity
-        self.compressibility = compressibility
+        self.permeability       = formation.permeability
+        self.porosity           = formation.porosity
+        self.viscosity          = fluid.viscosity
+        self.compressibility    = formation.compressibility+fluid.compressibility
 
-        self.eta = self.permeability/(self.porosity*self.viscosity*self.compressibility)
+        self.hdiffusivity       = self.permeability/(self.porosity*self.viscosity*self.compressibility)
 
-        self.rw = well_radius
-        self.re = reservoir_radius
+        self.flow_rate          = well.flow_rate
 
-        self.thickness = thickness
+        self.radius_int         = well.radii
+        self.radius_ext         = formation.lengths[0]
 
-        self.time_limit_rw = 100.*self.rw**2/self.eta
-        self.time_limit_tr = 0.25*self.re**2/self.eta
-        self.time_limit_ps = 0.1*np.pi*self.re**2/self.eta
+        self.thickness          = formation.lengths[2]
 
-    def set_total_compressibility(self):
+        self.time               = time.range.reshape((1,-1))
 
-        self.ct = formation.compressibility+fluid.compressibility
+        self.timelimit_int      = 100.*self.radius_int**2/self.hdiffusivity
+        self.timelimit_ext      = 0.25*self.radius_ext**2/self.hdiffusivity
 
-    def set_diffusivity(self,viscosity,total_compressibility):
-        
-        self.eta = (self.k)/(self.phi*self.mu*self.ct)
-
-    def solve(self,radius,time,flow_rate):
+    def solve(self,radius):
 
         self.radius = radius.reshape((-1,1))
-
-        self.time = time.reshape((1,-1))
-
-        self.flow_rate = flow_rate
 
         self.pdim = (self.flow_rate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
 
         self.deltap = np.zeros((self.radius.size,self.time.size))
 
-        finite_rw = (self.time>self.time_limit_rw)[0]
-        finite_re = (self.time<self.time_limit_tr)[0]
+        finite_rw = (self.time>self.timelimit_int)[0]
+        finite_re = (self.time<self.timelimit_ext)[0]
 
         valid_tr = np.logical_and(finite_rw,finite_re)
 
-        Ei = expi(-(self.radius**2)/(4*self.eta*self.time[0,valid_tr]))
+        Ei = expi(-(self.radius**2)/(4*self.hdiffusivity*self.time[0,valid_tr]))
 
         self.deltap[:,valid_tr] = -1/2*self.pdim*Ei
 
@@ -91,16 +86,16 @@ class steady(self):
         self.viscosity = viscosity
         self.compressibility = compressibility
 
-        self.eta = self.permeability/(self.porosity*self.viscosity*self.compressibility)
+        self.hdiffusivity = self.permeability/(self.porosity*self.viscosity*self.compressibility)
 
-        self.rw = well_radius
-        self.re = reservoir_radius
+        self.radius_int = well_radius
+        self.radius_ext = reservoir_radius
 
         self.thickness = thickness
 
-        self.time_limit_rw = 100.*self.rw**2/self.eta
-        self.time_limit_tr = 0.25*self.re**2/self.eta
-        self.time_limit_ps = 0.1*np.pi*self.re**2/self.eta
+        self.timelimit_int = 100.*self.radius_int**2/self.hdiffusivity
+        self.timelimit_ext = 0.25*self.radius_ext**2/self.hdiffusivity
+        self.time_limit_ps = 0.1*np.pi*self.radius_ext**2/self.hdiffusivity
 
     def solve(self,radius,time,flow_rate):
 
@@ -114,7 +109,7 @@ class steady(self):
 
         self.deltap = np.zeros((self.radius.size,self.time.size))
 
-        self.deltap_steady = self.pdim*np.log(self.re/self.radius)
+        self.deltap_steady = self.pdim*np.log(self.radius_ext/self.radius)
 
 class pseudosteady(self):
 
@@ -125,16 +120,16 @@ class pseudosteady(self):
         self.viscosity = viscosity
         self.compressibility = compressibility
 
-        self.eta = self.permeability/(self.porosity*self.viscosity*self.compressibility)
+        self.hdiffusivity = self.permeability/(self.porosity*self.viscosity*self.compressibility)
 
-        self.rw = well_radius
-        self.re = reservoir_radius
+        self.radius_int = well_radius
+        self.radius_ext = reservoir_radius
 
         self.thickness = thickness
 
-        self.time_limit_rw = 100.*self.rw**2/self.eta
-        self.time_limit_tr = 0.25*self.re**2/self.eta
-        self.time_limit_ps = 0.1*np.pi*self.re**2/self.eta
+        self.timelimit_int = 100.*self.radius_int**2/self.hdiffusivity
+        self.timelimit_ext = 0.25*self.radius_ext**2/self.hdiffusivity
+        self.time_limit_ps = 0.1*np.pi*self.radius_ext**2/self.hdiffusivity
 
     def solve(self,radius,time,flow_rate):
 
@@ -150,9 +145,9 @@ class pseudosteady(self):
 
         valid_ps = (self.time>self.time_limit_ps)[0]
 
-        Sd = np.log(self.re/self.radius)
+        Sd = np.log(self.radius_ext/self.radius)
 
-        Td = (self.radius**2+4*self.eta*self.time[0,valid_ps])/(2*self.re**2)
+        Td = (self.radius**2+4*self.hdiffusivity*self.time[0,valid_ps])/(2*self.radius_ext**2)
 
         self.deltap[:,valid_ps] = self.pdim*(Sd+Td-3/4)
 

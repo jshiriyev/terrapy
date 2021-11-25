@@ -142,8 +142,8 @@ class Formation(plot2D):
 
             self.edge_vertices = np.zeros((2*numverts,3))
 
-            self.edge_vertices[:,0] = np.tile(self.lengths[0]*np.cos(thetas),2)
-            self.edge_vertices[:,1] = np.tile(self.lengths[0]*np.sin(thetas),2)
+            self.edge_vertices[:,0] = np.tile(self.lengths[0]/2*np.cos(thetas),2)+self.lengths[0]/2
+            self.edge_vertices[:,1] = np.tile(self.lengths[1]/2*np.sin(thetas),2)+self.lengths[1]/2
             self.edge_vertices[:,2] = np.append(np.zeros(numverts),self.lengths[2]*np.ones(numverts))
 
             indices = np.empty((2*numverts,2),dtype=int)
@@ -630,9 +630,23 @@ class Wells(plot2D):
 
         self.itemnames.sort()
 
-    def set_tracks(self,tracks):
+    def set_tracks(self,tracks=None,formation=None):
 
-        self.tracks = tracks
+        if tracks is not None:
+
+            self.tracks = tracks
+
+        elif formation is not None:
+
+            self.tracks = np.zeros((2,3))
+
+            self.tracks[:,0] = np.full(2,formation.lengths[0]/2)
+            self.tracks[:,1] = np.full(2,formation.lengths[1]/2)
+            self.tracks[:,2] = (0,formation.lengths[2]*2)
+
+            # (5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0),
+            # (5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0),
+            # (0.0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0),
 
     def set_radii(self,radii):
 
@@ -1568,9 +1582,9 @@ if __name__ == "__main__":
     # unittest.main(fractures)
     # unittest.main(wells)
 
-    res = Formation(None,geometry="rectangular")
+    res = Formation(None,geometry="cylindrical")
 
-    res.set_dimensions(lengths=(10,10,2))
+    res.set_dimensions(lengths=(10,5,2))
 
     res.discretize((11,11,2))
 
@@ -1578,7 +1592,7 @@ if __name__ == "__main__":
 
     well.set_names(["GD-601"])
 
-    # well.set_tracks(tracks=(()))
+    well.set_tracks(None,res)
 
     fig = plt.figure()
 
@@ -1589,12 +1603,17 @@ if __name__ == "__main__":
     for line in res.edge_lines:
         ax.plot3D(*line,color='grey')
 
-    ax.plot3D((5,5),(5,5),(0,4))
+    ax.plot3D(*well.tracks.T)
 
     # ax.scatter3D(*res.grid_centers.T)
 
     ax.set_box_aspect(res.lengths)
 
-    plt.axis("off")
+    # ax.set_axis_off()
+    # plt.axis("off")
+
+    ax.margins(x=0,y=0)
+
+    plt.tight_layout()
 
     plt.show()
