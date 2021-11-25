@@ -23,6 +23,8 @@ from interfaces.dataset import dataset
 from interfaces.graphics import plot2D
 from interfaces.graphics import table
 
+from mathbox.dimensions import units
+
 class Pipes():
 
     def __init__(self):
@@ -80,18 +82,20 @@ class Pipes():
 
         self.elevation = elevation
 
-class Formation(plot2D):
+class Formation(units):
 
     # fileDir
     # initPressure
     # compressibility
 
-    def __init__(self,workdir,geometry="rectangular"):
+    def __init__(self,unitsystem,workdir,geometry="rectangular"):
 
         # Geometry can be:
         #  - rectangular
         #  - cylindrical
         #  - unstructured
+
+        super().__init__(unitsystem)
 
         self.workdir = workdir
 
@@ -167,7 +171,7 @@ class Formation(plot2D):
 
             pass
 
-    def discretize(self,grid_num):
+    def grid(self,grid_num):
 
         """
         self.grid_num        : number of grids in x, y, z directions
@@ -493,7 +497,7 @@ class Formation(plot2D):
                 
         #         pressure(:,i) = P/inpput.convFactorDetermine('pressure');
             
-class Fractures(dataset):
+class Fractures():
 
     # % The fracture segment is defined as a plane joining two node points
     # % (point1 and point2). The heigth of fracture plane is taken the same
@@ -1582,11 +1586,11 @@ if __name__ == "__main__":
     # unittest.main(fractures)
     # unittest.main(wells)
 
-    res = Formation(None,geometry="cylindrical")
+    res = Formation("SI",None,geometry="cylindrical")
 
     res.set_dimensions(lengths=(10,5,2))
 
-    res.discretize((11,11,2))
+    res.grid((11,11,2))
 
     well = Wells(None)
 

@@ -33,13 +33,15 @@ def toarray(x):
 
     return x
 
-class transient(self):
+class transient():
 
     """
     line source solution based on exponential integral
     """
 
-    def __init__(self,formation,fluid,well,time):
+    def __init__(self,formation,fluid,well):
+
+        self.geometry           = formation.geometry
 
         self.permeability       = formation.permeability
         self.porosity           = formation.porosity
@@ -48,88 +50,131 @@ class transient(self):
 
         self.hdiffusivity       = self.permeability/(self.porosity*self.viscosity*self.compressibility)
 
-        self.flow_rate          = well.flow_rate
+        self.flowrate          = well.flowrate
 
         self.radius_int         = well.radii
         self.radius_ext         = formation.lengths[0]
 
         self.thickness          = formation.lengths[2]
 
-        self.time               = time.range.reshape((1,-1))
-
         self.timelimit_int      = 100.*self.radius_int**2/self.hdiffusivity
         self.timelimit_ext      = 0.25*self.radius_ext**2/self.hdiffusivity
 
+    def discretize(self,point_num):
+
+        if self.geometry == "rectangular":
+
+            pass
+
+        elif self.geometry == "cylindrical":
+
+            self.spacepoints = np.linspace(self.radius_int,self.radius_ext)
+            self.spacepoints = self.spacepoints.reshape((-1,1))
+
+        elif self.geometry == "unstructured":
+
+            pass
+
+    def set_time(self,timesteps):
+
+        self.timesteps = timesteps.reshape((1,-1))
+
     def solve(self,radius):
 
-        self.radius = radius.reshape((-1,1))
+        dimensionless = (self.flowrate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
 
-        self.pdim = (self.flow_rate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
+        finite_intb = (self.timesteps>self.timelimit_int)[0]
+        finite_extb = (self.timesteps<self.timelimit_ext)[0]
 
-        self.deltap = np.zeros((self.radius.size,self.time.size))
+        validtimeinterval = np.logical_and(finite_intb,finite_extb)
 
-        finite_rw = (self.time>self.timelimit_int)[0]
-        finite_re = (self.time<self.timelimit_ext)[0]
+        Ei = expi(-(self.spacepoints**2)/(4*self.hdiffusivity*self.timesteps[0,validtimeinterval]))
 
-        valid_tr = np.logical_and(finite_rw,finite_re)
+        self.deltap = np.zeros((self.spacepoints.size,self.timesteps.size))
 
-        Ei = expi(-(self.radius**2)/(4*self.hdiffusivity*self.time[0,valid_tr]))
+        self.deltap[:,validtimeinterval] = -1/2*dimensionless*Ei
 
-        self.deltap[:,valid_tr] = -1/2*self.pdim*Ei
+class steady():
 
-class steady(self):
+    def __init__(self,formation,fluid,well):
 
-    def __init__(self,permeability,porosity,viscosity,compressibility,well_radius,reservoir_radius,thickness):
+        self.geometry           = formation.geometry
 
-        self.permeability = permeability
-        self.porosity = porosity
-        self.viscosity = viscosity
-        self.compressibility = compressibility
+        self.permeability       = formation.permeability
+        self.porosity           = formation.porosity
+        self.viscosity          = fluid.viscosity
+        self.compressibility    = formation.compressibility+fluid.compressibility
 
-        self.hdiffusivity = self.permeability/(self.porosity*self.viscosity*self.compressibility)
+        self.hdiffusivity       = self.permeability/(self.porosity*self.viscosity*self.compressibility)
 
-        self.radius_int = well_radius
-        self.radius_ext = reservoir_radius
+        self.flowrate          = well.flowrate
 
-        self.thickness = thickness
+        self.radius_int         = well.radii
+        self.radius_ext         = formation.lengths[0]
 
-        self.timelimit_int = 100.*self.radius_int**2/self.hdiffusivity
-        self.timelimit_ext = 0.25*self.radius_ext**2/self.hdiffusivity
-        self.time_limit_ps = 0.1*np.pi*self.radius_ext**2/self.hdiffusivity
+        self.thickness          = formation.lengths[2]
+
+    def discretize(self,point_num):
+
+        if self.geometry == "rectangular":
+
+            pass
+
+        elif self.geometry == "cylindrical":
+
+            self.spacepoints = np.linspace(self.radius_int,self.radius_ext)
+            self.spacepoints = self.spacepoints.reshape((-1,1))
+
+        elif self.geometry == "unstructured":
+
+            pass
 
     def solve(self,radius,time,flow_rate):
 
-        self.radius = radius.reshape((-1,1))
+        dimensionless = (self.flowrate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
 
-        self.time = time.reshape((1,-1))
+        self.deltap = dimensionless*np.log(self.radius_ext/self.spacepoints)
 
-        self.flow_rate = flow_rate
+class pseudosteady():
 
-        self.pdim = (self.flow_rate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
+    def __init__(self,formation,fluid,well):
 
-        self.deltap = np.zeros((self.radius.size,self.time.size))
+        self.geometry           = formation.geometry
 
-        self.deltap_steady = self.pdim*np.log(self.radius_ext/self.radius)
+        self.permeability       = formation.permeability
+        self.porosity           = formation.porosity
+        self.viscosity          = fluid.viscosity
+        self.compressibility    = formation.compressibility+fluid.compressibility
 
-class pseudosteady(self):
+        self.hdiffusivity       = self.permeability/(self.porosity*self.viscosity*self.compressibility)
 
-    def __init__(self,permeability,porosity,viscosity,compressibility,well_radius,reservoir_radius,thickness):
+        self.flowrate           = well.flowrate
 
-        self.permeability = permeability
-        self.porosity = porosity
-        self.viscosity = viscosity
-        self.compressibility = compressibility
+        self.radius_int         = well.radii
+        self.radius_ext         = formation.lengths[0]
 
-        self.hdiffusivity = self.permeability/(self.porosity*self.viscosity*self.compressibility)
+        self.thickness          = formation.lengths[2]
 
-        self.radius_int = well_radius
-        self.radius_ext = reservoir_radius
+        self.timelimit          = 0.1*np.pi*self.radius_ext**2/self.hdiffusivity
 
-        self.thickness = thickness
+    def discretize(self,point_num):
 
-        self.timelimit_int = 100.*self.radius_int**2/self.hdiffusivity
-        self.timelimit_ext = 0.25*self.radius_ext**2/self.hdiffusivity
-        self.time_limit_ps = 0.1*np.pi*self.radius_ext**2/self.hdiffusivity
+        if self.geometry == "rectangular":
+
+            pass
+
+        elif self.geometry == "cylindrical":
+
+            self.spacepoints = np.linspace(self.radius_int,self.radius_ext)
+            self.spacepoints = self.spacepoints.reshape((-1,1))
+
+        elif self.geometry == "unstructured":
+
+            pass
+
+    def set_time(self,timesteps):
+
+        self.timesteps = timesteps.reshape((1,-1))
 
     def solve(self,radius,time,flow_rate):
 
