@@ -1,7 +1,0 @@
-1000		% operation frequency, [Hz]
-1500		% magnetic dipole moment, [A.m2]
-600		% number of turns on receiver coil
-0.003		% cross sectional area of receiver coil [m2]
-0.333		% background conductivity [S/m]
-2		% gaussian quadrature order in the impedance matrix calculation
-2		% gaussian quadrature order in the scattered field calculation

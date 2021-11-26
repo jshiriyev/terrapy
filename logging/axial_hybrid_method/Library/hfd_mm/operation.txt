@@ -1,4 +1,0 @@
-1000		% Frequency of operating current flowing in transmitters [Hz] <= 200kHz
-1500		% magnetic dipole moment [A.m2]
-600		% number of turns on receiver coil
-0.003		% cross sectional area of receiver coil [m2]

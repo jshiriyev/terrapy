@@ -1,5 +1,0 @@
--1		% zlog1
-1		% zlogN
-0.1		% Dz: Element size in the middle uniform part of the grid (Unit: m) (>=0.1m)
-1.25		% Q: Length ratio between two adjacent elements in the two expanding parts of the grid
-10.0		% zmax: Extent of each of the two expanding parts of the grid (Unit: m)

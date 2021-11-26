@@ -1,9 +1,0 @@
-0		% fracture location on z-axis which is the sampling axis
-1		% fracture radius in m, it is r_major in y direction
-1		% fracture aspect ratio, r_major/r_minor
-0		% dip angle, rotated about x-axis which is vertical axis
-100 100		% fracture conductivity in S/m, values at r_Well and r_frac
-0.005		% fracture thickness in m
-0.1		% well radius in m
-10		% node spacing on the inner and outer radius of fracture circle
-
