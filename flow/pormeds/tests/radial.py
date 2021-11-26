@@ -10,6 +10,94 @@ from flow.pormed import conventional
 
 class TestRadialFlow(unittest.TestCase):
 
+    def test_transient_ei(self):
+
+        pass
+
+    def test_transient_superposition(self):
+
+##        clear
+##        close all
+##        clc
+##
+##        xw1 = -500;
+##        yw1 = 0;
+##
+##        xw2 = 1000;
+##        yw2 = 0;
+##
+##        Nx = 200;
+##        Ny = 200;
+##
+##        Xlin = linspace(-2000,2000,Nx);
+##        Ylin = linspace(-2000,2000,Ny);
+##
+##        [x,y] = meshgrid(Xlin,Ylin);
+##
+##        r12 = (x-xw1).^2+(y-yw1).^2;
+##        r22 = (x-xw2).^2+(y-yw2).^2;
+##
+##        q1 = -250*1.32;
+##        q2 = -400*1.32;
+##
+##        dt1 = 8;
+##        dt2 = 5;
+##
+##        k = 25;
+##        Pi = 2500;
+##        phi = 0.16;
+##        ct = 18e-6;
+##        mu = 0.44;
+##        h = 43;
+##
+##        P = Pi-(70.6*mu)/(k*h)*(...
+##            q1*ei((-39.5*phi*mu*ct*r12)/(k*dt1))+...
+##            q2*ei((-39.5*phi*mu*ct*r22)/(k*dt2)));
+##
+##        figure(1)
+##        contourf(x,y,P);
+##        colormap('jet')
+##
+##        caxis([2300,2500])
+##        colorbar
+##        pbaspect([1,1,1])
+
+    def test_steady_state(self):
+
+        def pressure(r):
+            q = 250
+            mu = 2.9
+            h = 30
+            B = 1.25
+            pi = 4300
+            k = 50
+            re = 3000
+            p = pi+141.2*(q*mu*B/k/h)*np.log(r/re)
+            return p
+
+        #r = np.array([0.33,1,5,10,20,50,100,200,300,400,500,1000,2000,3000])
+        r = np.linspace(0.33,3000,2000)
+        p = pressure(r)
+
+        print(r.shape)
+        print(p.shape)
+
+        fig,(ax1,ax2) = plt.subplots(2,1)
+
+        ax1.plot(r,p)
+
+        ax1.set_title('steady-state flow')
+
+        #ax1.set_xlabel('radius [ft]')
+        ax1.set_ylabel('pressure [psi]')
+
+        ax2.semilogx(r,p)
+
+        ax2.set_xlabel('radius [ft]')
+        ax2.set_ylabel('pressure [psi]')
+
+        plt.show()
+        
     def test_conventional_solution(self):
         pass
 
