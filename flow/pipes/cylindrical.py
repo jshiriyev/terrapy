@@ -4,7 +4,12 @@ import matplotlib.pyplot as plt
 
 from scipy import optimize
 
-class single_phase(item):
+if __name__ == "__main__":
+    import setup
+
+from interfaces.dataset import dataset
+
+class single_phase():
 
     def __init__(self):
 
@@ -73,7 +78,7 @@ class single_phase(item):
         # it returns length of pipe
         return ((1/wc)**2-(np.log(1/wc))**2-1)*D/(8*phi)
 
-class multiphase(item):
+class multiphase():
 
     """liquid-liquid flow"""
     
@@ -129,8 +134,9 @@ def objective1(wc,L,D,phi):
 
     return (L-Lc)**2
 
-def objective1(phi,Re):
-##    return phi**(-0.5)+2*np.log10(2.51*phi**(-0.5)/Re)
+def objective1_(phi,Re):
+
+    ## return phi**(-0.5)+2*np.log10(2.51*phi**(-0.5)/Re)
     return phi**(-0.5)-2.5*np.log(Re*phi**(0.5))-3
 
 def objective2(P2,G,P1,L,D,M,T):
@@ -168,10 +174,10 @@ if __name__ == "__main__":
     phi = 0.0396/(Re)**0.25
 
     wc = optimize.minimize_scalar(
-                        objective1,
-                        args=(L,D,phi),
-                        bounds=((1e-5,1)),
-                        method='bounded').x
+        objective1,
+        args=(L,D,phi),
+        bounds=((1e-5,1)),
+        method='bounded').x
 
     P2c = P1*wc
 
