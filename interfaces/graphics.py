@@ -810,6 +810,30 @@ class plot2D():
 
         self.temptop.destroy()
 
+    def add_ternary(p1,p2,p3,number):
+
+        index = np.arange(1,number)
+    
+        xs1 = p1[0]+index*(p2[0]-p1[0])/number
+        xs2 = p2[0]+index*(p3[0]-p2[0])/number
+        xs3 = p3[0]+index*(p1[0]-p3[0])/number
+
+        ys1 = p1[1]+index*(p2[1]-p1[1])/number
+        ys2 = p2[1]+index*(p3[1]-p2[1])/number
+        ys3 = p3[1]+index*(p1[1]-p3[1])/number
+
+        print(xs1)
+        print(ys1)
+
+        plt.plot([p1[0],p2[0]],[p1[1],p2[1]],'k',linewidth=0.5)
+        plt.plot([p2[0],p3[0]],[p2[1],p3[1]],'k',linewidth=0.5)
+        plt.plot([p3[0],p1[0]],[p3[1],p1[1]],'k',linewidth=0.5)
+
+        for i in index:
+            plt.plot([xs1[i-1],xs2[number-1-i]],[ys1[i-1],ys2[number-1-i]],'k',linewidth=0.5)
+            plt.plot([xs2[i-1],xs3[number-1-i]],[ys2[i-1],ys3[number-1-i]],'k',linewidth=0.5)
+            plt.plot([xs3[i-1],xs1[number-1-i]],[ys3[i-1],ys1[number-1-i]],'k',linewidth=0.5)
+
 class plot3D():
 
     def __init__(self,window):
