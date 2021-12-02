@@ -200,6 +200,13 @@ class Formation(units):
             self.grid_indices[idx.reshape(self.grid_num[2],-1)[1:,:],5] -= self.grid_num[0]*self.grid_num[1]
             self.grid_indices[idx.reshape(self.grid_num[2],-1)[:-1,:],6] += self.grid_num[0]*self.grid_num[1]
 
+            self.noxmin = ~(self.grid_indices[:,0]==self.grid_indices[:,1])
+            self.noxmax = ~(self.grid_indices[:,0]==self.grid_indices[:,2])
+            self.noymin = ~(self.grid_indices[:,0]==self.grid_indices[:,3])
+            self.noymax = ~(self.grid_indices[:,0]==self.grid_indices[:,4])
+            self.nozmin = ~(self.grid_indices[:,0]==self.grid_indices[:,5])
+            self.nozmax = ~(self.grid_indices[:,0]==self.grid_indices[:,6])
+
             node_x = np.linspace(0,self.lengths[0],self.grid_num[0]+1)
             node_y = np.linspace(0,self.lengths[1],self.grid_num[1]+1)
             node_z = np.linspace(0,self.lengths[2],self.grid_num[2]+1)
@@ -245,7 +252,7 @@ class Formation(units):
 
         # permeability can be isotropic, anisotropic
 
-        self.permeability = permeability
+        self.permeability = np.array(permeability)
 
     def set_compressibility(self,compressibility):
 
@@ -638,7 +645,7 @@ class Wells(plot2D):
 
         if tracks is not None:
 
-            self.tracks = tracks
+            self.tracks = np.array(tracks)
 
         elif formation is not None:
 
@@ -648,17 +655,14 @@ class Wells(plot2D):
             self.tracks[:,1] = np.full(2,formation.lengths[1]/2)
             self.tracks[:,2] = (0,formation.lengths[2]*2)
 
-            # (5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0),
-            # (5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0),
-            # (0.0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0),
-
     def set_radii(self,radii):
 
         self.radii = radii
 
-    def set_flowconds(self,flowconds):
+    def set_flowconds(self,conditions,boundaries):
 
-        self.flowconds = flowconds
+        self.conditions = conditions
+        self.boundaries = boundaries
 
     def set_skinfactors(self,skinfactors):
 

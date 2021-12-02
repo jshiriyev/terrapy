@@ -56,8 +56,6 @@ class relative_permeability():
     """
 
     def __init__(self,
-                 Sw,
-                 Sg=0,
                  Sorow=0.4,
                  Sorgo=0.4,
                  Swc=0.1,
@@ -71,9 +69,6 @@ class relative_permeability():
                  ng=2,
                  Som=None):
 
-        self.So = 1-Sw-Sg
-        self.Sw = Sw
-        self.Sg = Sg
         self.Sorow = Sorow
         self.Sorgo = Sorgo
         self.Swc = Swc
@@ -86,22 +81,21 @@ class relative_permeability():
         self.nw = nw
         self.ng = ng
 
-        if Som is None:
-            self.Som = self._estimate_Som()
-        else:
-            self.Som = Som
+        self.Som = Som
 
-    def system2phase(self,model="oil-water"):
+    def system2phase(self,Sw,Sg=0,model="oil-water"):
+
+        So = 1-Sw-Sg
 
         if model == "oil-water":
-            self.kro,self.krw = self._oil_water()
+            self.kro,self.krw = self._oil_water(Sw,So)
         elif model == "gas-oil":
-            self.kro,self.krg = self._gas_oil()
+            self.kro,self.krg = self._gas_oil(Sw,So,Sg)
         
-    def _oil_water(self):
+    def _oil_water(self,Sw,So):
 
-        movable_o = self.So-self.Sorow
-        movable_w = self.Sw-self.Swc
+        movable_o = So-self.Sorow
+        movable_w = Sw-self.Swc
         movable_l = 1-self.Sorow-self.Swc
         
         kro = self.krowc*(movable_o/movable_l)**self.no
@@ -109,12 +103,12 @@ class relative_permeability():
 
         return kro,krw
 
-    def _gas_oil(self):
+    def _gas_oil(self,Sw,So,Sg):
 
         Slc = self.Sorgo+self.Swc
         
-        movable_o = 1-Slc-self.Sg
-        movable_g = self.Sg-self.Sgc
+        movable_o = 1-Slc-Sg
+        movable_g = Sg-self.Sgc
         movable_f = 1-Slc-self.Sgc
 
         kro = self.krogc*(movable_o/movable_f)**self.no
@@ -122,22 +116,25 @@ class relative_permeability():
 
         return kro,krg
 
-    def system3phase(self,model="Stone's Model I",n=None):
+    def system3phase(self,Sw,So,Sg,model="Stone's Model I",n=None):
+
+        if self.Som is None:
+            self._estimate_Som(Sg)
 
         if model=="Stone's Model I":
-            self.kro,self.krw,self.krg = self._stones_model_I()
+            self.kro,self.krw,self.krg = self._stones_model_I(Sw,So,Sg)
         elif model=="Aziz and Settari":
-            self.kro,self.krw,self.krg = self._aziz_settari()
+            self.kro,self.krw,self.krg = self._aziz_settari(Sw,So,Sg)
         elif model=="Stone's Model II":
-            self.kro,self.krw,self.krg = self._stones_model_II()
+            self.kro,self.krw,self.krg = self._stones_model_II(Sw,So,Sg)
         elif model=="Hustad-Holt Correlation":
-            self.kro,self.krw,self.krg = self._hustad_holt(n)
+            self.kro,self.krw,self.krg = self._hustad_holt(Sw,So,Sg,n)
 
-    def _stones_model_I(self):
+    def _stones_model_I(self,Sw,So,Sg):
 
-        movable_o = self.So-self.Som
-        movable_w = self.Sw-self.Swc
-        movable_g = self.Sg
+        movable_o = So-self.Som
+        movable_w = Sw-self.Swc
+        movable_g = Sg
 
         movable_f = 1-self.Swc-self.Som
 
@@ -145,8 +142,8 @@ class relative_permeability():
         Sw_star = movable_w/movable_f
         Sg_star = movable_g/movable_f
 
-        kroow,krw = self._oil_water()
-        krogo,krg = self._gas_oil()
+        kroow,krw = self._oil_water(Sw,So)
+        krogo,krg = self._gas_oil(Sw,So,Sg)
 
         beta_w = (kroow)/(1-Sw_star)
         beta_g = (krogo)/(1-Sg_star)
@@ -155,19 +152,19 @@ class relative_permeability():
 
         return kro,krw,krg
 
-    def _estimate_Som(self):
+    def _estimate_Som(self,Sg):
 
-        alpha = 1-(self.Sg)/(1-self.Swc-self.Sorgo)
+        alpha = 1-(Sg)/(1-self.Swc-self.Sorgo)
 
         Som = alpha*self.Sorow+(1-alpha)*self.Sorgo
 
         return Som
 
-    def _aziz_settari(self):
+    def _aziz_settari(self,Sw,So,Sg):
         
-        movable_o = self.So-self.Som
-        movable_w = self.Sw-self.Swc
-        movable_g = self.Sg
+        movable_o = So-self.Som
+        movable_w = Sw-self.Swc
+        movable_g = Sg
 
         movable_f = 1-self.Swc-self.Som
 
@@ -175,8 +172,8 @@ class relative_permeability():
         Sw_star = movable_w/movable_f
         Sg_star = movable_g/movable_f
 
-        kroow,krw = self._oil_water()
-        krogo,krg = self._gas_oil()
+        kroow,krw = self._oil_water(Sw,So)
+        krogo,krg = self._gas_oil(Sw,So,Sg)
 
         beta = (So_star)/(1-Sw_star)/(1-Sg_star)
 
@@ -184,11 +181,11 @@ class relative_permeability():
 
         return kro,krw,krg
 
-    def _stones_model_II(self):
+    def _stones_model_II(self,Sw,So,Sg):
 
-        movable_o = self.So-self.Som
-        movable_w = self.Sw-self.Swc
-        movable_g = self.Sg
+        movable_o = So-self.Som
+        movable_w = Sw-self.Swc
+        movable_g = Sg
 
         movable_f = 1-self.Swc-self.Som
 
@@ -196,18 +193,18 @@ class relative_permeability():
         Sw_star = movable_w/movable_f
         Sg_star = movable_g/movable_f
 
-        kroow,krw = self._oil_water()
-        krogo,krg = self._gas_oil()
+        kroow,krw = self._oil_water(Sw,So)
+        krogo,krg = self._gas_oil(Sw,So,Sg)
 
         kro = self.krowc*((kroow/self.krowc+krw)*(krogo/self.krowc+krg)-(krw+krg))
 
         return kro,krw,krg
 
-    def _hustad_holt(self,n):
+    def _hustad_holt(self,Sw,So,Sg,n):
 
-        movable_o = self.So-self.Som
-        movable_w = self.Sw-self.Swc
-        movable_g = self.Sg-self.Sgc
+        movable_o = So-self.Som
+        movable_w = Sw-self.Swc
+        movable_g = Sg-self.Sgc
 
         movable_f = 1-self.Som-self.Swc-self.Sgc
 
@@ -215,8 +212,8 @@ class relative_permeability():
         Sw_star = movable_w/movable_f
         Sg_star = movable_g/movable_f
 
-        kroow,krw = self._oil_water()
-        krogo,krg = self._gas_oil()
+        kroow,krw = self._oil_water(Sw,So)
+        krogo,krg = self._gas_oil(Sw,So,Sg)
 
         beta = (So_star)/(1-Sw_star)/(1-Sg_star)
 
