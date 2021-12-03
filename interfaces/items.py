@@ -200,12 +200,12 @@ class Formation(units):
             self.grid_indices[idx.reshape(self.grid_num[2],-1)[1:,:],5] -= self.grid_num[0]*self.grid_num[1]
             self.grid_indices[idx.reshape(self.grid_num[2],-1)[:-1,:],6] += self.grid_num[0]*self.grid_num[1]
 
-            self.noxmin = ~(self.grid_indices[:,0]==self.grid_indices[:,1])
-            self.noxmax = ~(self.grid_indices[:,0]==self.grid_indices[:,2])
-            self.noymin = ~(self.grid_indices[:,0]==self.grid_indices[:,3])
-            self.noymax = ~(self.grid_indices[:,0]==self.grid_indices[:,4])
-            self.nozmin = ~(self.grid_indices[:,0]==self.grid_indices[:,5])
-            self.nozmax = ~(self.grid_indices[:,0]==self.grid_indices[:,6])
+            self.grid_hasxmin = ~(self.grid_indices[:,0]==self.grid_indices[:,1])
+            self.grid_hasxmax = ~(self.grid_indices[:,0]==self.grid_indices[:,2])
+            self.grid_hasymin = ~(self.grid_indices[:,0]==self.grid_indices[:,3])
+            self.grid_hasymax = ~(self.grid_indices[:,0]==self.grid_indices[:,4])
+            self.grid_haszmin = ~(self.grid_indices[:,0]==self.grid_indices[:,5])
+            self.grid_haszmax = ~(self.grid_indices[:,0]==self.grid_indices[:,6])
 
             node_x = np.linspace(0,self.lengths[0],self.grid_num[0]+1)
             node_y = np.linspace(0,self.lengths[1],self.grid_num[1]+1)
@@ -248,11 +248,16 @@ class Formation(units):
 
         self.porosity = porosity
 
-    def set_permeability(self,permeability,isotropy=True):
+    def set_permeability(self,permeability,homogeneous=True,isotropy=True):
 
-        # permeability can be isotropic, anisotropic
-
-        self.permeability = np.array(permeability)
+        if homogeneous and isotropy:
+            self.permeability = np.repeat([[permeability]*3],self.grid_numtot,axis=0)
+        elif not homogeneous and isotropy:
+            self.permeability = np.repeat([permeability],3,axis=0).T
+        elif homogeneous and not isotropy:
+            self.permeability = np.repeat([permeability],self.grid_numtot,axis=0)
+        elif not homogeneous and not isotropy:
+            self.permeability = np.array(permeability)
 
     def set_compressibility(self,compressibility):
 
@@ -657,16 +662,20 @@ class Wells(plot2D):
 
     def set_radii(self,radii):
 
-        self.radii = radii
+        self.radii = np.array(radii)
 
-    def set_flowconds(self,conditions,boundaries):
+    def set_flowconds(self,conditions,limits,fluids):
 
-        self.conditions = conditions
-        self.boundaries = boundaries
+        self.consbhp = np.array(conditions)=="bhp"
+
+        self.limits = np.array(limits)
+
+        self.water = (np.array(fluids)!="oil")
+        self.oil = (np.array(fluids)!="water")
 
     def set_skinfactors(self,skinfactors):
 
-        self.skinfactors = skinfactors
+        self.skinfactors = np.array(skinfactors)
 
     def op_process(self):
 

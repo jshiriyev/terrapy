@@ -1,7 +1,8 @@
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 import numpy as np 
 
 from scipy.sparse import csr_matrix as csr
+from scipy.sparse import diags
 
 from scipy.sparse.linalg import spsolve as sps
 
@@ -21,12 +22,44 @@ class IMPES():
 
 		pass
 
-	def set_time(self,step,total):
+	def merge(self):
 
-		self.time_step = step
-		self.time_total = total
+		wdtype = [('index',int),('grid',int),('bhp_flag',bool),('limit',float),('water_flag',bool),('oil_flag',bool)]
 
-		self.time_array = np.arange(0,self.time_total+self.time_step,self.time_step)
+		self.wellsmerged = np.array([],dtype=wdtype)
+
+		for index,(track,flag,limit,water,oil) in enumerate(zip(self.wells.tracks,self.wells.consbhp,self.wells.limits,self.wells.water,self.wells.oil)):
+
+			ttrack = np.transpose(track[:,:,np.newaxis],(2,1,0))
+
+			vector = self.res.grid_centers[:,:,np.newaxis]-ttrack
+
+			distance = np.sqrt(np.sum(vector**2,axis=1))
+
+			grid_indices = np.unique(np.argmin(distance,axis=0))
+
+			well_indices = np.full(grid_indices.size,index,dtype=int)
+
+			bhpflags = np.full(grid_indices.size,flag,dtype=bool)
+
+			limits = np.full(grid_indices.size,limit,dtype=float)
+
+			wflags = np.full(grid_indices.size,water,dtype=bool)
+			oflags = np.full(grid_indices.size,oil,dtype=bool)
+
+			wellmerged = np.rec.fromarrays((well_indices,grid_indices,bhpflags,limits,wflags,oflags),dtype=wdtype)
+
+			self.wellsmerged = np.append(self.wellsmerged,wellmerged)
+
+		self.req = np.empty(self.wellsmerged["index"].shape)
+
+		for index,grid_index in enumerate(self.wellsmerged["grid"]):
+
+			dx = self.res.grid_sizes[grid_index,0]
+			dy = self.res.grid_sizes[grid_index,1]
+			dz = self.res.grid_sizes[grid_index,2]
+
+			self.req[index] = 0.14*np.sqrt(dx**2+dy**2)
 
 	def initialize(self,pressure,saturation):
 
@@ -37,6 +70,13 @@ class IMPES():
 		self.pressure[:] = pressure
 
 		self.Sw[:] = saturation
+
+	def set_time(self,step,total):
+
+		self.time_step = step
+		self.time_total = total
+
+		self.time_array = np.arange(0,self.time_total+self.time_step,self.time_step)
 
 	def solve(self):
 
@@ -63,10 +103,24 @@ class IMPES():
 		cw = self.fluids.compressibility[1]
 		co = self.fluids.compressibility[0]
 
+		windex = self.wellsmerged["index"]
+		gindex = self.wellsmerged["grid"]
+
+		rw = self.wells.radii[windex]
+
+		S = self.wells.skinfactors[windex]
+
+		bhp = self.wellsmerged["bhp_flag"]
+
+		water = self.wellsmerged["water_flag"]
+		oil = self.wellsmerged["oil_flag"]
+
 		d11 = (self.res.grid_volumes*self.res.porosity*self.Sw)/(fvfw*self.time_step)*(cr+cw)
 		d12 = (self.res.grid_volumes*self.res.porosity)/(self.time_step*fvfw)
 		d21 = (self.res.grid_volumes*self.res.porosity*(1-self.Sw))/(fvfo*self.time_step)*(cr+co)
 		d22 = (self.res.grid_volumes*self.res.porosity)/(self.time_step*fvfo)*-1
+
+		D_v = -d22/d12*d11+d21
 
 		self.rp.system2phase(Sw=self.Sw,model="oil-water")
 
@@ -78,49 +132,100 @@ class IMPES():
 		TYn = (ky*self.rp.kro*Ay)/(muo*fvfo*dy)
 		TZn = (kz*self.rp.kro*Az)/(muo*fvfo*dz)
 
-		shape = (self.res.grid_numtot,self.res.grid_numtot)
+		Jw_v = (2*np.pi*kx[gindex]*self.rp.krw[gindex]*dz[gindex])/(muw*fvfw*(np.log(self.req/rw)+S))
+		Jn_v = (2*np.pi*kx[gindex]*self.rp.kro[gindex]*dz[gindex])/(muo*fvfo*(np.log(self.req/rw)+S))
 
-		self.Tw = csr(shape)
+		cxm_0 = self.res.grid_indices[self.res.grid_hasxmin,0]
+		cxm_m = self.res.grid_indices[self.res.grid_hasxmin,1]
 
-		self.Tw -= csr((TXw[self.res.noxmin],(self.res.grid_indices[self.res.noxmin,0],self.res.grid_indices[self.res.noxmin,1])),shape=shape)
-		self.Tw += csr((TXw[self.res.noxmin],(self.res.grid_indices[self.res.noxmin,0],self.res.grid_indices[self.res.noxmin,0])),shape=shape)
+		cxp_0 = self.res.grid_indices[self.res.grid_hasxmax,0]
+		cxp_p = self.res.grid_indices[self.res.grid_hasxmax,2]
 
-		self.Tw -= csr((TXw[self.res.noxmax],(self.res.grid_indices[self.res.noxmax,0],self.res.grid_indices[self.res.noxmax,2])),shape=shape)
-		self.Tw += csr((TXw[self.res.noxmax],(self.res.grid_indices[self.res.noxmax,0],self.res.grid_indices[self.res.noxmax,0])),shape=shape)
+		cym_0 = self.res.grid_indices[self.res.grid_hasymin,0]
+		cym_m = self.res.grid_indices[self.res.grid_hasymin,3]
 
-		self.Tw -= csr((TYw[self.res.noymin],(self.res.grid_indices[self.res.noymin,0],self.res.grid_indices[self.res.noymin,3])),shape=shape)
-		self.Tw += csr((TYw[self.res.noymin],(self.res.grid_indices[self.res.noymin,0],self.res.grid_indices[self.res.noymin,0])),shape=shape)
+		cyp_0 = self.res.grid_indices[self.res.grid_hasymax,0]
+		cyp_p = self.res.grid_indices[self.res.grid_hasymax,4]
 
-		self.Tw -= csr((TYw[self.res.noymax],(self.res.grid_indices[self.res.noymax,0],self.res.grid_indices[self.res.noymax,4])),shape=shape)
-		self.Tw += csr((TYw[self.res.noymax],(self.res.grid_indices[self.res.noymax,0],self.res.grid_indices[self.res.noymax,0])),shape=shape)
+		czm_0 = self.res.grid_indices[self.res.grid_haszmin,0]
+		czm_m = self.res.grid_indices[self.res.grid_haszmin,5]
 
-		self.Tw -= csr((TZw[self.res.nozmin],(self.res.grid_indices[self.res.nozmin,0],self.res.grid_indices[self.res.nozmin,5])),shape=shape)
-		self.Tw += csr((TZw[self.res.nozmin],(self.res.grid_indices[self.res.nozmin,0],self.res.grid_indices[self.res.nozmin,0])),shape=shape)
+		czp_0 = self.res.grid_indices[self.res.grid_haszmax,0]
+		czp_p = self.res.grid_indices[self.res.grid_haszmax,6]
 
-		self.Tw -= csr((TZw[self.res.nozmax],(self.res.grid_indices[self.res.nozmax,0],self.res.grid_indices[self.res.nozmax,6])),shape=shape)
-		self.Tw += csr((TZw[self.res.nozmax],(self.res.grid_indices[self.res.nozmax,0],self.res.grid_indices[self.res.nozmax,0])),shape=shape)
+		mshape = (self.res.grid_numtot,self.res.grid_numtot)
 
-		self.Tn = csr(shape)
+		self.Tw = csr(mshape)
 
-		self.Tn -= csr((TXn[self.res.noxmin],(self.res.grid_indices[self.res.noxmin,0],self.res.grid_indices[self.res.noxmin,1])),shape=shape)
-		self.Tn += csr((TXn[self.res.noxmin],(self.res.grid_indices[self.res.noxmin,0],self.res.grid_indices[self.res.noxmin,0])),shape=shape)
+		self.Tw -= csr((TXw[self.res.grid_hasxmin],(cxm_0,cxm_m)),shape=mshape)
+		self.Tw += csr((TXw[self.res.grid_hasxmin],(cxm_0,cxm_0)),shape=mshape)
 
-		self.Tn -= csr((TXn[self.res.noxmax],(self.res.grid_indices[self.res.noxmax,0],self.res.grid_indices[self.res.noxmax,2])),shape=shape)
-		self.Tn += csr((TXn[self.res.noxmax],(self.res.grid_indices[self.res.noxmax,0],self.res.grid_indices[self.res.noxmax,0])),shape=shape)
+		self.Tw -= csr((TXw[self.res.grid_hasxmax],(cxp_0,cxp_p)),shape=mshape)
+		self.Tw += csr((TXw[self.res.grid_hasxmax],(cxp_0,cxp_0)),shape=mshape)
 
-		self.Tn -= csr((TYn[self.res.noymin],(self.res.grid_indices[self.res.noymin,0],self.res.grid_indices[self.res.noymin,3])),shape=shape)
-		self.Tn += csr((TYn[self.res.noymin],(self.res.grid_indices[self.res.noymin,0],self.res.grid_indices[self.res.noymin,0])),shape=shape)
+		self.Tw -= csr((TYw[self.res.grid_hasymin],(cym_0,cym_m)),shape=mshape)
+		self.Tw += csr((TYw[self.res.grid_hasymin],(cym_0,cym_0)),shape=mshape)
 
-		self.Tn -= csr((TYn[self.res.noymax],(self.res.grid_indices[self.res.noymax,0],self.res.grid_indices[self.res.noymax,4])),shape=shape)
-		self.Tn += csr((TYn[self.res.noymax],(self.res.grid_indices[self.res.noymax,0],self.res.grid_indices[self.res.noymax,0])),shape=shape)
+		self.Tw -= csr((TYw[self.res.grid_hasymax],(cyp_0,cyp_p)),shape=mshape)
+		self.Tw += csr((TYw[self.res.grid_hasymax],(cyp_0,cyp_0)),shape=mshape)
 
-		self.Tn -= csr((TZn[self.res.nozmin],(self.res.grid_indices[self.res.nozmin,0],self.res.grid_indices[self.res.nozmin,5])),shape=shape)
-		self.Tn += csr((TZn[self.res.nozmin],(self.res.grid_indices[self.res.nozmin,0],self.res.grid_indices[self.res.nozmin,0])),shape=shape)
+		self.Tw -= csr((TZw[self.res.grid_haszmin],(czm_0,czm_m)),shape=mshape)
+		self.Tw += csr((TZw[self.res.grid_haszmin],(czm_0,czm_0)),shape=mshape)
 
-		self.Tn -= csr((TZn[self.res.nozmax],(self.res.grid_indices[self.res.nozmax,0],self.res.grid_indices[self.res.nozmax,6])),shape=shape)
-		self.Tn += csr((TZn[self.res.nozmax],(self.res.grid_indices[self.res.nozmax,0],self.res.grid_indices[self.res.nozmax,0])),shape=shape)
+		self.Tw -= csr((TZw[self.res.grid_haszmax],(czp_0,czp_p)),shape=mshape)
+		self.Tw += csr((TZw[self.res.grid_haszmax],(czp_0,czp_0)),shape=mshape)
 
-		print((self.Tw.todense()))
+		self.Tn = csr(mshape)
+
+		self.Tn -= csr((TXn[self.res.grid_hasxmin],(cxm_0,cxm_m)),shape=mshape)
+		self.Tn += csr((TXn[self.res.grid_hasxmin],(cxm_0,cxm_0)),shape=mshape)
+
+		self.Tn -= csr((TXn[self.res.grid_hasxmax],(cxp_0,cxp_p)),shape=mshape)
+		self.Tn += csr((TXn[self.res.grid_hasxmax],(cxp_0,cxp_0)),shape=mshape)
+
+		self.Tn -= csr((TYn[self.res.grid_hasymin],(cym_0,cym_m)),shape=mshape)
+		self.Tn += csr((TYn[self.res.grid_hasymin],(cym_0,cym_0)),shape=mshape)
+
+		self.Tn -= csr((TYn[self.res.grid_hasymax],(cyp_0,cyp_p)),shape=mshape)
+		self.Tn += csr((TYn[self.res.grid_hasymax],(cyp_0,cyp_0)),shape=mshape)
+
+		self.Tn -= csr((TZn[self.res.grid_haszmin],(czm_0,czm_m)),shape=mshape)
+		self.Tn += csr((TZn[self.res.grid_haszmin],(czm_0,czm_0)),shape=mshape)
+
+		self.Tn -= csr((TZn[self.res.grid_haszmax],(czp_0,czp_p)),shape=mshape)
+		self.Tn += csr((TZn[self.res.grid_haszmax],(czp_0,czp_0)),shape=mshape)
+		
+		self.Jw = csr((Jw_v[bhp],(gindex[bhp],gindex[bhp])),shape=mshape)
+		self.Jn = csr((Jn_v[bhp],(gindex[bhp],gindex[bhp])),shape=mshape)
+
+		self.D = diags(D_v)
+
+		vshape = (self.res.grid_numtot,1)
+
+		vzeros = np.zeros(len(self.wells.itemnames),dtype=int)
+
+		# Q += csr((self.wells.limits[bhp],(gindex[bhp],vzeros[bhp])),shape=vshape)
+		# Q += csr((self.wells.limits[~bhp],(gindex[~bhp],vzeros[~bhp])),shape=vshape)
+
+		Q = self.wells.limits
+
+		print(oil)
+
+		# print(Q[gindex][water])
+
+		self.Qw = csr(vshape)
+
+		self.Qw += csr((Q[water],(gindex[water],vzeros[water])),shape=vshape)
+		# self.Qw += csr((self.wells.limits[bhp],(gindex[bhp],vzeros[bhp])),shape=vshape)
+		# self.Qw += csr((self.wells.limits[~bhp],(gindex[~bhp],vzeros[~bhp])),shape=vshape)
+
+		print(self.Qw.todense())
+
+		self.Qn = csr(vshape)
+		self.Qn += csr((Q[oil],(gindex[oil],vzeros[oil])),shape=vshape)
+		# self.Qn += csr((self.wells.limits[~bhp],(gindex[~bhp],vzeros[~bhp])),shape=vshape)
+
+		print(self.Qn.todense())
 
 class SS():
 	
@@ -140,8 +245,6 @@ if __name__ == "__main__":
 
 	solver = IMPES()
 
-	solver.set_time(0.1,500)
-
 	# FORMATION
 
 	solver.res = Formation("FU",None)
@@ -152,7 +255,7 @@ if __name__ == "__main__":
 
 	solver.res.set_porosity(0.26)
 
-	solver.res.set_permeability(((1800,1800,1800),))
+	solver.res.set_permeability(1800)
 
 	solver.res.set_compressibility(3e-6)
 
@@ -177,7 +280,10 @@ if __name__ == "__main__":
 		((1000,500,400),(1000,500,0)),
 		))
 
-	solver.wells.set_flowconds(conditions=("rate","rate","bhp"),boundaries=(3000,2000,800))
+	solver.wells.set_flowconds(
+		conditions=("rate","rate","bhp"),
+		limits=(3000,-2000,800),
+		fluids=("water","oil","both"))
 
 	solver.wells.set_skinfactors((0,0,0))
 
@@ -198,7 +304,9 @@ if __name__ == "__main__":
 
 	# SOLVING
 
+	solver.merge()
 	solver.initialize(pressure=1000,saturation=0.2)
+	solver.set_time(0.1,500)
 	solver.solve()
 
 	# PLOTTING
