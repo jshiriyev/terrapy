@@ -107,33 +107,33 @@ class IMPES():
 		windex = self.wellsmerged["index"]
 		gindex = self.wellsmerged["grid"]
 
-		rw = self.wells.radii[windex]
-
-		S = self.wells.skinfactors[windex]
-
 		bhp = self.wellsmerged["bhp_flag"]
+
+		QB = self.wellsmerged["limit"]
 
 		water = self.wellsmerged["water_flag"]
 		oil = self.wellsmerged["oil_flag"]
+
+		rw = self.wells.radii[windex]
+
+		S = self.wells.skinfactors[windex]
 
 		d11 = (self.res.grid_volumes*self.res.porosity*self.Sw)/(fvfw*self.time_step)*(cr+cw)
 		d12 = (self.res.grid_volumes*self.res.porosity)/(self.time_step*fvfw)
 		d21 = (self.res.grid_volumes*self.res.porosity*(1-self.Sw))/(fvfo*self.time_step)*(cr+co)
 		d22 = (self.res.grid_volumes*self.res.porosity)/(self.time_step*fvfo)*-1
 
-		D_v = -np.array([d22]).T/np.array([d12]).T*np.array([d11]).T+np.array([d21]).T
-
-		self.D = diags(D_v.flatten())
+		self.D = diags(-d22/d12*d11+d21)
 
 		self.rp.system2phase(Sw=self.Sw,model="oil-water")
 
-		TXw = (kx*self.rp.krw*Ax)/(muw*fvfw*dx)
-		TYw = (ky*self.rp.krw*Ay)/(muw*fvfw*dy)
-		TZw = (kz*self.rp.kro*Az)/(muo*fvfo*dz)
+		TXw = (kx*self.rp.krw*Ax)/(muw*fvfw*dx)/158 # unit conversion
+		TYw = (ky*self.rp.krw*Ay)/(muw*fvfw*dy)/158 # unit conversion
+		TZw = (kz*self.rp.kro*Az)/(muo*fvfo*dz)/158 # unit conversion
 
-		TXn = (kx*self.rp.kro*Ax)/(muo*fvfo*dx)
-		TYn = (ky*self.rp.kro*Ay)/(muo*fvfo*dy)
-		TZn = (kz*self.rp.kro*Az)/(muo*fvfo*dz)
+		TXn = (kx*self.rp.kro*Ax)/(muo*fvfo*dx)/158 # unit conversion
+		TYn = (ky*self.rp.kro*Ay)/(muo*fvfo*dy)/158 # unit conversion
+		TZn = (kz*self.rp.kro*Az)/(muo*fvfo*dz)/158 # unit conversion
 
 		Jw_v = (2*np.pi*kx[gindex]*self.rp.krw[gindex]*dz[gindex])/(muw*fvfw*(np.log(self.req/rw)+S))/158 # unit conversion
 		Jn_v = (2*np.pi*kx[gindex]*self.rp.kro[gindex]*dz[gindex])/(muo*fvfo*(np.log(self.req/rw)+S))/158 # unit conversion
@@ -198,38 +198,38 @@ class IMPES():
 		self.Tn -= csr((TZn[self.res.grid_haszmax],(czp_0,czp_p)),shape=mshape)
 		self.Tn += csr((TZn[self.res.grid_haszmax],(czp_0,czp_0)),shape=mshape)
 
-		self.T = (-d22/d12)*self.Tw+self.Tn
+		self.T = diags(-d22/d12)*self.Tw+self.Tn
 		
 		self.Jw = csr((Jw_v[bhp],(gindex[bhp],gindex[bhp])),shape=mshape)
 		self.Jn = csr((Jn_v[bhp],(gindex[bhp],gindex[bhp])),shape=mshape)
 
-		self.J = (-d22/d12)*self.Jw+self.Jn
+		self.J = diags(-d22/d12)*self.Jw+self.Jn
 
 		vshape = (self.res.grid_numtot,1)
 
 		vzeros = np.zeros(len(self.wells.itemnames),dtype=int)
-
-		Q = self.wells.limits
-
+		
 		self.Qw = csr(vshape)
 		self.Qn = csr(vshape)
 
-		self.Qw += csr((Q[bhp]*Jw_v[bhp],(gindex[bhp],vzeros[bhp])),shape=vshape)
-		self.Qn += csr((Q[bhp]*Jn_v[bhp],(gindex[bhp],vzeros[bhp])),shape=vshape)
+		self.Qw += csr((QB[bhp]*Jw_v[bhp],(gindex[bhp],vzeros[bhp])),shape=vshape)
+		self.Qn += csr((QB[bhp]*Jn_v[bhp],(gindex[bhp],vzeros[bhp])),shape=vshape)
 
 		cqw = np.logical_and(~bhp,water)
 		cqo = np.logical_and(~bhp,oil)
 
-		self.Qw += csr((Q[cqw]*5.61,(gindex[cqw],vzeros[cqw])),shape=vshape) # unit conversion
-		self.Qn += csr((Q[cqo]*5.61,(gindex[cqo],vzeros[cqo])),shape=vshape) # unit conversion
+		self.Qw += csr((QB[cqw]*5.61,(gindex[cqw],vzeros[cqw])),shape=vshape) # unit conversion
+		self.Qn += csr((QB[cqo]*5.61,(gindex[cqo],vzeros[cqo])),shape=vshape) # unit conversion
 
-		self.Q = self.Qw.multiply(-np.array([d22/d12]).T)+self.Qn
+		self.Q = diags(-d22/d12)*self.Qw+self.Qn
 
 		A = (self.T+self.J+self.D)
 
-		b = self.D.dot(csr(self.pressure))+self.Q
+		b = self.D.dot(self.pressure)+self.Q
 
-		print(sps(A,b))
+		self.pressure = sps(A,b)
+
+		print(self.pressure)
 
 class SS():
 	
