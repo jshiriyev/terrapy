@@ -8,6 +8,37 @@ class darcy_relation():
 
     pass
 
+class relative_permeability_balhoff():
+
+    def __init__(self,Swi,Swr,krwo,kroo,nw,no):
+
+        self.Swi = Swi
+        self.Swr = Swr
+
+        self.krwo = krwo
+        self.kroo = kroo
+        
+        self.nw = nw
+        self.no = no
+
+    def system2phase(self,Sw,Sg=0,model="oil-water"):
+
+        So = 1-Sw-Sg
+
+        if model == "oil-water":
+            self.krw,self.kro = self._oil_water(Sw,So)
+        elif model == "gas-oil":
+            self.kro,self.krg = self._gas_oil(Sw,So,Sg)
+
+    def _oil_water(self,Sw,So):
+
+        S = (Sw-self.Swr)/(1-self.Swr-self.Swi)
+
+        krw = self.krwo*S**3
+        kro = self.kroo*(1-S)**3
+
+        return krw, kro
+
 class relative_permeability():
 
     """
@@ -225,6 +256,21 @@ if __name__ == "__main__":
 
     import unittest
 
-    from flow.pormed.tests.constitutive_relation import TestRelativePermeability
+    from flow.pormed.tests.conrelation import TestRelativePermeability
 
     unittest.main()
+
+    # rp = relative_permeability_balhoff(
+    #     Swi=0.2,
+    #     Swr=0.2,
+    #     krwo=0.2,
+    #     kroo=1.0,
+    #     nw=3,
+    #     no=3,
+    #     )
+
+    # Sw = 0.2001
+
+    # rp.system2phase(Sw=Sw,model="oil-water")
+
+    # print(rp.krw)
