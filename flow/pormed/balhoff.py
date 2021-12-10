@@ -25,45 +25,6 @@ class IMPES():
 		self.wells 	= wells
 		self.rp 	= relperm
 
-	def merge(self):
-
-		wdtype = [('index',int),('grid',int),('bhp_flag',bool),('limit',float),('water_flag',bool),('oil_flag',bool)]
-
-		self.wellsmerged = np.array([],dtype=wdtype)
-
-		for index,(track,flag,limit,water,oil) in enumerate(zip(self.wells.tracks,self.wells.consbhp,self.wells.limits,self.wells.water,self.wells.oil)):
-
-			ttrack = np.transpose(track[:,:,np.newaxis],(2,1,0))
-
-			vector = self.res.grid_centers[:,:,np.newaxis]-ttrack
-
-			distance = np.sqrt(np.sum(vector**2,axis=1))
-
-			grid_indices = np.unique(np.argmin(distance,axis=0))
-
-			well_indices = np.full(grid_indices.size,index,dtype=int)
-
-			bhpflags = np.full(grid_indices.size,flag,dtype=bool)
-
-			limits = np.full(grid_indices.size,limit,dtype=float)
-
-			wflags = np.full(grid_indices.size,water,dtype=bool)
-			oflags = np.full(grid_indices.size,oil,dtype=bool)
-
-			wellmerged = np.rec.fromarrays((well_indices,grid_indices,bhpflags,limits,wflags,oflags),dtype=wdtype)
-
-			self.wellsmerged = np.append(self.wellsmerged,wellmerged)
-
-		self.req = np.empty(self.wellsmerged["index"].shape)
-
-		for index,grid_index in enumerate(self.wellsmerged["grid"]):
-
-			dx = self.res.grid_sizes[grid_index,0]
-			dy = self.res.grid_sizes[grid_index,1]
-			dz = self.res.grid_sizes[grid_index,2]
-
-			self.req[index] = 0.14*np.sqrt(dx**2+dy**2)
-
 	def initialize(self,pressure,saturation):
 
 		self.pressure = np.empty(self.res.grid_numtot)
@@ -132,9 +93,62 @@ class IMPES():
 		self.TYP = (Ay*kyp_mean)/(dyp_mean)
 		self.TZP = (Az*kzp_mean)/(dzp_mean)
 
+	def set_wells(self):
+
+		wdtype = [('index',int),('grid',int),('bhp_flag',bool),('limit',float),('water_flag',bool),('oil_flag',bool)]
+
+		self.wellsmerged = np.array([],dtype=wdtype)
+
+		for index,(track,flag,limit,water,oil) in enumerate(zip(self.wells.tracks,self.wells.consbhp,self.wells.limits,self.wells.water,self.wells.oil)):
+
+			ttrack = np.transpose(track[:,:,np.newaxis],(2,1,0))
+
+			vector = self.res.grid_centers[:,:,np.newaxis]-ttrack
+
+			distance = np.sqrt(np.sum(vector**2,axis=1))
+
+			grid_indices = np.unique(np.argmin(distance,axis=0))
+
+			well_indices = np.full(grid_indices.size,index,dtype=int)
+
+			bhpflags = np.full(grid_indices.size,flag,dtype=bool)
+
+			limits = np.full(grid_indices.size,limit,dtype=float)
+
+			wflags = np.full(grid_indices.size,water,dtype=bool)
+			oflags = np.full(grid_indices.size,oil,dtype=bool)
+
+			wellmerged = np.rec.fromarrays((well_indices,grid_indices,bhpflags,limits,wflags,oflags),dtype=wdtype)
+
+			self.wellsmerged = np.append(self.wellsmerged,wellmerged)
+
+		req = np.empty(self.wellsmerged["index"].shape)
+
+		for index,grid_index in enumerate(self.wellsmerged["grid"]):
+
+			dx = self.res.grid_sizes[grid_index,0]
+			dy = self.res.grid_sizes[grid_index,1]
+			dz = self.res.grid_sizes[grid_index,2]
+
+			req[index] = 0.14*np.sqrt(dx**2+dy**2)
+
+		windex = self.wellsmerged["index"]
+		gindex = self.wellsmerged["grid"]
+
+		rw = self.wells.radii[windex]
+
+		skin = self.wells.skinfactors[windex]
+
+		kx = self.res.permeability[:,0][gindex]
+		dz = self.res.grid_sizes[:,2][gindex]
+
+		self.JR = (2*np.pi*dz*kx)/(np.log(req/rw)+skin)
+
 	def solve(self):
 
 		# print(self.res.grid_indices)
+
+		Vp = self.res.grid_volumes*self.res.porosity
 
 		muw = self.fluids.viscosity[0]
 		muo = self.fluids.viscosity[1]
@@ -157,11 +171,8 @@ class IMPES():
 		water = self.wellsmerged["water_flag"]
 		oil = self.wellsmerged["oil_flag"]
 
-		rw = self.wells.radii[windex]
-
-		skin = self.wells.skinfactors[windex]
-
-		Vp = self.res.grid_volumes*self.res.porosity
+		cqw = np.logical_and(~bhp,water)
+		cqo = np.logical_and(~bhp,oil)
 
 		cxm_0 = self.res.grid_indices[self.res.grid_hasxmin,0]
 		cxm_m = self.res.grid_indices[self.res.grid_hasxmin,1]
@@ -186,10 +197,7 @@ class IMPES():
 
 		vzeros = np.zeros(len(self.wells.itemnames),dtype=int)
 
-		cqw = np.logical_and(~bhp,water)
-		cqo = np.logical_and(~bhp,oil)
-
-		for time in self.time_array:
+		for time in self.time_array[:1]:
 
 			print("@{:5.1f}th time step".format(time))
 
@@ -260,8 +268,8 @@ class IMPES():
 
 			self.T = diags(-d22/d12)*self.Tw+self.Tn
 
-			Jw_v = (2*np.pi*self.res.grid_sizes[:,2][gindex]*self.res.permeability[:,0][gindex]*self.rp.krw[gindex])/(muw*fvfw*(np.log(self.req/rw)+skin))*6.33e-3 # unit conversion
-			Jn_v = (2*np.pi*self.res.grid_sizes[:,2][gindex]*self.res.permeability[:,0][gindex]*self.rp.kro[gindex])/(muo*fvfo*(np.log(self.req/rw)+skin))*6.33e-3 # unit conversion
+			Jw_v = self.JR*(self.rp.krw[gindex])/(muw*fvfw)*6.33e-3 # unit conversion
+			Jn_v = self.JR*(self.rp.kro[gindex])/(muo*fvfo)*6.33e-3 # unit conversion
 
 			self.Jw = csr((Jw_v[bhp],(gindex[bhp],gindex[bhp])),shape=mshape)
 			self.Jn = csr((Jn_v[bhp],(gindex[bhp],gindex[bhp])),shape=mshape)
@@ -374,10 +382,10 @@ if __name__ == "__main__":
 
 	solver = IMPES(res,fluids,wells,relperm)
 
-	solver.merge()
 	solver.initialize(pressure=1000,saturation=0.2)
 	solver.set_time(0.1,500)
 	solver.set_transmissibility()
+	solver.set_wells()
 	solver.solve()
 
 	# PLOTTING
