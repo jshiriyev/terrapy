@@ -12,32 +12,27 @@ class relative_permeability_balhoff():
 
     def __init__(self,Swi,Swr,krwo,kroo,nw,no):
 
-        self.Swi = Swi
-        self.Swr = Swr
+        self.Swi    = Swi
+        self.Swr    = Swr
 
-        self.krwo = krwo
-        self.kroo = kroo
+        self.krwo   = krwo
+        self.kroo   = kroo
         
-        self.nw = nw
-        self.no = no
+        self.nw     = nw
+        self.no     = no
 
-    def system2phase(self,Sw,Sg=0,model="oil-water"):
-
-        So = 1-Sw-Sg
-
-        if model == "oil-water":
-            self.krw,self.kro = self._oil_water(Sw,So)
-        elif model == "gas-oil":
-            self.kro,self.krg = self._gas_oil(Sw,So,Sg)
-
-    def _oil_water(self,Sw,So):
+    def oil_water(self,Sw):
 
         S = (Sw-self.Swr)/(1-self.Swr-self.Swi)
 
         krw = self.krwo*S**3
         kro = self.kroo*(1-S)**3
 
-        return krw, kro
+        return krw,kro
+
+    def gas_oil(self):
+
+        pass
 
 class relative_permeability():
 
