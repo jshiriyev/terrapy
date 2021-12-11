@@ -142,9 +142,11 @@ class IMPES():
 		skin = self.wells.skinfactors[windex]
 
 		kx = self.res.permeability[:,0][gindex]
+		ky = self.res.permeability[:,1][gindex]
+
 		dz = self.res.grid_sizes[:,2][gindex]
 
-		self.JR = (2*np.pi*dz*kx)/(np.log(req/rw)+skin)
+		self.JR = (2*np.pi*dz*np.sqrt(kx*ky))/(np.log(req/rw)+skin)
 
 	def solve(self):
 
@@ -206,9 +208,18 @@ class IMPES():
 		Sw_zm = self.Sw[czm_0]
 		Sw_zp = self.Sw[czp_0]
 
-		for time in self.time_array[:2]:
+		for time in self.time_array[:1]:
 
 			print("@{:5.1f}th time step".format(time))
+
+			d11 = (Vp*self.Sw)/(self.time_step*fvfw)*(cr+cw)
+			d12 = (Vp)/(self.time_step*fvfw)
+			d21 = (Vp*(1-self.Sw))/(self.time_step*fvfo)*(cr+co)
+			d22 = (Vp)/(self.time_step*fvfo)*-1
+
+			self.D = diags(-d22/d12*d11+d21)
+
+			# print(self.D.todense())
 
 			Uxm = self.pressure[cxm_0]>self.pressure[cxm_m]
 			Uxp = self.pressure[cxp_0]>self.pressure[cxp_p]
@@ -238,13 +249,6 @@ class IMPES():
 			krw_xp,kro_xp = self.rp.oil_water(Sw=Sw_xp)
 			krw_yp,kro_yp = self.rp.oil_water(Sw=Sw_yp)
 			krw_zp,kro_zp = self.rp.oil_water(Sw=Sw_zp)
-
-			d11 = (Vp*self.Sw)/(self.time_step*fvfw)*(cr+cw)
-			d12 = (Vp)/(self.time_step*fvfw)
-			d21 = (Vp*(1-self.Sw))/(self.time_step*fvfo)*(cr+co)
-			d22 = (Vp)/(self.time_step*fvfo)*-1
-
-			self.D = diags(-d22/d12*d11+d21)
 
 			TXMw = (self.TXM[self.res.grid_hasxmin]*krw_xm)/(muw*fvfw)*6.33e-3 # unit conversion
 			TYMw = (self.TYM[self.res.grid_hasymin]*krw_ym)/(muw*fvfw)*6.33e-3 # unit conversion
@@ -282,6 +286,8 @@ class IMPES():
 			self.Tw -= csr((TZPw,(czp_0,czp_p)),shape=mshape)
 			self.Tw += csr((TZPw,(czp_0,czp_0)),shape=mshape)
 
+			# print(self.Tw.todense()/6.33e-3)
+
 			self.Tn = csr(mshape)
 
 			self.Tn -= csr((TXMn,(cxm_0,cxm_m)),shape=mshape)
@@ -302,6 +308,8 @@ class IMPES():
 			self.Tn -= csr((TZPn,(czp_0,czp_p)),shape=mshape)
 			self.Tn += csr((TZPn,(czp_0,czp_0)),shape=mshape)
 
+			# print(self.Tn.todense()/6.33e-3)
+
 			self.T = diags(-d22/d12)*self.Tw+self.Tn
 
 			krw,kro = self.rp.oil_water(Sw=self.Sw[gindex])
@@ -309,14 +317,17 @@ class IMPES():
 			Jw_v = (self.JR*krw)/(muw*fvfw)*6.33e-3 # unit conversion
 			Jn_v = (self.JR*kro)/(muo*fvfo)*6.33e-3 # unit conversion
 
-			print(krw[bhp])
-			print(Jw_v[bhp]/6.33e-3)
+			# print(krw[bhp])
+			# print(Jw_v[bhp]/6.33e-3)
 
-			print(kro[bhp])
-			print(Jn_v[bhp]/6.33e-3)
+			# print(kro[bhp])
+			# print(Jn_v[bhp]/6.33e-3)
 
 			self.Jw = csr((Jw_v[bhp],(gindex[bhp],gindex[bhp])),shape=mshape)
 			self.Jn = csr((Jn_v[bhp],(gindex[bhp],gindex[bhp])),shape=mshape)
+
+			# print(self.Jw.todense()/6.33e-3)
+			# print(self.Jn.todense()/6.33e-3)
 
 			self.J = diags(-d22/d12)*self.Jw+self.Jn
 			
@@ -332,13 +343,18 @@ class IMPES():
 			self.Qw = self.Qw.toarray().flatten()
 			self.Qn = self.Qn.toarray().flatten()
 
+			print(self.Qw)
+			print(self.Qn)
+
 			self.Q = -d22/d12*self.Qw+self.Qn
 
 			pressure_old = self.pressure
 
 			self.pressure = sps(self.T+self.J+self.D,self.D.dot(self.pressure)+self.Q)
 
-			self.Sw += (-d11*(self.pressure-pressure_old)+self.Qw+self.Tw.dot(self.pressure))/d12
+			# print(pressure_old-self.pressure)
+
+			self.Sw -= (d11*(self.pressure-pressure_old)-self.Qw+csr.dot(self.Tw+self.Jw,self.pressure))/d12
 
 		for index,(p,sw) in enumerate(zip(self.pressure,self.Sw)):
 			print("{:d}\tP\t{:4.1f}\tSw\t{:.5f}".format(index,p,sw))
@@ -367,6 +383,8 @@ if __name__ == "__main__":
 
 	res.grid((3,3,1))
 
+	res.set_depth(-1000)
+
 	res.set_porosity(0.26)
 
 	res.set_permeability(1800)
@@ -378,6 +396,7 @@ if __name__ == "__main__":
 	fluids = Fluids(2)
 
 	fluids.set_names(("water","oil"))
+	fluids.set_density((62.4,53.))
 	fluids.set_compressibility((2e-6,5e-6))
 	fluids.set_viscosity((1.,5.))
 	fluids.set_fvf((1.,1.))
@@ -414,8 +433,8 @@ if __name__ == "__main__":
 	# 	nw=3)
 
 	relperm = relative_permeability_balhoff(
-		Swi=0.2,
 		Swr=0.2,
+		Sor=0.2,
 		krwo=0.2,
 		kroo=1.0,
 		nw=3,

@@ -10,10 +10,10 @@ class darcy_relation():
 
 class relative_permeability_balhoff():
 
-    def __init__(self,Swi,Swr,krwo,kroo,nw,no):
+    def __init__(self,Swr,Sor,krwo,kroo,nw,no):
 
-        self.Swi    = Swi
         self.Swr    = Swr
+        self.Sor    = Sor
 
         self.krwo   = krwo
         self.kroo   = kroo
@@ -23,10 +23,13 @@ class relative_permeability_balhoff():
 
     def oil_water(self,Sw):
 
-        S = (Sw-self.Swr)/(1-self.Swr-self.Swi)
+        # Sw[Sw<self.Swr] = self.Swr
+        # Sw[Sw>1-self.Sor] = 1-self.Sor
 
-        krw = self.krwo*S**3
-        kro = self.kroo*(1-S)**3
+        S = (Sw-self.Swr)/(1-self.Swr-self.Sor)
+
+        krw = self.krwo*S**self.nw
+        kro = self.kroo*(1-S)**self.no
 
         return krw,kro
 

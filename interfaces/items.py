@@ -244,6 +244,10 @@ class Formation(units):
 
             pass
 
+    def set_depth(self,depth):
+
+        self.depth = depth
+
     def set_porosity(self,porosity):
 
         self.porosity = porosity
@@ -262,10 +266,6 @@ class Formation(units):
     def set_compressibility(self,compressibility):
 
         self.compressibility = compressibility
-
-    def set_depth(self,depth):
-
-        self.depth = depth
 
     def get_tops(self,formations,wellname=None):
 
@@ -1592,6 +1592,10 @@ class Fluids():
     def set_names(self,names):
 
         self.itemnames = names
+
+    def set_density(self,density):
+
+        self.density = density
 
     def set_compressibility(self,compressibility):
 
