@@ -36,13 +36,6 @@ class IMPES():
 		# for index,(p,sw) in enumerate(zip(self.pressure,self.Sw)):
 		# 	print("{:d}\tP\t{:3.0f}\tSw\t{:.4f}".format(index,p,sw))
 
-	def set_time(self,step,total):
-
-		self.time_step = step
-		self.time_total = total
-
-		self.time_array = np.arange(self.time_step,self.time_total+self.time_step,self.time_step)
-
 	def set_transmissibility(self):
 
 		[self.res.grid_hasxmin]
@@ -148,6 +141,13 @@ class IMPES():
 
 		self.JR = (2*np.pi*dz*np.sqrt(kx*ky))/(np.log(req/rw)+skin)
 
+	def set_time(self,step,total):
+
+		self.time_step = step
+		self.time_total = total
+
+		self.time_array = np.arange(self.time_step,self.time_total+self.time_step,self.time_step)
+
 	def solve(self):
 
 		# print(self.res.grid_indices)
@@ -208,7 +208,7 @@ class IMPES():
 		Sw_zm = self.Sw[czm_0]
 		Sw_zp = self.Sw[czp_0]
 
-		for time in self.time_array[:1]:
+		for time in self.time_array:
 
 			print("@{:5.1f}th time step".format(time))
 
@@ -330,21 +330,36 @@ class IMPES():
 			# print(self.Jn.todense()/6.33e-3)
 
 			self.J = diags(-d22/d12)*self.Jw+self.Jn
+
+			# print(krw[cqw])
 			
 			self.Qw = csr(vshape)
 			self.Qn = csr(vshape)
 
-			self.Qw += csr((QB[bhp]*Jw_v[bhp],(gindex[bhp],vzeros[bhp])),shape=vshape)
-			self.Qn += csr((QB[bhp]*Jn_v[bhp],(gindex[bhp],vzeros[bhp])),shape=vshape)
+			qw_cp = QB[bhp]*Jw_v[bhp]
+			qo_cp = QB[bhp]*Jn_v[bhp]
 
-			self.Qw += csr((QB[cqw]*5.61,(gindex[cqw],vzeros[cqw])),shape=vshape) # unit conversion
-			self.Qn += csr((QB[cqo]*5.61,(gindex[cqo],vzeros[cqo])),shape=vshape) # unit conversion
+			qw_cr = QB[cqw]*(krw[cqw]*muo)/(krw[cqw]*muo+kro[cqw]*muw)
+			qo_cr = QB[cqo]*(kro[cqo]*muw)/(krw[cqo]*muo+kro[cqo]*muw)
+
+			qw_cr[0] = 3000
+
+			# print(qw_cp)
+			# print(qo_cp)
+			# print(qw_cr)
+			# print(qo_cr)
+
+			self.Qw += csr((qw_cp,(gindex[bhp],vzeros[bhp])),shape=vshape)
+			self.Qn += csr((qo_cp,(gindex[bhp],vzeros[bhp])),shape=vshape)
+
+			self.Qw += csr((qw_cr*5.61,(gindex[cqw],vzeros[cqw])),shape=vshape) # unit conversion
+			self.Qn += csr((qo_cr*5.61,(gindex[cqo],vzeros[cqo])),shape=vshape) # unit conversion
 
 			self.Qw = self.Qw.toarray().flatten()
 			self.Qn = self.Qn.toarray().flatten()
 
-			print(self.Qw)
-			print(self.Qn)
+			# print(self.Qw)
+			# print(self.Qn)
 
 			self.Q = -d22/d12*self.Qw+self.Qn
 
@@ -416,7 +431,7 @@ if __name__ == "__main__":
 	wells.set_flowconds(
 		conditions=("rate","rate","bhp"),
 		limits=(3000,-2000,800),
-		fluids=("water","oil","both"))
+		fluids=("water","both","both"))
 
 	wells.set_skinfactors((0,0,0))
 
@@ -446,9 +461,9 @@ if __name__ == "__main__":
 	solver = IMPES(res,fluids,wells,relperm)
 
 	solver.initialize(pressure=1000,saturation=0.2)
-	solver.set_time(0.1,500)
 	solver.set_transmissibility()
 	solver.set_wells()
+	solver.set_time(0.1,500)
 	solver.solve()
 
 	# PLOTTING
