@@ -4,28 +4,16 @@ All codes work only in SI units
 
 Flow analysis contains:
 
-    1) flow including plates
-    -- falling film
-    -- parallel plates with stationary plates
-    -- parallel plates with one moving plate
-    2) flow through cylinders
-    -- pipe
-    -- annulus
-    3) flow through hole
-    -- orifice
-    -- nozzle
-    4) flow around solid sphere
-    5) flow through packed bed
-    6) flow through porous media
-    -- core sample
-    -- reservoir model
-    -- reservoir with complex fractures
+    Plates: flow including plates, falling film, parallel plates with stationary plates, parallel plates with one moving plate
+    Pipes: flow through cylinders, pipes and annulus
+    Holes: flow through orifice, nozzle
+    Spheres: flow around solid sphere
+    PackBed: flow through packed bed
+    Pormed: flow through porous media, e.g. core sample, reservoir model, reservoir with complex fractures
 
 GeoMech contains:
 
-    numerical (computational) solutions
-    -- finite element solution
-    ---- 2D triangular mesh in rectangular domain
+    Pore Pressure Estimation
 
 Interfaces:
 
@@ -48,17 +36,14 @@ Optimize contains:
     Simulated annealing
 
 ResLog contains:
-
-    analytical solutions
     
-    numerical (computational)
-    -- axial hybrid method
-    -- surface integral equations
-    -- volume integral equations
+    2D wellbore conductivity simulation with axial hybrid method
+    2D plane simulation with surface integral equations
+    3D layer simulation volume integral equations
 
 Statistics contains:
 
-    1) nominal study
+    Nominal study
     -- analytics
     ---- heterogeneity measurements
     ---- correlation coefficients
@@ -75,7 +60,7 @@ Statistics contains:
     ---- jacknife
     ---- bootstrap
     ---- monte-carlo simulation
-    2) spatiotemporal study
+    Spatiotemporal study
     -- connectivity
     ---- variogram
     -- spatial estimation models
