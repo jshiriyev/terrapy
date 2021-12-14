@@ -1,4 +1,4 @@
-# <a href=""><img alt="NumPy" src="/interfaces/webpage/static/img/myLogo.png" height="60"></a> BhosPy
+# <a href=""><img alt="NumPy" src="/interfaces/webpage/static/img/myLogo.png" height="30"></a> BhosPy
 
 All codes work only in SI units
 
