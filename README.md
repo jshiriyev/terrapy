@@ -1,15 +1,29 @@
+# <a href=""><img alt="NumPy" src="/interfaces/webpage/static/img/myLogo.svg" height="60"></a>
+
 # BhosPy
 
 All codes work only in SI units
 
 Flow analysis contains:
 
-    Plates: flow including plates, falling film, parallel plates with stationary plates, parallel plates with one moving plate
-    Pipes: flow through cylinders, pipes and annulus
-    Holes: flow through orifice, nozzle
-    Spheres: flow around solid sphere
-    PackBed: flow through packed bed
-    Pormed: flow through porous media, e.g. core sample, reservoir model, reservoir with complex fractures
+    - **Plates:**
+    flow including plates,
+    falling film,
+    parallel plates with stationary plates,
+    parallel plates with one moving plate
+    - **Pipes:**
+    flow through cylinders,
+    pipes and annulus
+    Holes:
+    flow through orifice,
+    nozzle
+    - **Spheres:**
+    - **PackBed:**
+    flow through packed bed
+    - **PorMed:** - flow through porous media:
+    core sample,
+    reservoir model,
+    reservoir with complex fractures
 
 GeoMech contains:
 
