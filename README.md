@@ -1,8 +1,8 @@
-# bhospy
+# BhosPy
 
 All codes work only in SI units
 
-"/bhospy/flow/" contains: (CURRENTLY IN PROGRESS)
+Flow analysis contains:
 
     1) flow including plates
     -- falling film
@@ -20,8 +20,43 @@ All codes work only in SI units
     -- core sample
     -- reservoir model
     -- reservoir with complex fractures
-	
-"/bhospy/statistics/" contains: (CURRENTLY IN PROGRESS)
+
+GeoMech contains:
+
+    numerical (computational) solutions
+    -- finite element solution
+    ---- 2D triangular mesh in rectangular domain
+
+Interfaces:
+
+    2D Graphical View
+    3D Graphical View
+    Tabular View
+    Data Reading Packages
+
+MathBox:
+
+    Unit Conversion
+
+Numerics:
+
+    Finite Difference Packaga
+    Finite Element Package
+
+Optimize contains:
+
+    Simulated annealing
+
+ResLog contains:
+
+    analytical solutions
+    
+    numerical (computational)
+    -- axial hybrid method
+    -- surface integral equations
+    -- volume integral equations
+
+Statistics contains:
 
     1) nominal study
     -- analytics
@@ -52,22 +87,3 @@ All codes work only in SI units
     -- temporal foreasting models
     ---- 1D-interpolation
     ---- moving average
-    
-"/bhospy/geomech/" contains: (PROGRESS IS UPCOMING)
-
-    numerical (computational) solutions
-    -- finite element solution
-    ---- 2D triangular mesh in rectangular domain
-    
-"/bhospy/logging/" contains: (PROGRESS IS UPCOMING)
-
-    analytical solutions
-    
-    numerical (computational)
-    -- axial hybrid method
-    -- surface integral equations
-    -- volume integral equations
-	
-"/bhospy/optimize/" contains: (PROGRESS IS UPCOMING)
-
-    simulated annealing
