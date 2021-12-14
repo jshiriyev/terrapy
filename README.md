@@ -43,13 +43,13 @@ ResLog contains:
 
 Statistics contains:
 
-Nominal study
+1) Nominal study
 - **analytics:** heterogeneity measurements, correlation coefficients, principal component analysis, clustering algorithms (k-mean)
 - **inference:** hypothesis testing (z,t,f,chi-squared)
 - **estimation:** regression (linear+ridge), k-nearest-neighbors, artificial neural network, support vector machine
 - **prediction:** jacknife, bootstrap, monte-carlo simulation
 
-Spatiotemporal study
+2) Spatiotemporal study
 - **connectivity:** variogram
 - **spatial estimation models:** 3D-interpolation, kriging simple, kriging ordinary
 - **spatial prediction models:** gaussian simulation
