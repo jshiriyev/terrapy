@@ -1,35 +1,24 @@
 # BhosPy
 
-<!--[![Azure Pipelines](https://dev.azure.com/numpy/numpy/_apis/build/status/numpy.numpy?branchName=main)](-->
-<!--https://dev.azure.com/numpy/numpy/_build/latest?definitionId=1?branchName=main)-->
-<!--[![Actions build_test](https://github.com/numpy/numpy/actions/workflows/build_test.yml/badge.svg)](-->
-<!--https://github.com/numpy/numpy/actions/workflows/build_test.yml)-->
-<!--[![TravisCI](https://app.travis-ci.com/numpy/numpy.svg?branch=main)](-->
-<!--https://app.travis-ci.com/numpy/numpy)-->
-<!--[![CircleCI](https://img.shields.io/circleci/project/github/numpy/numpy/main.svg?label=CircleCI)](-->
-<!--https://circleci.com/gh/numpy/numpy)-->
-<!--[![Codecov](https://codecov.io/gh/numpy/numpy/branch/main/graph/badge.svg)](-->
-<!--https://codecov.io/gh/numpy/numpy)-->
-
 All codes work only in SI units
 
 Flow analysis contains:
 
-    - **Plates:**
+- **Plates:**
     flow including plates,
     falling film,
     parallel plates with stationary plates,
     parallel plates with one moving plate
-    - **Pipes:**
+- **Pipes:**
     flow through cylinders,
     pipes and annulus
     Holes:
     flow through orifice,
     nozzle
-    - **Spheres:**
-    - **PackBed:**
+- **Spheres:**
+- **PackBed:**
     flow through packed bed
-    - **PorMed:** - flow through porous media:
+- **PorMed:** - flow through porous media:
     core sample,
     reservoir model,
     reservoir with complex fractures
