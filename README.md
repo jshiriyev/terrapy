@@ -1,4 +1,15 @@
-# <a href=""><img alt="NumPy" src="/interfaces/webpage/static/img/myLogo.png" height="30"></a> BhosPy
+# BhosPy
+
+<!--[![Azure Pipelines](https://dev.azure.com/numpy/numpy/_apis/build/status/numpy.numpy?branchName=main)](-->
+<!--https://dev.azure.com/numpy/numpy/_build/latest?definitionId=1?branchName=main)-->
+<!--[![Actions build_test](https://github.com/numpy/numpy/actions/workflows/build_test.yml/badge.svg)](-->
+<!--https://github.com/numpy/numpy/actions/workflows/build_test.yml)-->
+<!--[![TravisCI](https://app.travis-ci.com/numpy/numpy.svg?branch=main)](-->
+<!--https://app.travis-ci.com/numpy/numpy)-->
+<!--[![CircleCI](https://img.shields.io/circleci/project/github/numpy/numpy/main.svg?label=CircleCI)](-->
+<!--https://circleci.com/gh/numpy/numpy)-->
+<!--[![Codecov](https://codecov.io/gh/numpy/numpy/branch/main/graph/badge.svg)](-->
+<!--https://codecov.io/gh/numpy/numpy)-->
 
 All codes work only in SI units
 
