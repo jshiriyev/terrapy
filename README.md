@@ -2,7 +2,7 @@
 
 BhosPy contains a set of packages used in engineering.
 
-Flow \\Fluid-Mechanics:
+Flow \# Fluid-Mechanics:
 
 - **Plates:** flow including plates, falling film, parallel plates with stationary plates, parallel plates with one moving plate
 - **Pipes:** flow through cylinders, pipes and annulus
@@ -11,11 +11,11 @@ Flow \\Fluid-Mechanics:
 - **PackBed:** flow through packed bed
 - **PorMed:** flow through porous media: core sample, reservoir model, reservoir with complex fractures
 
-GeoMech \\Geomechanics:
+GeoMech \# Geomechanics:
 
 - **Pore Pressure Estimation:**
 
-Interfaces \\Visualization:
+Interfaces \# Visualization:
 
 - **2D Graphical View:**
 - **3D Graphical View:**
@@ -26,22 +26,22 @@ MathBox:
 
 - **Unit Conversion:** by default codes are written to work with SI units. Thus, there is a need for a unit converter between field units and SI units.
 
-Numerics \\Numerical Solvers:
+Numerics \# Numerical Solvers:
 
 - **FinDiff:** Finite Difference Packaga
 - **FinElm:** Finite Element Package
 
-Optimize \\Inversion Algorithms:
+Optimize \# Inversion Algorithms:
 
 - **Simulated Annealing:**
 
-ResLog \\Forward model for induction logging tools:
+ResLog \# Forward models for induction logging tools:
 
 - **AHM:** 2D wellbore conductivity simulation with axial hybrid method
 - **SIE:** 2D plane simulation with surface integral equations
 - **VIE:** 3D layer simulation volume integral equations
 
-Statistics \\analysis and science of nominal and geostatistical data:
+Statistics \# analysis and science of nominal and geostatistical data:
 
 1) Nominal study
 - **analytics:** heterogeneity measurements, correlation coefficients, principal component analysis, clustering algorithms (k-mean)
