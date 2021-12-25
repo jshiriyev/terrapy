@@ -27,11 +27,7 @@ from mathbox.dimensions import units
 
 class Rectangle():
 
-    def __init__(self,name=None):
-
-        self.name = name
-
-    def set_size(self,lengths,width=None):
+    def __init__(self,lengths,width=None):
 
         self.lengths = lengths
 
@@ -39,6 +35,26 @@ class Rectangle():
             self.width = width
         else:
             self.width = 1
+
+        self.edge_vertices = np.zeros((4,2))
+
+        self.edge_vertices[0,:] = (0,0)
+        self.edge_vertices[1,:] = (self.lengths[0],0)
+        self.edge_vertices[2,:] = (self.lengths[0],self.lengths[1])
+        self.edge_vertices[3,:] = (0,self.lengths[1])
+
+        indices = np.empty((4,2),dtype=int)
+
+        indices[:,0] = (0,1,2,3)
+        indices[:,1] = (1,2,3,0)
+        
+        x_aspects = self.edge_vertices[:,0][indices]
+        y_aspects = self.edge_vertices[:,1][indices]
+
+        self.boundaries = []
+
+        for x_aspect,y_aspect in zip(x_aspects,y_aspects):
+            self.boundaries.append(np.array([x_aspect,y_aspect]))
 
     def grid(self,grid_num):
 
@@ -60,11 +76,11 @@ class Rectangle():
         self.grid_hasymin = ~(self.grid_indices[:,0]==self.grid_indices[:,3])
         self.grid_hasymax = ~(self.grid_indices[:,0]==self.grid_indices[:,4])
 
-        node_x = np.linspace(0,self.lengths[0],self.grid_num[0]+1)
-        node_y = np.linspace(0,self.lengths[1],self.grid_num[1]+1)
+        self.grid_xnodes = np.linspace(0,self.lengths[0],self.grid_num[0]+1)
+        self.grid_ynodes = np.linspace(0,self.lengths[1],self.grid_num[1]+1)
         
-        xsize = node_x[1:]-node_x[:-1]
-        ysize = node_y[1:]-node_y[:-1]
+        xsize = self.grid_xnodes[1:]-self.grid_xnodes[:-1]
+        ysize = self.grid_ynodes[1:]-self.grid_ynodes[:-1]
         
         self.grid_sizes = np.zeros((self.grid_numtot,2))
         self.grid_sizes[:,0] = np.tile(xsize,self.grid_num[1])
@@ -76,12 +92,44 @@ class Rectangle():
 
         self.grid_volumes = np.prod(self.grid_sizes,axis=1)
 
-        xcenter = node_x[:-1]+xsize/2
-        ycenter = node_y[:-1]+ysize/2
+        xcenter = self.grid_xnodes[:-1]+xsize/2
+        ycenter = self.grid_ynodes[:-1]+ysize/2
         
         self.grid_centers = np.zeros((self.grid_numtot,2))
         self.grid_centers[:,0] = np.tile(xcenter,self.grid_num[1])
         self.grid_centers[:,1] = ycenter.repeat(self.grid_num[0])
+
+    def plot(self,axis,showVertices=True,showBounds=True,showEdges=True,showCenters=True):
+
+        if showVertices:
+            axis.scatter(*self.edge_vertices.T)
+
+        if showBounds:
+            for line in self.boundaries:
+                axis.plot(*line,color='grey')
+
+        if showEdges:
+            for node in self.grid_xnodes[1:-1]:
+                axis.vlines(x=node,ymin=0,ymax=self.lengths[1],linestyle="--")
+            for node in self.grid_ynodes[1:-1]:
+                axis.hlines(y=node,xmin=0,xmax=self.lengths[0],linestyle="--")
+
+        if showCenters:
+            axis.scatter(*self.grid_centers.T)
+
+        axis.set_box_aspect(self.lengths[1]/self.lengths[0])
+
+class Ellipse():
+
+    pass
+
+class Cuboid():
+
+    pass
+
+class Cylinder():
+
+    pass
 
 class Pipes():
 
@@ -189,10 +237,10 @@ class Formation(units):
             y_aspects = self.edge_vertices[:,1][indices]
             z_aspects = self.edge_vertices[:,2][indices]
 
-            self.edge_lines = []
+            self.boundaries = []
 
             for x_aspect,y_aspect,z_aspect in zip(x_aspects,y_aspects,z_aspects):
-                self.edge_lines.append(np.array([x_aspect,y_aspect,z_aspect]))
+                self.boundaries.append(np.array([x_aspect,y_aspect,z_aspect]))
 
         elif self.geometry == "cylindrical":
 
@@ -220,10 +268,10 @@ class Formation(units):
             y_aspects = self.edge_vertices[:,1][indices]
             z_aspects = self.edge_vertices[:,2][indices]
 
-            self.edge_lines = []
+            self.boundaries = []
 
             for x_aspect,y_aspect,z_aspect in zip(x_aspects,y_aspects,z_aspects):
-                self.edge_lines.append(np.array([x_aspect,y_aspect,z_aspect]))
+                self.boundaries.append(np.array([x_aspect,y_aspect,z_aspect]))
 
         elif self.geometry == "unstructured":
 
@@ -265,13 +313,13 @@ class Formation(units):
             self.grid_haszmin = ~(self.grid_indices[:,0]==self.grid_indices[:,5])
             self.grid_haszmax = ~(self.grid_indices[:,0]==self.grid_indices[:,6])
 
-            node_x = np.linspace(0,self.lengths[0],self.grid_num[0]+1)
-            node_y = np.linspace(0,self.lengths[1],self.grid_num[1]+1)
-            node_z = np.linspace(0,self.lengths[2],self.grid_num[2]+1)
+            self.grid_xnodes = np.linspace(0,self.lengths[0],self.grid_num[0]+1)
+            self.grid_ynodes = np.linspace(0,self.lengths[1],self.grid_num[1]+1)
+            self.grid_znodes = np.linspace(0,self.lengths[2],self.grid_num[2]+1)
             
-            xsize = node_x[1:]-node_x[:-1]
-            ysize = node_y[1:]-node_y[:-1]
-            zsize = node_z[1:]-node_z[:-1]
+            xsize = self.grid_xnodes[1:]-self.grid_xnodes[:-1]
+            ysize = self.grid_ynodes[1:]-self.grid_ynodes[:-1]
+            zsize = self.grid_znodes[1:]-self.grid_znodes[:-1]
             
             self.grid_sizes = np.zeros((self.grid_numtot,3))
             self.grid_sizes[:,0] = np.tile(xsize,self.grid_num[1]*self.grid_num[2])
@@ -285,9 +333,9 @@ class Formation(units):
 
             self.grid_volumes = np.prod(self.grid_sizes,axis=1)
 
-            xcenter = node_x[:-1]+xsize/2
-            ycenter = node_y[:-1]+ysize/2
-            zcenter = node_z[:-1]+zsize/2
+            xcenter = self.grid_xnodes[:-1]+xsize/2
+            ycenter = self.grid_ynodes[:-1]+ysize/2
+            zcenter = self.grid_znodes[:-1]+zsize/2
             
             self.grid_centers = np.zeros((self.grid_numtot,3))
             self.grid_centers[:,0] = np.tile(xcenter,self.grid_num[1]*self.grid_num[2])
@@ -386,9 +434,19 @@ class Formation(units):
         
         # end
 
-    def drawmap(self):
+    def drawmap(self,axis):
 
-        pass
+        # axis.scatter3D(*self.edge_vertices.T)
+
+        for line in self.boundaries:
+            axis.plot3D(*line,color='grey')
+
+        # axis.scatter3D(*self.grid_centers.T)
+
+        axis.set_box_aspect(self.lengths)
+
+        # axis.set_axis_off()
+        # plt.axis("off")
         
         # function node(frac,prop)
             
@@ -1701,7 +1759,7 @@ if __name__ == "__main__":
 
     # ax.scatter3D(*res.edge_vertices.T)
 
-    for line in res.edge_lines:
+    for line in res.boundaries:
         ax.plot3D(*line,color='grey')
 
     ax.plot3D(*well.tracks.T)
