@@ -25,6 +25,64 @@ from interfaces.graphics import table
 
 from mathbox.dimensions import units
 
+class Rectangle():
+
+    def __init__(self,name=None):
+
+        self.name = name
+
+    def set_size(self,lengths,width=None):
+
+        self.lengths = lengths
+
+        if width is not None:
+            self.width = width
+        else:
+            self.width = 1
+
+    def grid(self,grid_num):
+
+        self.grid_num = grid_num
+
+        self.grid_numtot = np.prod(self.grid_num)
+
+        idx = np.arange(self.grid_numtot)
+        
+        self.grid_indices = np.tile(idx,(5,1)).T
+
+        self.grid_indices[idx.reshape(-1,self.grid_num[0])[:,1:].ravel(),1] -= 1
+        self.grid_indices[idx.reshape(-1,self.grid_num[0])[:,:-1].ravel(),2] += 1
+        self.grid_indices[idx.reshape(1,-1)[:,self.grid_num[0]:],3] -= self.grid_num[0]
+        self.grid_indices[idx.reshape(1,-1)[:,:-self.grid_num[0]],4] += self.grid_num[0]
+
+        self.grid_hasxmin = ~(self.grid_indices[:,0]==self.grid_indices[:,1])
+        self.grid_hasxmax = ~(self.grid_indices[:,0]==self.grid_indices[:,2])
+        self.grid_hasymin = ~(self.grid_indices[:,0]==self.grid_indices[:,3])
+        self.grid_hasymax = ~(self.grid_indices[:,0]==self.grid_indices[:,4])
+
+        node_x = np.linspace(0,self.lengths[0],self.grid_num[0]+1)
+        node_y = np.linspace(0,self.lengths[1],self.grid_num[1]+1)
+        
+        xsize = node_x[1:]-node_x[:-1]
+        ysize = node_y[1:]-node_y[:-1]
+        
+        self.grid_sizes = np.zeros((self.grid_numtot,2))
+        self.grid_sizes[:,0] = np.tile(xsize,self.grid_num[1])
+        self.grid_sizes[:,1] = ysize.repeat(self.grid_num[0])
+
+        self.grid_areas = np.zeros((self.grid_numtot,2))
+        self.grid_areas[:,0] = self.grid_sizes[:,1]*self.width
+        self.grid_areas[:,1] = self.grid_sizes[:,0]*self.width
+
+        self.grid_volumes = np.prod(self.grid_sizes,axis=1)
+
+        xcenter = node_x[:-1]+xsize/2
+        ycenter = node_y[:-1]+ysize/2
+        
+        self.grid_centers = np.zeros((self.grid_numtot,2))
+        self.grid_centers[:,0] = np.tile(xcenter,self.grid_num[1])
+        self.grid_centers[:,1] = ycenter.repeat(self.grid_num[0])
+
 class Pipes():
 
     def __init__(self):
@@ -187,7 +245,7 @@ class Formation(units):
 
             self.grid_num = grid_num
 
-            self.grid_numtot = self.grid_num[0]*self.grid_num[1]*self.grid_num[2]
+            self.grid_numtot = np.prod(self.grid_num)
 
             idx = np.arange(self.grid_numtot)
             
