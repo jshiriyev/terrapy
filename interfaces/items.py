@@ -27,14 +27,11 @@ from mathbox.dimensions import units
 
 class Rectangle():
 
-    def __init__(self,lengths,width=None):
+    def __init__(self,lengths,width=1):
 
         self.lengths = lengths
 
-        if width is not None:
-            self.width = width
-        else:
-            self.width = 1
+        self.width = width
 
         self.edge_vertices = np.zeros((4,2))
 
@@ -121,15 +118,55 @@ class Rectangle():
 
 class Ellipse():
 
-    pass
+    # This class is supposed to create 2-D surface in 3-D space
+
+    # origin: location of the center of ellipse
+    # lengths: (major radius, minor radius)
+    # width: thickness of the ellipse
+    # rinner: inner radius
+    # dip_angle: 
+
+    # lamda: node spacing, radius ratio
+
+    def __init__(self,origin=(0,0,0),lengths=(1,1),width=1,rinner=0):
+
+        self.origin = origin
+
+        self.lengths = lengths
+
+        self.width = width
+
+        self.rinner = rinner
+
+    def grid(self,lamda):
+
+        self.lamda = lamda
+
+    def plot(self):
+
+        pass
 
 class Cuboid():
 
-    pass
+    def __init__(self):
+        pass
+
+    def grid(self):
+        pass
+
+    def plot(self):
+        pass
 
 class Cylinder():
 
-    pass
+    def __init__(self):
+        pass
+
+    def grid(self):
+        pass
+
+    def plot(self):
+        pass
 
 class Pipes():
 
@@ -187,6 +224,10 @@ class Pipes():
             self.zloc = [0,self.length]
 
         self.elevation = elevation
+
+    def plot(self):
+
+        pass
 
 class Formation(units):
 
