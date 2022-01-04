@@ -23,7 +23,7 @@ from interfaces.dataset import dataset
 from interfaces.graphics import plot2D
 from interfaces.graphics import table
 
-from mathbox.dimensions import units
+from interfaces.dimensions import units
 
 class Rectangle():
 
@@ -1768,52 +1768,14 @@ class Fluids():
 
 if __name__ == "__main__":
 
-    import matplotlib.pyplot as plt
+    import unittest
 
-    # import unittest
+    from tests import pipes
+    from tests import formations
+    from tests import fractures
+    from tests import wells
 
-    # from tests import pipes
-    # from tests import formations
-    # from tests import fractures
-    # from tests import wells
-
-    # unittest.main(pipes)
-    # unittest.main(pormed)
-    # unittest.main(fractures)
-    # unittest.main(wells)
-
-    res = Formation("SI",None,geometry="cylindrical")
-
-    res.set_dimensions(lengths=(10,5,2))
-
-    res.grid((11,11,2))
-
-    well = Wells(None)
-
-    well.set_names(["GD-601"])
-
-    well.set_tracks(None,res)
-
-    fig = plt.figure()
-
-    ax = plt.axes(projection='3d')
-
-    # ax.scatter3D(*res.edge_vertices.T)
-
-    for line in res.boundaries:
-        ax.plot3D(*line,color='grey')
-
-    ax.plot3D(*well.tracks.T)
-
-    # ax.scatter3D(*res.grid_centers.T)
-
-    ax.set_box_aspect(res.lengths)
-
-    # ax.set_axis_off()
-    # plt.axis("off")
-
-    ax.margins(x=0,y=0)
-
-    plt.tight_layout()
-
-    plt.show()
+    unittest.main(pipes)
+    unittest.main(pormed)
+    unittest.main(fractures)
+    unittest.main(wells)
