@@ -8,35 +8,6 @@ class darcy_relation():
 
     pass
 
-class relative_permeability_balhoff():
-
-    def __init__(self,Swr,Sor,krwo,kroo,nw,no):
-
-        self.Swr    = Swr
-        self.Sor    = Sor
-
-        self.krwo   = krwo
-        self.kroo   = kroo
-        
-        self.nw     = nw
-        self.no     = no
-
-    def oil_water(self,Sw):
-
-        # Sw[Sw<self.Swr] = self.Swr
-        # Sw[Sw>1-self.Sor] = 1-self.Sor
-
-        S = (Sw-self.Swr)/(1-self.Swr-self.Sor)
-
-        krw = self.krwo*S**self.nw
-        kro = self.kroo*(1-S)**self.no
-
-        return krw,kro
-
-    def gas_oil(self):
-
-        pass
-
 class relative_permeability():
 
     """
@@ -111,39 +82,30 @@ class relative_permeability():
         self.ng = ng
 
         self.Som = Som
-
-    def system2phase(self,Sw,Sg=0,model="oil-water"):
-
-        So = 1-Sw-Sg
-
-        if model == "oil-water":
-            self.kro,self.krw = self._oil_water(Sw,So)
-        elif model == "gas-oil":
-            self.kro,self.krg = self._gas_oil(Sw,So,Sg)
         
-    def _oil_water(self,Sw,So):
+    def water_oil(self,Sw):
 
-        movable_o = So-self.Sorow
         movable_w = Sw-self.Swc
+        movable_o = 1-Sw-self.Sorow
         movable_l = 1-self.Sorow-self.Swc
         
-        kro = self.krowc*(movable_o/movable_l)**self.no
         krw = self.krwor*(movable_w/movable_l)**self.nw
+        kro = self.krowc*(movable_o/movable_l)**self.no
 
-        return kro,krw
+        return krw,kro
 
-    def _gas_oil(self,Sw,So,Sg):
+    def gas_oil(self,Sg):
 
         Slc = self.Sorgo+self.Swc
         
-        movable_o = 1-Slc-Sg
         movable_g = Sg-self.Sgc
+        movable_o = 1-Slc-Sg
         movable_f = 1-Slc-self.Sgc
 
-        kro = self.krogc*(movable_o/movable_f)**self.no
         krg = self.krglc*(movable_g/movable_f)**self.ng
+        kro = self.krogc*(movable_o/movable_f)**self.no
 
-        return kro,krg
+        return krg,kro
 
     def system3phase(self,Sw,So,Sg,model="Stone's Model I",n=None):
 
@@ -171,8 +133,8 @@ class relative_permeability():
         Sw_star = movable_w/movable_f
         Sg_star = movable_g/movable_f
 
-        kroow,krw = self._oil_water(Sw,So)
-        krogo,krg = self._gas_oil(Sw,So,Sg)
+        kroow,krw = self.water_oil(Sw,So)
+        krogo,krg = self.gas_oil(Sw,So,Sg)
 
         beta_w = (kroow)/(1-Sw_star)
         beta_g = (krogo)/(1-Sg_star)
@@ -201,8 +163,8 @@ class relative_permeability():
         Sw_star = movable_w/movable_f
         Sg_star = movable_g/movable_f
 
-        kroow,krw = self._oil_water(Sw,So)
-        krogo,krg = self._gas_oil(Sw,So,Sg)
+        kroow,krw = self.water_oil(Sw,So)
+        krogo,krg = self.gas_oil(Sw,So,Sg)
 
         beta = (So_star)/(1-Sw_star)/(1-Sg_star)
 
@@ -222,8 +184,8 @@ class relative_permeability():
         Sw_star = movable_w/movable_f
         Sg_star = movable_g/movable_f
 
-        kroow,krw = self._oil_water(Sw,So)
-        krogo,krg = self._gas_oil(Sw,So,Sg)
+        kroow,krw = self.water_oil(Sw,So)
+        krogo,krg = self.gas_oil(Sw,So,Sg)
 
         kro = self.krowc*((kroow/self.krowc+krw)*(krogo/self.krowc+krg)-(krw+krg))
 
@@ -241,8 +203,8 @@ class relative_permeability():
         Sw_star = movable_w/movable_f
         Sg_star = movable_g/movable_f
 
-        kroow,krw = self._oil_water(Sw,So)
-        krogo,krg = self._gas_oil(Sw,So,Sg)
+        kroow,krw = self.water_oil(Sw,So)
+        krogo,krg = self.gas_oil(Sw,So,Sg)
 
         beta = (So_star)/(1-Sw_star)/(1-Sg_star)
 
