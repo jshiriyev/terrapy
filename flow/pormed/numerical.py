@@ -275,17 +275,6 @@ class IMPES():
         self.wells  = wells
         self.rp     = relperm
 
-    def initialize(self,pressure,saturation):
-
-        self.pressure = np.empty(self.res.grid_numtot)
-        self.pressure[:] = pressure
-
-        self.Sw = np.empty(self.res.grid_numtot)
-        self.Sw[:] = saturation
-
-        # for index,(p,sw) in enumerate(zip(self.pressure,self.Sw)):
-        #   print("{:d}\tP\t{:3.0f}\tSw\t{:.4f}".format(index,p,sw))
-
     def set_transmissibility(self):
 
         dx0 = self.res.grid_sizes[:,0]
@@ -403,6 +392,19 @@ class IMPES():
 
         self.time_array = np.arange(self.time_step,self.time_total+self.time_step,self.time_step)
 
+    def initialize(self,pressure,saturation):
+
+        N = self.time_array.size
+
+        self.pressure = np.empty((self.res.grid_numtot,N+1))
+        self.pressure[:,0] = pressure
+
+        self.Sw = np.empty((self.res.grid_numtot,N+1))
+        self.Sw[:,0] = saturation
+
+        # for index,(p,sw) in enumerate(zip(self.pressure[:,-1],self.Sw[:,-1])):
+        #   print("{:d}\tP\t{:3.0f}\tSw\t{:.4f}".format(index,p,sw))
+
     def solve(self):
 
         Vp = self.res.grid_volumes*self.res.porosity
@@ -452,7 +454,7 @@ class IMPES():
 
         vzeros = np.zeros(len(self.wells.itemnames),dtype=int)
 
-        krw,kro = self.rp.water_oil(Sw=self.Sw)
+        krw,kro = self.rp.water_oil(Sw=self.Sw[:,0])
 
         krw_xm = krw[cxm_0]
         krw_xp = krw[cxp_0]
@@ -468,25 +470,25 @@ class IMPES():
         kro_zm = kro[czm_0]
         kro_zp = kro[czp_0]
 
-        for time in self.time_array:
+        for index,time in enumerate(self.time_array):
 
             print("@{:5.1f}th time step".format(time))
 
-            d11 = (Vp*self.Sw)/(self.time_step*fvfw)*(cr+cw)
+            d11 = (Vp*self.Sw[:,index])/(self.time_step*fvfw)*(cr+cw)
             d12 = (Vp)/(self.time_step*fvfw)
-            d21 = (Vp*(1-self.Sw))/(self.time_step*fvfo)*(cr+co)
+            d21 = (Vp*(1-self.Sw[:,index]))/(self.time_step*fvfo)*(cr+co)
             d22 = (Vp)/(self.time_step*fvfo)*-1
 
             self.D = diags(-d22/d12*d11+d21)
 
-            Uxm = self.pressure[cxm_0]>self.pressure[cxm_m]
-            Uxp = self.pressure[cxp_0]>self.pressure[cxp_p]
-            Uym = self.pressure[cym_0]>self.pressure[cym_m]
-            Uyp = self.pressure[cyp_0]>self.pressure[cyp_p]
-            Uzm = self.pressure[czm_0]>self.pressure[czm_m]
-            Uzp = self.pressure[czp_0]>self.pressure[czp_p]
+            Uxm = self.pressure[:,index][cxm_0]>self.pressure[:,index][cxm_m]
+            Uxp = self.pressure[:,index][cxp_0]>self.pressure[:,index][cxp_p]
+            Uym = self.pressure[:,index][cym_0]>self.pressure[:,index][cym_m]
+            Uyp = self.pressure[:,index][cyp_0]>self.pressure[:,index][cyp_p]
+            Uzm = self.pressure[:,index][czm_0]>self.pressure[:,index][czm_m]
+            Uzp = self.pressure[:,index][czp_0]>self.pressure[:,index][czp_p]
 
-            krw,kro = self.rp.water_oil(Sw=self.Sw)
+            krw,kro = self.rp.water_oil(Sw=self.Sw[:,index])
 
             krw_xm[Uxm] = krw[cxm_0][Uxm]
             krw_xp[Uxp] = krw[cxp_0][Uxp]
@@ -574,7 +576,7 @@ class IMPES():
 
             self.T = diags(-d22/d12)*self.Tw+self.Tn
 
-            krw,kro = self.rp.water_oil(Sw=self.Sw[self.well_grids])
+            krw,kro = self.rp.water_oil(Sw=self.Sw[:,index][self.well_grids])
 
             Jw_v = (self.JR*krw)/(muw*fvfw)*6.33e-3 # unit conversion
             Jn_v = (self.JR*kro)/(muo*fvfo)*6.33e-3 # unit conversion
@@ -607,13 +609,15 @@ class IMPES():
 
             self.Q = -d22/d12*self.Qw+self.Qn
 
-            pressure_old = self.pressure
+            self.pressure[:,index+1] = sps(self.T+self.J+self.D,self.D.dot(self.pressure[:,index])+self.Q)
 
-            self.pressure = sps(self.T+self.J+self.D,self.D.dot(self.pressure)+self.Q)
+            delta_p = (self.pressure[:,index+1]-self.pressure[:,index])
+            
+            tjp = csr.dot(self.Tw+self.Jw,self.pressure[:,index+1])
 
-            self.Sw -= (d11*(self.pressure-pressure_old)-self.Qw+csr.dot(self.Tw+self.Jw,self.pressure))/d12
+            self.Sw[:,index+1] = self.Sw[:,index]-(d11*delta_p-self.Qw+tjp)/d12
 
-        for index,(p,sw) in enumerate(zip(self.pressure,self.Sw)):
+        for index,(p,sw) in enumerate(zip(self.pressure[:,-1],self.Sw[:,-1])):
             print("{:d}\tP\t{:4.1f}\tSw\t{:.5f}".format(index,p,sw))
 
 class SS():

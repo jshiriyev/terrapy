@@ -1,3 +1,10 @@
+import io
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from PIL import Image
+
 if __name__ == "__main__":
     import setup
 
@@ -5,17 +12,18 @@ from flow.pormed.conrelation import relative_permeability
 
 from flow.pormed.numerical import IMPES
 
+from interfaces.items import Rectangle
 from interfaces.items import Formation
 from interfaces.items import Wells
 from interfaces.items import Fluids
 
 # FORMATION
 
-res = Formation("FU",None)
+geo = Rectangle((1200,600),200)
 
-res.set_dimensions((1200,600,200))
+geo.grid((3,3))
 
-res.grid((3,3,1))
+res = Formation(geo,"FU")
 
 res.set_depth(-1000)
 
@@ -70,27 +78,65 @@ relperm = relative_permeability(
 
 solver = IMPES(res,fluids,wells,relperm)
 
-solver.initialize(pressure=1000,saturation=0.2)
 solver.set_transmissibility()
 solver.set_wells()
 solver.set_time(0.1,500)
+solver.initialize(pressure=1000,saturation=0.2)
 solver.solve()
 
 # PLOTTING
 
-# fig = plt.figure()
+fig = plt.figure()
+
+ax = fig.add_subplot(111)
 
 # ax = plt.axes(projection='3d')
 
 # # ax.scatter3D(*res.edge_vertices.T)
 
-# for line in solver.res.edge_lines:
-#     ax.plot3D(*line,color='grey')
+# geo.plot(ax,showVertices=False,showGridCenters=False)
 
-# for track,name in zip(solver.wells.tracks,solver.wells.itemnames):
+for track,name in zip(solver.wells.tracks,solver.wells.itemnames):
 
-# 	ax.plot3D(*track.T,color="black",linewidth=1)
-# 	ax.text(*track[0,:],name)
+	ax.scatter(*track[0,:2],s=5,color="black")
+	# ax.scatter(*track.T,color="black",linewidth=1)
+	ax.text(*track[0,:2]+10,name)
+
+frames = []
+
+# for index,time in enumerate(solver.time_array):
+
+X = np.reshape(res.grid_centers[:,0],(3,3))
+Y = np.reshape(res.grid_centers[:,1],(3,3))
+
+P = np.flipud(np.reshape(solver.pressure[:,-1],(3,3)))
+
+im = ax.imshow(P,extent=[0,res.lengths[0],0,res.lengths[1]],cmap="Oranges")
+
+cb = plt.colorbar(im)
+
+plt.show()
+
+# 	buf = io.BytesIO()
+
+# 	plt.savefig(buf)
+
+# 	img = Image.open(buf)
+
+# 	frames.append(img)
+
+# 	cb.remove()
+# 	im.remove()
+
+# generates the animation from the images created
+
+# frames[0].save(
+# 	'balhoff.gif',
+# 	format='GIF',
+# 	append_images=frames[1:],
+# 	save_all=True,
+# 	duration=100,
+# 	loop=0)
 
 # ax.scatter3D(*solver.res.grid_centers.T)
 
@@ -105,6 +151,11 @@ solver.solve()
 
 # plt.tight_layout()
 
+# ax.set_box_aspect(res.lengths[1]/res.lengths[0])
+
+
+
+
 # plt.figure()
 
 # plt.plot(Sw,solver.rp.kro,"k--",label="oil")
@@ -116,5 +167,3 @@ solver.solve()
 # plt.legend()
 
 # plt.xlim((0,1))
-
-# plt.show()
