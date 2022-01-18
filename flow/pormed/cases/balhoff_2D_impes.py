@@ -153,9 +153,6 @@ plt.show()
 
 # ax.set_box_aspect(res.lengths[1]/res.lengths[0])
 
-
-
-
 # plt.figure()
 
 # plt.plot(Sw,solver.rp.kro,"k--",label="oil")
