@@ -35,7 +35,7 @@ Optimize \# Inversion Algorithms:
 
 - **Simulated Annealing:**
 
-ResLog \# Forward models for induction logging tools:
+ResLog \# Forward models for conductivity measurements with induction logging tools:
 
 - **AHM:** 2D wellbore conductivity simulation with axial hybrid method
 - **SIE:** 2D plane simulation with surface integral equations
