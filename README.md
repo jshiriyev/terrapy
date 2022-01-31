@@ -7,7 +7,7 @@ Flow \# Fluid-Mechanics:
 - **Plates:** flow including plates, falling film, parallel plates with stationary plates, parallel plates with one moving plate
 - **Pipes:** flow through cylinders, pipes and annulus
 - **Holes:** flow through orifice, nozzle
-- **Spheres:**
+- **Spheres:** flow around sphere
 - **PackBed:** flow through packed bed
 - **PorMed:** flow through porous media: core sample, reservoir model, reservoir with complex fractures
 
