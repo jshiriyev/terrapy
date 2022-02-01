@@ -51,9 +51,9 @@ Statistics \# analysis and science of nominal and geostatistical data:
 
 2) Spatiotemporal study
 - **connectivity:** variogram
+- **temporal foreasting models:** 1D-interpolation, moving average
 - **spatial estimation models:** 3D-interpolation, kriging simple, kriging ordinary
 - **spatial prediction models:** gaussian simulation
-- **temporal foreasting models:** 1D-interpolation, moving average
 
 Javid
 
