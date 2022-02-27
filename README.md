@@ -2,7 +2,7 @@
 
 BhosPy contains a set of packages used in engineering.
 
-Flow \# Fluid-Mechanics:
+Flow \# Fluid FLow Modeling:
 
 - **Plates:** flow including plates, falling film, parallel plates with stationary plates, parallel plates with one moving plate
 - **Pipes:** flow through cylinders, pipes and annulus
@@ -11,7 +11,7 @@ Flow \# Fluid-Mechanics:
 - **PackBed:** flow through packed bed
 - **PorMed:** flow through porous media: core sample, reservoir model, reservoir with complex fractures
 
-GeoMech \# Geomechanics:
+GeoMech \# Geomechanical Modeling:
 
 - **Pore Pressure Estimation:**
 
@@ -22,20 +22,7 @@ Interfaces \# Visualization:
 - **Tabular View:**
 - **Data Reading Packages:**
 
-MathBox:
-
-- **Unit Conversion:** by default codes are written to work with SI units. Thus, there is a need for a unit converter between field units and SI units.
-
-Numerics \# Numerical Solvers:
-
-- **FinDiff:** Finite Difference Packaga
-- **FinElm:** Finite Element Package
-
-Optimize \# Inversion Algorithms:
-
-- **Simulated Annealing:**
-
-ResLog \# Forward models for conductivity measurements with induction logging tools:
+ResLog \# Electomagnetic Modeling, Forward models for conductivity measurements with induction logging tools:
 
 - **AHM:** 2D wellbore conductivity simulation with axial hybrid method
 - **SIE:** 2D plane simulation with surface integral equations
