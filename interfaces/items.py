@@ -29,11 +29,13 @@ class Line():
 
     pass
 
-class Rectangle():
+class Rectangle(units):
 
     # it is a 2D object in 3D space
 
     def __init__(self,lengths,width=1,unitsystem="FU"):
+
+        super().__init__(unitsystem)
 
         self.lengths = lengths
 
@@ -134,7 +136,7 @@ class Rectangle():
 
         axis.set_box_aspect(self.lengths[1]/self.lengths[0])
 
-class Ellipse():
+class Ellipse(units):
 
     # This class is supposed to create 2-D surface in 3-D space
 
@@ -146,19 +148,22 @@ class Ellipse():
 
     # lamda: node spacing, radius ratio
 
-    def __init__(self,origin=(0,0,0),lengths=(1,1),width=1,rinner=0):
+    def __init__(self,origin=(0,0,0),radii=(1,1),thickness=1,inner_radius=0,unitsystem="FU"):
 
-        self.origin = origin
+        super().__init__(unitsystem)
+        
+        self.origin = origin # origing has not been implemented yet
 
-        self.lengths = lengths
+        self.radii = radii
 
-        self.width = width
+        self.major = max(radii)
+        self.minor = min(radii)
+        
+        self.radius = np.sqrt(self.minor*self.major)
 
-        self.rinner = rinner
+        self.thickness = thickness
 
-        # section below needs to be merged with above
-
-        self.lengths = lengths
+        self.inner_radius = inner_radius
 
         numverts = 50
 
@@ -166,9 +171,9 @@ class Ellipse():
 
         self.edge_vertices = np.zeros((2*numverts,3))
 
-        self.edge_vertices[:,0] = np.tile(self.lengths[0]/2*np.cos(thetas),2)+self.lengths[0]/2
-        self.edge_vertices[:,1] = np.tile(self.lengths[1]/2*np.sin(thetas),2)+self.lengths[1]/2
-        self.edge_vertices[:,2] = np.append(np.zeros(numverts),self.lengths[2]*np.ones(numverts))
+        self.edge_vertices[:,0] = np.tile(self.radii[0]/2*np.cos(thetas),2)+self.radii[0]/2
+        self.edge_vertices[:,1] = np.tile(self.radii[1]/2*np.sin(thetas),2)+self.radii[1]/2
+        self.edge_vertices[:,2] = np.append(np.zeros(numverts),self.thickness*np.ones(numverts))
 
         indices = np.empty((2*numverts,2),dtype=int)
 
@@ -191,9 +196,25 @@ class Ellipse():
 
         self.lamda = lamda
 
-    def plot(self):
+    def plot(self,axis,showVertices=False,showBounds=True,showGridEdges=False,showGridCenters=False):
 
-        pass
+        if showVertices:
+            axis.scatter(*self.edge_vertices.T)
+
+        if showBounds:
+            for line in self.boundaries:
+                axis.plot(*line,color='grey')
+
+        if showGridEdges:
+            for node in self.grid_xnodes[1:-1]:
+                axis.vlines(x=node,ymin=0,ymax=self.lengths[1],linestyle="--")
+            for node in self.grid_ynodes[1:-1]:
+                axis.hlines(y=node,xmin=0,xmax=self.lengths[0],linestyle="--")
+
+        if showGridCenters:
+            axis.scatter(*self.grid_centers.T)
+
+##        axis.set_box_aspect(self.radii[1]/self.radii[0])
 
 class Cuboid():
 
@@ -305,7 +326,7 @@ class Cylinder():
     For cylindrical disk, dimensions is a tuple with two entries for sizes in r,z direction
     """
 
-    def __init__(self):
+    def __init__(self,lengths):
 
         self.lengths = lengths
 
@@ -424,12 +445,25 @@ class Formation(units):
     def set_permeability(self,permeability,homogeneous=True,isotropy=True):
 
         if homogeneous and isotropy:
-            self.permeability = np.repeat([[permeability]*3],self.grid_numtot,axis=0)
+
+            if hasattr(self,"grid_numtot"):
+                self.permeability = np.repeat([[permeability]*3],self.grid_numtot,axis=0)
+            else:
+                self.permeability = permeability
+            
         elif not homogeneous and isotropy:
+            
             self.permeability = np.repeat([permeability],3,axis=0).T
+            
         elif homogeneous and not isotropy:
-            self.permeability = np.repeat([permeability],self.grid_numtot,axis=0)
+            
+            if hasattr(self,"grid_numtot"):
+                self.permeability = np.repeat([permeability],self.grid_numtot,axis=0)
+            else:
+                self.permeability = permeability
+            
         elif not homogeneous and not isotropy:
+            
             self.permeability = np.array(permeability)
 
     def set_compressibility(self,compressibility):

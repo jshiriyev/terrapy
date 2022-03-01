@@ -18,9 +18,6 @@ from scipy.optimize import root_scalar
 if __name__ == "__main__":
     import setup
 
-from flow.pormed.fluidstate import singlephase
-from flow.pormed.fluidstate import multiphase
-
 from interfaces.items import formation
 from interfaces.items import wells 
 
@@ -39,45 +36,39 @@ class transient():
     line source solution based on exponential integral
     """
 
-    def __init__(self,formation,fluid,well):
+    def __init__(self):
 
-        self.geometry           = formation.geometry
+        pass
 
-        self.permeability       = formation.permeability
-        self.porosity           = formation.porosity
-        self.viscosity          = fluid.viscosity
-        self.compressibility    = formation.compressibility+fluid.compressibility
+    def set_formation(self,formation):
+        
+        self.formation = formation
 
-        self.hdiffusivity       = self.permeability/(self.porosity*self.viscosity*self.compressibility)
+    def set_fluid(self,fluid):
+        
+        self.fluid = fluid
+    
+    def set_well(self,well):
 
-        self.flowrate          = well.flowrate
+        self.well = well
+    
+    def set_time(self,steps):
 
-        self.radius_int         = well.radii
-        self.radius_ext         = formation.lengths[0]
+        self.timesteps = steps.reshape((1,-1))
 
-        self.thickness          = formation.lengths[2]
+    def set_observers(self,observers=None,count=50):
 
-        self.timelimit_int      = 100.*self.radius_int**2/self.hdiffusivity
-        self.timelimit_ext      = 0.25*self.radius_ext**2/self.hdiffusivity
+        if observers is not None:
+            self.observers = observers
+        else:
+            self.observers = np.linspace(
+                self.well.radius,
+                self.formation.radius,
+                count)
 
-    def discretize(self,point_num):
+    def initialize(self,pressure,saturation):
 
-        if self.geometry == "rectangular":
-
-            pass
-
-        elif self.geometry == "cylindrical":
-
-            self.spacepoints = np.linspace(self.radius_int,self.radius_ext)
-            self.spacepoints = self.spacepoints.reshape((-1,1))
-
-        elif self.geometry == "unstructured":
-
-            pass
-
-    def set_time(self,timesteps):
-
-        self.timesteps = timesteps.reshape((1,-1))
+        self.pressure = np.empty((self.res.grid_numtot,N+1))
 
     def solve(self,radius):
 
