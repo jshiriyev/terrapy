@@ -7,8 +7,6 @@ import openpyxl
 from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 
-from PyQt5 import QtWidgets, QtCore, QtGui
-
 import tkinter as tk
 
 from tkinter import ttk
