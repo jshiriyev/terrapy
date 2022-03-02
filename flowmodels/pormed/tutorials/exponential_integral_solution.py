@@ -9,6 +9,8 @@ if __name__ == "__main__":
 
 from flowmodels.pormed.radial import transient
 
+## INPUT
+
 ur = pint.UnitRegistry()
 
 k = ur.Quantity(80,'millidarcy').to('m^2').magnitude
@@ -33,33 +35,25 @@ Pi = ur.Quantity(5000,'psi').to('Pa').magnitude
 
 times = ur.Quantity((1,10,100),'days').to('sec').magnitude
 
+## SETTING MODEL
+
 solver = transient(qo)
 
-# geo = Ellipse(radii=(R,R),thickness=h)
+solver.PorRock.set_permeability(k)
+solver.PorRock.set_compressibility(cf)
+solver.PorRock.set_porosity(p)
+solver.PorRock.set_thickness(h)
 
-# fig = plt.figure()
+solver.Fluids.set_names("oil","water")
+solver.Fluids.set_compressibility(co,cw)
+solver.Fluids.set_viscosity(muo)
 
-##axis = plt.axes(projection="3d")
-# axis = fig.add_subplot(111)
+solver.Well.set_names(["1"])
+solver.Well.set_flowconds(conditions=("rate",),limits=(qo,),fluids=("oil",))
+solver.Well.set_skinfactors((0,))
+solver.Well.set_radii((0.25,))
 
-# geo.plot(axis)
-
-# plt.show()
-
-solver.formation.set_permeability(k)
-solver.formation.set_compressibility(cf)
-solver.formation.set_porosity(p)
-
-solver.formation.geometry.set_thickness(h)
-
-solver.fluids.set_names("oil","water")
-solver.fluids.set_compressibility(co,cw)
-solver.fluids.set_viscosity(muo)
-
-solver.wells.set_names(["1"])
-solver.wells.set_flowconds(conditions=("rate",),limits=(qo,),fluids=("oil",))
-solver.wells.set_skinfactors((0,))
-solver.wells.set_radii((0.25,))
+## CALCULATIONS
 
 solver.initialize(Pi,Sw)
 
@@ -72,3 +66,16 @@ solver.set_times(times)
 solver.set_observers()
 
 solver.solve()
+
+## PLOTTING
+
+# axis = plt.axes(projection="3d")
+# axis = fig.add_subplot(111)
+
+# geo.plot(axis)
+
+# plt.show()
+
+plt.plot(solver.observers,solver.pressure[:,0])
+
+plt.show()
