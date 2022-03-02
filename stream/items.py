@@ -23,19 +23,15 @@ from interfaces.dataset import dataset
 from interfaces.graphics import plot2D
 from interfaces.graphics import table
 
-from interfaces.dimensions import units
-
 class Line():
 
     pass
 
-class Rectangle(units):
+class Rectangle():
 
     # it is a 2D object in 3D space
 
-    def __init__(self,lengths,width=1,unitsystem="FU"):
-
-        super().__init__(unitsystem)
+    def __init__(self,lengths,width=1):
 
         self.lengths = lengths
 
@@ -136,7 +132,7 @@ class Rectangle(units):
 
         axis.set_box_aspect(self.lengths[1]/self.lengths[0])
 
-class Ellipse(units):
+class Ellipse():
 
     # This class is supposed to create 2-D surface in 3-D space
 
@@ -148,9 +144,7 @@ class Ellipse(units):
 
     # lamda: node spacing, radius ratio
 
-    def __init__(self,origin=(0,0,0),radii=(1,1),thickness=1,inner_radius=0,unitsystem="FU"):
-
-        super().__init__(unitsystem)
+    def __init__(self,origin=(0,0,0),radii=(1,1),thickness=1,inner_radius=0):
         
         self.origin = origin # origing has not been implemented yet
 
@@ -424,11 +418,9 @@ class Pipes():
 
         pass
 
-class Formation(units):
+class Formation():
 
-    def __init__(self,geometry,unitsystem,workdir=None):
-
-        super().__init__(unitsystem)
+    def __init__(self,geometry,workdir=None):
 
         self.__dict__ = geometry.__dict__.copy()
 
@@ -481,10 +473,6 @@ class Formation(units):
         # % deleteing files in results file
         # delete 'results\*.fig'
         # delete 'results\*.vtk'
-        
-        # % conversion to field units    
-        # time.tau = time.tau/inpput.convFactorDetermine('time');
-        # sol.pressure = sol.pressure/inpput.convFactorDetermine('pressure');
         
         # % writing time values
         # for j = 1:time.numTimeStep
