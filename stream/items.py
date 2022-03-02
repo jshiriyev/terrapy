@@ -4,8 +4,6 @@ from datetime import datetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 
-import inspect
-
 import os
 import re
 
@@ -18,10 +16,12 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from interfaces.dataset import dataset
+from stream.dataset import dataset
 
-from interfaces.graphics import plot2D
-from interfaces.graphics import table
+from stream.graphics import plot2D
+from stream.graphics import table
+
+## BASIC GEOMETRIES
 
 class Line():
 
@@ -144,20 +144,15 @@ class Ellipse():
 
     # lamda: node spacing, radius ratio
 
-    def __init__(self,origin=(0,0,0),radii=(1,1),thickness=1,inner_radius=0):
+    def __init__(self,origin=(0,0,0),radii=(1,1),thickness=1,inner_radii=(0,0)):
         
-        self.origin = origin # origing has not been implemented yet
+        self.set_origin(origin)
 
-        self.radii = radii
+        self.set_radii(radii)
 
-        self.major = max(radii)
-        self.minor = min(radii)
-        
-        self.radius = np.sqrt(self.minor*self.major)
+        self.set_thickness(thickness)
 
-        self.thickness = thickness
-
-        self.inner_radius = inner_radius
+        self.set_inner_radii(inner_radii)
 
         numverts = 50
 
@@ -186,6 +181,41 @@ class Ellipse():
         for x_aspect,y_aspect,z_aspect in zip(x_aspects,y_aspects,z_aspects):
             self.boundaries.append(np.array([x_aspect,y_aspect,z_aspect]))
 
+    def set_origin(self,origin):
+
+        self.origin = origin # origing has not been implemented yet
+
+    def set_radii(self,radii):
+
+        if type(radii) == int:
+            self.radii = (float(radii),float(radii))
+        elif type(radii) == float:
+            self.radii = (radii,radii)
+        elif type(radii) == str:
+            try:
+                self.radii = (float(radii),float(radii))
+            except ValueError:
+                raise ValueError('radii must be defined as a number or tuple')
+        elif len(radii) == 2:
+            self.radii = radii
+
+    def set_thickness(self,thickness):
+
+        self.thickness = thickness
+
+    def set_inner_radii(self,inner_radii):
+
+        if type(inner_radii) == int:
+            self.inner_radius = float(inner_radii)
+        elif type(inner_radii) == float:
+            self.inner_radius = inner_radii
+        elif type(inner_radii) == str:
+            raise ValueError('radius must be defined as a number or tuple')
+        elif len(inner_radii) == 2:
+            self.inner_radius_major = max(inner_radii)
+            self.inner_radius_minor = min(inner_radii)
+            self.inner_radius = np.sqrt(np.prod(inner_radii))
+
     def grid(self,lamda):
 
         self.lamda = lamda
@@ -208,7 +238,7 @@ class Ellipse():
         if showGridCenters:
             axis.scatter(*self.grid_centers.T)
 
-##        axis.set_box_aspect(self.radii[1]/self.radii[0])
+        # axis.set_box_aspect(self.radii[1]/self.radii[0])
 
 class Cuboid():
 
@@ -357,6 +387,8 @@ class Cylinder():
     def plot(self):
         pass
 
+## MODEL GEOMETRIES WITH PHYSICAL PROPERTIES
+
 class Pipes():
 
     def __init__(self):
@@ -422,9 +454,12 @@ class Formation():
 
     def __init__(self,geometry,workdir=None):
 
-        self.__dict__ = geometry.__dict__.copy()
+        # self.__dict__ = geometry.__dict__.copy()
 
-        self.workdir = workdir
+        self.geometry = geometry
+
+        if workdir is None:
+            self.workdir = workdir
 
     def set_depth(self,depth):
 
@@ -806,24 +841,45 @@ class Wells(plot2D):
     schedule_wefac      = " '{}'\t{} / "#.format(wellname,efficiency)
     schedule_welopen    = " '{}'\tSHUT\t3* / "#.format(wellname)
 
-    def __init__(self,workdir,window=None,oprawdir=None,comprawdir=None,wtrackrawdir=None,wlograwdir=None,wnamefstr=None,**kwargs):
+    def __init__(
+        self,
+        workdir=None,
+        window=None,
+        oprawdir=None,
+        comprawdir=None,
+        wtrackrawdir=None,
+        wlograwdir=None,
+        wnamefstr=None,
+        number=None,
+        **kwargs):
 
-        self.workdir = workdir         # working directory to save and retrieve saved data
+        if workdir is not None:
+            self.workdir = workdir         # working directory to save and retrieve saved data
 
         if window is not None:
             super().__init__(window)
 
-        self.oprawdir = oprawdir        # production directory for each well
+        if oprawdir is not None:
+            self.oprawdir = oprawdir        # production directory for each well
 
-        self.comprawdir = comprawdir      # completion directory for each well
+        if comprawdir is not None:
+            self.comprawdir = comprawdir      # completion directory for each well
 
-        self.wtrackrawdir = wtrackrawdir    # trajectory directory for each well
+        if wtrackrawdir is not None:
+            self.wtrackrawdir = wtrackrawdir    # trajectory directory for each well
 
-        self.wlograwdir = wlograwdir      # wellogging directory for each well
+        if wlograwdir is not None:
+            self.wlograwdir = wlograwdir      # wellogging directory for each well
 
-        self.wnamefstr = wnamefstr       # string format to save well names
+        if wnamefstr is not None:
+            self.wnamefstr = wnamefstr       # string format to save well names
+        else:
+            self.wnamefstr = "Well-{}"
 
         self.attrnames = []              # prod, comp, wtrack, wlog, compuni, schedule
+
+        if number is not None:
+            self.number = number
 
     def set_names(self,wellnames=None):
 
@@ -841,7 +897,7 @@ class Wells(plot2D):
             self.itemnames = np.unique(attrvals.running[0])
 
         if self.wnamefstr is not None:
-            get_windex = lambda x: self.wnamefstr.format(re.sub("[^0-9]","",x).zfill(3))
+            get_windex = lambda x: self.wnamefstr.format(re.sub("[^0-9]","",str(x)).zfill(3))
             set_wnames = np.vectorize(get_windex)
             self.itemnames = set_wnames(self.itemnames)
 
@@ -865,14 +921,15 @@ class Wells(plot2D):
 
         self.radii = np.array(radii)
 
-    def set_flowconds(self,conditions,limits,fluids):
+    def set_flowconds(self,conditions,limits,fluids=None):
 
         self.consbhp = np.array(conditions)=="bhp"
 
         self.limits = np.array(limits)
 
-        self.water = (np.array(fluids)!="oil")
-        self.oil = (np.array(fluids)!="water")
+        if fluids is not None:
+            self.water = (np.array(fluids)!="oil")
+            self.oil = (np.array(fluids)!="water")
 
     def set_skinfactors(self,skinfactors):
 
@@ -971,7 +1028,7 @@ class Wells(plot2D):
                 warnings.warn(warnHBPAI.format(date,well))
 
         if self.wnamefstr is not None:
-            vname = np.vectorize(lambda x: self.wnamefstr.format(re.sub("[^0-9]","",x).zfill(3)))
+            vname = np.vectorize(lambda x: self.wnamefstr.format(re.sub("[^0-9]","",str(x)).zfill(3)))
             prod.set_column(vname(prod.running[0]),header_index=0)
 
         def shifting(x):
@@ -1786,29 +1843,44 @@ class Wells(plot2D):
 
 class Fluids():
 
-    def __init__(self,num_phases):
+    def __init__(self,number):
 
-        self.num_phases = num_phases
+        self.number = number
 
-    def set_names(self,names):
+    def set_names(self,name1,*args):
 
-        self.itemnames = names
+        self.itemnames = [name1,]
 
-    def set_density(self,density):
+        for arg in args:
+            self.itemnames.append(arg)
 
-        self.density = density
+    def set_density(self,density1,*args):
 
-    def set_compressibility(self,compressibility):
+        self.density = [density1,]
 
-        self.compressibility = compressibility
+        for arg in args:
+            self.density.append(arg)
 
-    def set_viscosity(self,viscosity):
+    def set_compressibility(self,compressibility1,*args):
 
-        self.viscosity = viscosity
+        self.compressibility = [compressibility1,]
 
-    def set_fvf(self,fvf):
+        for arg in args:
+            self.compressibility.append(arg)
 
-        self.fvf = fvf
+    def set_viscosity(self,viscosity1,*args):
+
+        self.viscosity = [viscosity1,]
+
+        for arg in args:
+            self.viscosity.append(arg)
+
+    def set_fvf(self,fvf1,*args):
+
+        self.fvf = [fvf1,]
+
+        for arg in args:
+            self.fvf.append(arg)
 
 if __name__ == "__main__":
 

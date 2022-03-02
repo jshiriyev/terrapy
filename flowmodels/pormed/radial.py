@@ -18,72 +18,105 @@ from scipy.optimize import root_scalar
 if __name__ == "__main__":
     import setup
 
-from interfaces.items import formation
-from interfaces.items import wells 
-
-def toarray(x):
-
-    if isinstance(x,int) or isinstance(x,float):
-        x = np.array([x])
-    elif isinstance(x,list) or isinstance(x,tuple):
-        x = np.array(x)
-
-    return x
+from stream.items import Ellipse
+from stream.items import Formation
+from stream.items import Fluids
+from stream.items import Wells
 
 class transient():
 
-    """
-    line source solution based on exponential integral
-    """
+    # Line source solution based on exponential integral
 
-    def __init__(self):
+    def __init__(self,flow_rate):
 
-        pass
+        geometry = Ellipse()
 
-    def set_formation(self,formation):
+        self.formation = Formation(geometry)
         
-        self.formation = formation
+        # There can be two slightly compressible fluids where the
+        # second one is at irreducible saturation, not mobile
 
-    def set_fluid(self,fluid):
-        
-        self.fluid = fluid
-    
-    def set_well(self,well):
+        self.fluids = Fluids(2)
 
-        self.well = well
-    
-    def set_time(self,steps):
+        self.wells = Wells(1)
 
-        self.timesteps = steps.reshape((1,-1))
+        self.wells.set_flowconds("rate",flow_rate,"oil")
 
-    def set_observers(self,observers=None,count=50):
+    def initialize(self,pressure_initial,Swirr=0):
+
+        self.pressure_initial = pressure_initial
+
+        self.Sw = Swirr
+
+        self.So = 1-self.Sw
+
+        coSo = self.fluids.compressibility[0]*self.So
+        cwSw = self.fluids.compressibility[1]*self.Sw
+
+        self.ct = coSo+cwSw+self.formation.compressibility
+
+        k = self.formation.permeability
+
+        phimuct = self.formation.porosity*self.fluids.viscosity[0]*self.ct
+
+        self.eta = (k)/(phimuct)
+
+    def get_tmin(self):
+
+        self.tmin = 100*self.wells.radii**2/self.eta
+
+        return self.tmin
+
+    def get_tmax(self):
+
+        self.tmax = 0.25*self.formation.geometry.radii[0]**2/self.eta
+
+        return self.tmax 
+
+    def get_exterior_radius(self,tmax):
+
+        self.tmax = tmax
+
+        self.radius_exterior = float(np.sqrt(tmax*self.eta/0.25))
+
+        self.formation.geometry.set_radii(self.radius_exterior)
+
+        return self.radius_exterior
+
+    def set_times(self,times):
+
+        self.times = times.reshape((1,-1))
+
+    def set_observers(self,observers=None,number=50):
 
         if observers is not None:
             self.observers = observers
         else:
             self.observers = np.linspace(
-                self.well.radius,
-                self.formation.radius,
-                count)
+                self.wells.radii[0],
+                self.formation.geometry.radii[0],
+                number)
 
-    def initialize(self,pressure,saturation):
+    def solve(self):
 
-        self.pressure = np.empty((self.res.grid_numtot,N+1))
+        qmu = self.wells.limits*self.fluids.viscosity[0]
 
-    def solve(self,radius):
+        twopikh = 2*np.pi*self.formation.permeability*self.formation.geometry.thickness
 
-        dimensionless = (self.flowrate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
+        dimensionless = (qmu)/(twopikh)
 
-        finite_intb = (self.timesteps>self.timelimit_int)[0]
-        finite_extb = (self.timesteps<self.timelimit_ext)[0]
+        bound_int = (self.times>self.tmin)[0]
+        bound_ext = (self.times<self.tmax)[0]
 
-        validtimeinterval = np.logical_and(finite_intb,finite_extb)
+        validtimeinterval = np.logical_and(bound_int,bound_ext)
 
-        Ei = expi(-(self.spacepoints**2)/(4*self.hdiffusivity*self.timesteps[0,validtimeinterval]))
+        Ei = expi(-(self.observers**2)/(4*self.eta*self.times[0,validtimeinterval]))
 
-        self.deltap = np.zeros((self.spacepoints.size,self.timesteps.size))
+        self.deltap = np.zeros((self.observers.size,self.times.size))
 
         self.deltap[:,validtimeinterval] = -1/2*dimensionless*Ei
+
+        self.pressure = self.pressure_initial-self.deltap
 
 class steady():
 
