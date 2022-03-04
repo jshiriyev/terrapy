@@ -50,23 +50,23 @@ class transient():
         coSo = self.Fluids.compressibility[0]*self.So
         cwSw = self.Fluids.compressibility[1]*self.Sw
 
-        self.ct = coSo+cwSw+self.PorRock.compressibility
+        self.compressibility = coSo+cwSw+self.PorRock.compressibility
 
         k = self.PorRock.permeability
 
-        phimuct = self.PorRock.porosity*self.Fluids.viscosity[0]*self.ct
+        phimuct = self.PorRock.porosity*self.Fluids.viscosity[0]*self.compressibility
 
-        self.eta = (k)/(phimuct)
+        self.diffusivity = (k)/(phimuct)
 
     def get_tmin(self):
 
-        self.tmin = 100*self.Well.radii**2/self.eta
+        self.tmin = 100*self.Well.radii**2/self.diffusivity
 
         return self.tmin
 
     def get_tmax(self):
 
-        self.tmax = 0.25*self.PorRock.radii[0]**2/self.eta
+        self.tmax = 0.25*self.PorRock.radii[0]**2/self.diffusivity
 
         return self.tmax 
 
@@ -74,7 +74,7 @@ class transient():
 
         self.tmax = tmax
 
-        self.radius_exterior = float(np.sqrt(tmax*self.eta/0.25))
+        self.radius_exterior = float(np.sqrt(tmax*self.diffusivity/0.25))
 
         self.PorRock.set_radii(self.radius_exterior)
 
@@ -100,22 +100,25 @@ class transient():
 
     def solve(self):
 
-        qmu = self.Well.limits*self.Fluids.viscosity[0]
+        rateNumer = self.Well.limits*self.Fluids.viscosity[0]
+        rateDenom = self.PorRock.permeability*self.PorRock.thickness
 
-        twopikh = 2*np.pi*self.PorRock.permeability*self.PorRock.thickness
+        constRate = (rateNumer)/(2*np.pi*rateDenom)
 
-        dimensionless = (qmu)/(twopikh)
+        bound_int = (self.times>=self.tmin)[0]
+        bound_ext = (self.times<=self.tmax)[0]
 
-        bound_int = (self.times>self.tmin)[0]
-        bound_ext = (self.times<self.tmax)[0]
+        validTime = np.logical_and(bound_int,bound_ext)
 
-        validtimeinterval = np.logical_and(bound_int,bound_ext)
+        if np.any(~bound_int):
+            raise Warning("Not all times satisfy the early time limits!")
 
-        Ei = expi(-(self.observers**2)/(4*self.eta*self.times[0,validtimeinterval]))
+        if np.any(~bound_ext):
+            raise Warning("Not all times satisfy the late time limits!")
 
-        self.deltap = np.zeros((self.observers.size,self.times.size))
+        Ei = expi(-(self.observers**2)/(4*self.diffusivity*self.times))
 
-        self.deltap[:,validtimeinterval] = -1/2*dimensionless*Ei
+        self.deltap = -1/2*constRate*Ei
 
         self.pressure = self.pressure_initial-self.deltap
 
