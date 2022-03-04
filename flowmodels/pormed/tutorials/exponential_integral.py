@@ -32,10 +32,8 @@ rw = ur.Quantity(0.25,'ft').to('m').magnitude
 
 Pi = ur.Quantity(5000,'psi').to('Pa').magnitude
 
-##times = ur.Quantity((1,),'days').to('sec').magnitude
 times = ur.Quantity((1,10,100),'days').to('sec').magnitude
 
-##observers = None
 observers = ur.Quantity(np.linspace(0.25,1000),'ft').to('m').magnitude
 
 ## SETTING MODEL
@@ -51,17 +49,16 @@ solver.Fluids.set_names("oil","water")
 solver.Fluids.set_compressibility(co,cw)
 solver.Fluids.set_viscosity(muo)
 
-solver.Well.set_names(["1"])
-solver.Well.set_flowconds(conditions=("rate",),limits=(qo,),fluids=("oil",))
-solver.Well.set_skinfactors((0,))
-solver.Well.set_radii((rw,))
+solver.Well.set_names(1)
+solver.Well.set_skinfactors(0)
+solver.Well.set_radii(rw)
 
 ## CALCULATIONS
 
 solver.initialize(Pi,Sw)
 
-solver.get_tmin()
-solver.get_exterior_radius(max(times))
+solver.set_tmin()
+solver.set_tmax(max(times))
 solver.set_times(times)
 solver.set_observers(observers)
 solver.solve()
@@ -83,13 +80,3 @@ plt.legend()
 plt.grid()
 
 plt.show()
-
-
-
-
-
-
-
-
-
-

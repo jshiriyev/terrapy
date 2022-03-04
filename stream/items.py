@@ -901,30 +901,34 @@ def get_Wells(geometry=None):
 
             self.attrnames = []              # prod, comp, wtrack, wlog, compuni, schedule
 
-            if number is not None:
-                self.number = number
+            self.number = number
 
-        def set_names(self,wellnames=None):
+        def set_names(self,*args,wellnamelist=None):
 
             warnNWIF = "No well name could be found."
 
-            if wellnames is not None:
-                self.itemnames = wellnames
-            elif len(self.attrnames)==0:
-                # warnings.warn(warnNWIF)
-                self.op_get(filending="0")
-                attrvals = getattr(self,self.attrnames[0])
-                self.itemnames = np.unique(attrvals.running[0])
-            else:
-                attrvals = getattr(self,self.attrnames[0])
-                self.itemnames = np.unique(attrvals.running[0])
+            self.itemnames = []
+
+            for arg in args[:self.number]:
+                self.itemnames.append(arg)
+
+            if wellnamelist is not None:
+                self.itemnames = wellnamelist
+            # elif len(self.attrnames)==0:
+            #     # warnings.warn(warnNWIF)
+            #     self.op_get(filending="0")
+            #     attrvals = getattr(self,self.attrnames[0])
+            #     self.itemnames = np.unique(attrvals.running[0])
+            # else:
+            #     attrvals = getattr(self,self.attrnames[0])
+            #     self.itemnames = np.unique(attrvals.running[0])
 
             if self.wnamefstr is not None:
                 get_windex = lambda x: self.wnamefstr.format(re.sub("[^0-9]","",str(x)).zfill(3))
                 set_wnames = np.vectorize(get_windex)
                 self.itemnames = set_wnames(self.itemnames)
 
-            self.itemnames.sort()
+            # self.itemnames.sort()
 
         def set_tracks(self,tracks=None,formation=None):
 
@@ -940,9 +944,17 @@ def get_Wells(geometry=None):
                 self.tracks[:,1] = np.full(2,formation.lengths[1]/2)
                 self.tracks[:,2] = (0,formation.lengths[2]*2)
 
-        def set_radii(self,radii):
+        def set_radii(self,*args,radiilist=None):
 
-            self.radii = np.array(radii)
+            self.radii = []
+
+            for arg in args[:self.number]:
+                self.radii.append(arg)
+
+            if radiilist is not None:
+                self.radii = radiilist
+
+            self.radii = np.array(self.radii)
 
         def set_flowconds(self,conditions,limits,fluids=None):
 
@@ -954,9 +966,17 @@ def get_Wells(geometry=None):
                 self.water = (np.array(fluids)!="oil")
                 self.oil = (np.array(fluids)!="water")
 
-        def set_skinfactors(self,skinfactors):
+        def set_skinfactors(self,*args,skinfactorlist=None):
 
-            self.skinfactors = np.array(skinfactors)
+            self.skinfactors = []
+
+            for arg in args[:self.number]:
+                self.skinfactors.append(arg)
+
+            if skinfactorlist is not None:
+                self.skinfactors = skinfactorlist
+
+            self.skinfactors = np.array(self.skinfactors)
 
         def op_process(self):
 

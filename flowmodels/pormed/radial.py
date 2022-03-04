@@ -39,9 +39,9 @@ class transient():
 
         self.Well.set_flowconds("rate",flow_rate,"oil")
 
-    def initialize(self,pressure_initial,Swirr=0):
+    def initialize(self,pressure0,Swirr=0):
 
-        self.pressure_initial = pressure_initial
+        self.pressure0 = pressure0
 
         self.Sw = Swirr
 
@@ -52,35 +52,32 @@ class transient():
 
         self.compressibility = coSo+cwSw+self.PorRock.compressibility
 
-        k = self.PorRock.permeability
+        cons = self.PorRock.porosity*self.Fluids.viscosity[0]*self.compressibility
 
-        phimuct = self.PorRock.porosity*self.Fluids.viscosity[0]*self.compressibility
+        self.diffusivity = (self.PorRock.permeability)/(cons)
 
-        self.diffusivity = (k)/(phimuct)
+    def set_tmin(self):
 
-    def get_tmin(self):
+        # setting mimimum time limit because of the wellbore size
 
         self.tmin = 100*self.Well.radii**2/self.diffusivity
 
         return self.tmin
 
-    def get_tmax(self):
+    def set_tmax(self,tmax=None):
 
-        self.tmax = 0.25*self.PorRock.radii[0]**2/self.diffusivity
+        # setting maximum time limit because of the external flow radius
+        # if the tmax is provided, new external radius will be calculated 
 
-        return self.tmax 
-
-    def get_exterior_radius(self,tmax):
+        if tmax is None:
+            tmax = 0.25*self.PorRock.radii[0]**2/self.diffusivity
+        else:
+            tmax_radius = float(np.sqrt(tmax*self.diffusivity/0.25))
+            self.PorRock.set_radii(tmax_radius)
 
         self.tmax = tmax
 
-        self.radius_exterior = float(np.sqrt(tmax*self.diffusivity/0.25))
-
-        self.PorRock.set_radii(self.radius_exterior)
-
-        # geo = Ellipse(radii=(R,R),thickness=h)
-
-        return self.radius_exterior
+        return self.tmax
 
     def set_times(self,times):
 
@@ -120,7 +117,7 @@ class transient():
 
         self.deltap = -1/2*constRate*Ei
 
-        self.pressure = self.pressure_initial-self.deltap
+        self.pressure = self.pressure0-self.deltap
 
 class steady():
 
@@ -140,7 +137,7 @@ class steady():
 
         self.thickness          = PorRock.lengths[2]
 
-    def discretize(self,point_num):
+    def set_observers(self,point_num):
 
         if self.geometry == "rectangular":
 
