@@ -7,7 +7,7 @@ import pint
 if __name__ == "__main__":
     import setup
 
-from flowmodels.pormed.radial import transient
+from fluidflow.pormed.radial import transient
 
 ## INPUT
 

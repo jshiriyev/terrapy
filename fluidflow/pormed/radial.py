@@ -22,9 +22,7 @@ from stream.items import get_PorRock
 from stream.items import get_Fluids
 from stream.items import get_Wells
 
-class transient():
-
-    # Line source solution based on exponential integral
+class steady():
 
     def __init__(self,flow_rate):
 
@@ -37,7 +35,7 @@ class transient():
 
         self.Well = get_Wells()(number=1)
 
-        self.Well.set_flowconds("rate",flow_rate,"oil")
+        self.Well.set_flowconds("rate",flow_rate,"mobfluid")
 
     def initialize(self,pressure0,Swirr=0):
 
@@ -55,6 +53,37 @@ class transient():
         cons = self.PorRock.porosity*self.Fluids.viscosity[0]*self.compressibility
 
         self.diffusivity = (self.PorRock.permeability)/(cons)
+
+    def set_observers(self,observers=None,number=50):
+
+        if observers is not None:
+            self.observers = observers
+        else:
+            self.observers = np.linspace(
+                self.Well.radii[0],
+                self.PorRock.radii[0],
+                number)
+
+        self.observers = self.observers.reshape((-1,1))
+
+    def solve(self,radius,time,flow_rate):
+
+        rateNumer = self.Well.limits*self.Fluids.viscosity[0]
+        rateDenom = self.PorRock.permeability*self.PorRock.thickness
+
+        constRate = (rateNumer)/(2*np.pi*rateDenom)
+
+        self.deltap = constRate*np.log(self.PorRock.radii[0]/self.observers)
+
+        self.pressure = self.pressure0-self.deltap
+
+class transient(steady):
+
+    # Line source solution based on exponential integral
+
+    def __init__(self,flow_rate):
+
+        super().__init__(flow_rate)
 
     def set_tmin(self):
 
@@ -118,45 +147,6 @@ class transient():
         self.deltap = -1/2*constRate*Ei
 
         self.pressure = self.pressure0-self.deltap
-
-class steady():
-
-    def __init__(self,PorRock,fluid,well):
-
-        self.permeability       = PorRock.permeability
-        self.porosity           = PorRock.porosity
-        self.viscosity          = fluid.viscosity
-        self.compressibility    = PorRock.compressibility+fluid.compressibility
-
-        self.hdiffusivity       = self.permeability/(self.porosity*self.viscosity*self.compressibility)
-
-        self.flowrate          = well.flowrate
-
-        self.radius_int         = well.radii
-        self.radius_ext         = PorRock.lengths[0]
-
-        self.thickness          = PorRock.lengths[2]
-
-    def set_observers(self,point_num):
-
-        if self.geometry == "rectangular":
-
-            pass
-
-        elif self.geometry == "cylindrical":
-
-            self.spacepoints = np.linspace(self.radius_int,self.radius_ext)
-            self.spacepoints = self.spacepoints.reshape((-1,1))
-
-        elif self.geometry == "unstructured":
-
-            pass
-
-    def solve(self,radius,time,flow_rate):
-
-        dimensionless = (self.flowrate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
-
-        self.deltap = dimensionless*np.log(self.radius_ext/self.spacepoints)
 
 class pseudosteady():
 

@@ -216,7 +216,7 @@ if __name__ == "__main__":
 
     import unittest
 
-    from flow.pormed.tests.conrelation import TestRelativePermeability
+    from fluidflow.pormed.tests.conrelation import TestRelativePermeability
 
     unittest.main()
 
