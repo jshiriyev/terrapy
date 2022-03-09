@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     import setup
 
-class plot2D():
+class plotTime():
 
     legendpos = (
         "best","right",
@@ -949,6 +949,10 @@ class plotLogs():
                     self.axes[indexI].subax[indexJ].spines["top"].set_position(("axes",self.spinepos[indexJ]))
                     self.axes[indexI].subax[indexJ].spines["top"].set_color(self.colors[indexJ])
                     self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.colors[indexJ])
+
+class plotCompletion():
+    
+    pass
 
 class plot3D():
 

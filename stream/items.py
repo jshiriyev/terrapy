@@ -7,8 +7,6 @@ from dateutil.relativedelta import relativedelta
 import os
 import re
 
-import tkinter as tk
-
 import warnings
 
 import numpy as np
@@ -18,7 +16,7 @@ if __name__ == "__main__":
 
 from stream.dataset import dataset
 
-from stream.graphics import plot2D
+from stream.graphics import plotTime
 from stream.graphics import table
 
 ## BASIC GEOMETRIES
@@ -389,7 +387,10 @@ class Cylinder():
 
 ## MODEL GEOMETRIES WITH PHYSICAL PROPERTIES
 
-def get_Pipes(base=object):
+def get_Pipes(geometry=None):
+
+    if geometry is None:
+        base = object
     
     class Pipes(base):
 
@@ -763,7 +764,10 @@ def get_PorRock(geometry=None):
             
     return PorRock
 
-def get_Fractures(base=object):
+def get_Fractures(geometry=None):
+
+    if geometry is None:
+        base = object
 
     class Fractures(base):
 
