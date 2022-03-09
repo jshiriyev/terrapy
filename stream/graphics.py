@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     import setup
 
-class plotTime():
+class TimeVars():
 
     legendpos = (
         "best","right",
@@ -836,7 +836,7 @@ class plotTime():
             plt.plot([xs2[i-1],xs3[number-1-i]],[ys2[i-1],ys3[number-1-i]],'k',linewidth=0.5)
             plt.plot([xs3[i-1],xs1[number-1-i]],[ys3[i-1],ys1[number-1-i]],'k',linewidth=0.5)
 
-class plotLogs():
+class LogView():
 
     colors = (
         "black",
@@ -950,11 +950,11 @@ class plotLogs():
                     self.axes[indexI].subax[indexJ].spines["top"].set_color(self.colors[indexJ])
                     self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.colors[indexJ])
 
-class plotCompletion():
+class PerfView():
     
     pass
 
-class plot3D():
+class View3D():
 
     def __init__(self,window):
 
@@ -1005,29 +1005,7 @@ class plot3D():
 
         pass
 
-class VerticalNavigationToolbar2Tk(NavigationToolbar2Tk):
-
-    def __init__(self,canvas,window):
-
-        super().__init__(canvas,window,pack_toolbar=False)
-
-        self.message = tk.StringVar(master=window)
-        self._message_label = tk.Label(master=window,textvariable=self.message)
-        self._message_label.grid(row=1,column=0,columnspan=2,sticky=tk.W)
-
-    # override _Button() to re-pack the toolbar button in vertical direction
-    def _Button(self,text,image_file,toggle,command):
-        b = super()._Button(text,image_file,toggle,command)
-        b.pack(side=tk.TOP) # re-pack button in vertical direction
-        return b
-
-    # override _Spacer() to create vertical separator
-    def _Spacer(self):
-        s = tk.Frame(self,width=26,relief=tk.RIDGE,bg="DarkGray",padx=2)
-        s.pack(side=tk.TOP,pady=5) # pack in vertical direction
-        return s
-
-class table():
+class TableView():
 
     def __init__(self,**kwargs):
 
@@ -1359,7 +1337,7 @@ class table():
 
         self.root.destroy()
 
-class tree():
+class TreeView():
 
     def __init__(self,dirpath):
 
@@ -1450,6 +1428,28 @@ class tree():
             func(path)
         else:
             print(path)
+
+class VerticalNavigationToolbar2Tk(NavigationToolbar2Tk):
+
+    def __init__(self,canvas,window):
+
+        super().__init__(canvas,window,pack_toolbar=False)
+
+        self.message = tk.StringVar(master=window)
+        self._message_label = tk.Label(master=window,textvariable=self.message)
+        self._message_label.grid(row=1,column=0,columnspan=2,sticky=tk.W)
+
+    # override _Button() to re-pack the toolbar button in vertical direction
+    def _Button(self,text,image_file,toggle,command):
+        b = super()._Button(text,image_file,toggle,command)
+        b.pack(side=tk.TOP) # re-pack button in vertical direction
+        return b
+
+    # override _Spacer() to create vertical separator
+    def _Spacer(self):
+        s = tk.Frame(self,width=26,relief=tk.RIDGE,bg="DarkGray",padx=2)
+        s.pack(side=tk.TOP,pady=5) # pack in vertical direction
+        return s
 
 if __name__ == "__main__":
 

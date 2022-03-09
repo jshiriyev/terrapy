@@ -16,16 +16,20 @@ if __name__ == "__main__":
 
 from stream.dataset import dataset
 
-from stream.graphics import plotTime
-from stream.graphics import table
+from stream.graphics import TimeVars
+from stream.graphics import LogView
+from stream.graphics import PerfView
+from stream.graphics import View3D
+from stream.graphics import TableView
+from stream.graphics import TreeView
 
 ## BASIC GEOMETRIES
 
-class Line():
+class Line(View3D):
 
     pass
 
-class Rectangle():
+class Rectangle(View3D):
 
     # it is a 2D object in 3D space
 
@@ -130,7 +134,7 @@ class Rectangle():
 
         axis.set_box_aspect(self.lengths[1]/self.lengths[0])
 
-class Ellipse():
+class Ellipse(View3D):
 
     # This class is supposed to create 2-D surface in 3-D space
 
@@ -238,7 +242,7 @@ class Ellipse():
         if showGridCenters:
             axis.scatter(*self.grid_centers.T)
 
-class Cuboid():
+class Cuboid(View3D):
 
     """
     For rectangular parallelepiped, dimensions is a tuple
@@ -342,7 +346,7 @@ class Cuboid():
 
         pass
 
-class Cylinder():
+class Cylinder(View3D):
 
     """
     For cylindrical disk, dimensions is a tuple with two entries for sizes in r,z direction
@@ -1956,6 +1960,6 @@ if __name__ == "__main__":
     from tests import wells
 
     unittest.main(pipes)
-    unittest.main(pormed)
+    unittest.main(formations)
     unittest.main(fractures)
     unittest.main(wells)

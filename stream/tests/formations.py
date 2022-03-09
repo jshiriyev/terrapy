@@ -5,13 +5,13 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from interfaces.items import Formation
+from stream.items import get_PorRock
 
 class TestSimpleFormation(unittest.TestCase):
 
-    def rectangular(self):
+    def cuboid(self):
 
-        res = Formation()
+        res = get_PorRock("cuboid")
 
         res.set_dimensions(dimensions=(10,10,10))
 
