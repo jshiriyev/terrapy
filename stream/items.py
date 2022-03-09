@@ -247,7 +247,7 @@ class Cuboid():
     with three entries for sizes in x,y,z direction.
     """
 
-    def __init__(self):
+    def __init__(self,lengths):
 
         self.lengths = lengths
 
@@ -458,12 +458,20 @@ def get_PorRock(geometry=None):
 
     if geometry is None:
         base = object
+    elif geometry=="rectangular":
+        base = Rectangle
     elif geometry=="ellipse":
         base = Ellipse
+    elif geometry=="cuboid":
+        base = Cuboid
+    elif geometry=="cylinder":
+        base = Cylinder
 
     class PorRock(base):
 
-        def __init__(self,workdir=None):
+        def __init__(self,*args,workdir=None,**kwargs):
+
+            super().__init__(*args,**kwargs)
 
             if workdir is None:
                 self.workdir = workdir

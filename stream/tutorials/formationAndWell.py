@@ -2,18 +2,18 @@ import matplotlib.pyplot as plt
 
 import setup
 
-from interfaces.items import Formation
-from interfaces.items import Wells
+from stream.items import get_PorRock
+from stream.items import get_Wells
 
-res = Formation("SI",None,geometry="rectangular")
+res = get_PorRock("cuboid")(lengths=(10,5,2))
 
-res.set_dimensions(lengths=(10,5,2))
+# res.set_dimensions(lengths=(10,5,2))
 
 res.grid((11,11,2))
 
-well = Wells(None)
+well = get_Wells()(number=1)
 
-well.set_names(["GD-601"])
+well.set_names("GD-601")
 
 well.set_tracks(None,res)
 
@@ -28,7 +28,7 @@ for line in res.boundaries:
 
 ax.plot3D(*well.tracks.T)
 
-# ax.scatter3D(*res.grid_centers.T)
+ax.scatter3D(*res.grid_centers.T)
 
 ax.set_box_aspect(res.lengths)
 

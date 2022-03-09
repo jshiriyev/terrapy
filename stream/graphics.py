@@ -8,6 +8,8 @@ from tkinter import font as tkfont
 
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
+import lasio # it should not be here, it should be at dataset
+
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
@@ -834,6 +836,120 @@ class plot2D():
             plt.plot([xs2[i-1],xs3[number-1-i]],[ys2[i-1],ys3[number-1-i]],'k',linewidth=0.5)
             plt.plot([xs3[i-1],xs1[number-1-i]],[ys3[i-1],ys1[number-1-i]],'k',linewidth=0.5)
 
+class plotLogs():
+
+    colors = (
+        "black",
+        "crimson",
+        "blue",
+        "sienna",
+        )
+
+    spinepos = (1,1.1,1.2,1.3)
+
+    def __init__(self,filenames):
+
+        self.lasios = []
+
+        for filename in filenames:
+            self.lasios.append(lasio.read(filename))
+
+    def print_well_info(self,index=None):
+
+        if index is not None:
+            print("\n\tWELL #{}".format(self.lasios[index].well.WELL.value))
+            for item in self.lasios[index].sections["Well"]:
+                print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
+        else:
+            for las in self.lasios:
+                print("\n\tWELL #{}".format(las.well.WELL.value))
+                for item in las.sections["Well"]:
+                    print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
+
+    def print_curve_info(self,index=None):
+
+        if index is not None:
+            print("\n\tLOG NUMBER {}".format(index))
+            for count,curve in enumerate(self.lasios[index].curves):
+                print(f"Curve: {curve.mnemonic}\tUnits: {curve.unit},\t Description: {curve.descr}")
+        else:
+            for index,las in enumerate(self.lasios):
+                print("\n\tLOG NUMBER {}".format(index))
+                for count,curve in enumerate(las.curves):
+                    print(f"Curve: {curve.mnemonic}\tUnits: {curve.unit},\t Description: {curve.descr}")
+
+    def set_interval(self,depth_top,depth_bottom):
+
+        for indexI,las in enumerate(self.lasios):
+
+            try:
+                depth = las["MD"]
+            except KeyError:
+                depth = las["DEPT"]
+
+            depth_cond = np.logical_and(depth>depth_top,depth<depth_bottom)
+
+            for indexJ,curve in enumerate(las.curves):
+
+                self.lasios[indexI].curves[indexJ].data = curve.data[depth_cond]
+
+    def set_axes(self,plot):
+
+        self.fig,self.axes = plt.subplots(1,len(plot))
+
+        self.fig.set_figheight(8)
+        self.fig.set_figwidth(2*len(plot))
+
+        for index,axis in enumerate(self.axes):
+            
+            axis.set_xticks([])
+            axis.invert_yaxis()
+            axis.grid(True,which="both",axis='y')
+            
+            if index != 0:
+                axis.set_yticklabels([])
+
+            self.axes[index].subax = []
+
+            for _ in range(len(plot[index]["lines"])):
+                self.axes[index].subax.append(axis.twiny())
+
+    def set_lines(self,plotinfo):
+
+        for indexI,axdict in enumerate(plotinfo):
+
+            for indexJ,line in enumerate(axdict["lines"]):
+            
+                try:
+                    depth = self.lasios[line[0]]["MD"]
+                except KeyError:
+                    depth = self.lasios[line[0]]["DEPT"]
+                    
+                xvals = self.lasios[line[0]][line[1]]
+
+                indexK = self.lasios[line[0]].curves.keys().index(line[1])
+
+                mnem = self.lasios[line[0]].curves[indexK].mnemonic
+                unit = self.lasios[line[0]].curves[indexK].unit
+
+                if indexJ==0:
+                    if axdict["ptype"]=="default":
+                        self.axes[indexI].subax[indexJ].plot(xvals,depth,color=self.colors[indexJ],linestyle="-")
+                    elif axdict["ptype"]=="log":
+                        self.axes[indexI].subax[indexJ].semilogx(xvals,depth,color=self.colors[indexJ],linestyle="-")
+                    self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.colors[indexJ])
+                    self.axes[indexI].subax[indexJ].minorticks_on()
+                    self.axes[indexI].subax[indexJ].grid(True,which="both",axis='x')
+                else:
+                    if axdict["ptype"]=="default":
+                        self.axes[indexI].subax[indexJ].plot(xvals,depth,color=self.colors[indexJ],linestyle="--")
+                    elif axdict["ptype"]=="log":
+                        self.axes[indexI].subax[indexJ].semilogx(xvals,depth,color=self.colors[indexJ],linestyle="--")
+                    self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.colors[indexJ])
+                    self.axes[indexI].subax[indexJ].spines["top"].set_position(("axes",self.spinepos[indexJ]))
+                    self.axes[indexI].subax[indexJ].spines["top"].set_color(self.colors[indexJ])
+                    self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.colors[indexJ])
+
 class plot3D():
 
     def __init__(self,window):
@@ -1333,54 +1449,4 @@ class tree():
 
 if __name__ == "__main__":
 
-##    from interfaces.dataset import dataset
-##
-##    class collection(plot3D):
-##
-##        def __init__(self,window,filename):
-##
-##            super().__init__(window)
-##
-##            self.filename = filename
-##
-##            path = os.path.join(os.path.dirname(__file__),"tests",self.filename)
-##
-##            self.data = dataset(filepath=path,skiplines=1)
-##
-##            self.data.texttocolumn(0,deliminator="\t")
-##
-##            self.data.astype(1,dtype=np.float64)
-##            self.data.astype(2,dtype=np.float64)
-##            self.data.astype(3,dtype=np.float64)
-##            self.data.astype(4,dtype=np.float64)
-##
-##            self.itemnames = np.unique(self.data.running[0])
-##
-##            self.attrnames = ["data"]
-##
-##    window = tk.Tk()
-##
-##    gui = collection(window,"datatest")
-##    # gui = table(window=window,headers=["First Name","Last Name","Contact"])
-##
-##    gui.set_plot()
-##
-##    window.mainloop()
-
-    import time
-
-    window = tk.Tk()
-
-    gui = tree("C:\\Users\\javid.s\\Documents")
-
-    t0 = time.time()
-
-    gui.draw(window)
-    
-    t1 = time.time()
-
-    total = t1-t0
-    
-    print(total)
-
-    window.mainloop()
+    pass
