@@ -27,7 +27,55 @@ from stream.graphics import TreeView
 
 class Line(View3D):
 
-    pass
+    def __init__(self):
+
+        pass
+
+    def set_tracks(self,tracks):
+        
+        self.tracks = np.array(tracks)
+
+    def set2Dview(self,axis,view='zy'):
+
+        if view == 'yx':
+            axis.plot(self.tracks[:,0],self.tracks[:,1])
+            axis.set_xlabel("x-axis")
+            axis.set_ylabel("y-axis")
+
+        elif view == 'zy':
+            axis.plot(self.tracks[:,1],self.tracks[:,2])
+            axis.set_xlabel("y-axis")
+            axis.set_ylabel("z-axis")
+            axis.invert_yaxis()
+
+        elif view == 'xz':
+            axis.plot(self.tracks[:,2],self.tracks[:,0])
+            axis.set_xlabel("z-axis")
+            axis.set_ylabel("x-axis")
+
+        elif view == 'xy':
+            axis.plot(self.tracks[:,1],self.tracks[:,0])
+            axis.set_xlabel("y-axis")
+            axis.set_ylabel("x-axis")
+
+        elif view == 'yz':
+            axis.plot(self.tracks[:,2],self.tracks[:,1])
+            axis.set_xlabel("z-axis")
+            axis.set_ylabel("y-axis")
+
+        elif view == 'zx':
+            axis.plot(self.tracks[:,0],self.tracks[:,2])
+            axis.set_xlabel("x-axis")
+            axis.set_ylabel("z-axis")
+            axis.invert_yaxis()
+
+    def set3Dview(self,axis):
+
+        axis.plot3D(*self.tracks.T)
+        axis.set_xlabel("x-axis")
+        axis.set_ylabel("y-axis")
+        axis.set_zlabel("z-axis")
+        axis.invert_zaxis()
 
 class Rectangle(View3D):
 
@@ -945,20 +993,6 @@ def get_Wells(geometry=None):
                 self.itemnames = set_wnames(self.itemnames)
 
             # self.itemnames.sort()
-
-        def set_tracks(self,tracks=None,formation=None):
-
-            if tracks is not None:
-
-                self.tracks = np.array(tracks)
-
-            elif formation is not None:
-
-                self.tracks = np.zeros((2,3))
-
-                self.tracks[:,0] = np.full(2,formation.lengths[0]/2)
-                self.tracks[:,1] = np.full(2,formation.lengths[1]/2)
-                self.tracks[:,2] = (0,formation.lengths[2]*2)
 
         def set_radii(self,*args,radiilist=None):
 
