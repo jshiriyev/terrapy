@@ -1,3 +1,4 @@
+from math import ceil
 import os
 
 import tkinter as tk
@@ -845,7 +846,7 @@ class LogView():
         "sienna",
         )
 
-    spinepos = (1,1.1,1.2,1.3)
+    spinerelpos = (0,0.1,0.2,0.3)
 
     def __init__(self,filenames):
 
@@ -866,18 +867,24 @@ class LogView():
                 for item in las.sections["Well"]:
                     print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
 
-    def print_curve_info(self,index=None):
+    def print_curve_info(self,index=None,mnemonic_space=33,tab_space=8):
+
+        def print_func(index):
+            las = self.lasios[index]
+            print("\n\tLOG NUMBER {}".format(index))
+            for count,curve in enumerate(las.curves):
+                minXval = np.nanmin(curve.data)
+                maxXval = np.nanmax(curve.data)
+                tab_num = ceil((mnemonic_space-len(curve.mnemonic))/tab_space)
+                tab_spc = "\t"*tab_num if tab_num>0 else "\t"
+                print("Curve: {}{}Units: {}\tMin: {}\tMax: {}\tDescription: {}".format(
+                    curve.mnemonic,tab_spc,curve.unit,minXval,maxXval,curve.descr))
 
         if index is not None:
-            print("\n\tLOG NUMBER {}".format(index))
-            for count,curve in enumerate(self.lasios[index].curves):
-                print(f"Curve: {curve.mnemonic}\tUnits: {curve.unit},\t Description: {curve.descr}")
+            print_func(index)
         else:
-            for index,las in enumerate(self.lasios):
-                print("\n\tLOG NUMBER {}".format(index))
-                for count,curve in enumerate(las.curves):
-                    print(f"Curve: {curve.mnemonic}\tUnits: {curve.unit},\t Description: {curve.descr}")
-
+            [print_func(index) for index in range(len(self.lasios))]
+            
     def set_interval(self,depth_top,depth_bottom):
 
         for indexI,las in enumerate(self.lasios):
@@ -893,12 +900,19 @@ class LogView():
 
                 self.lasios[indexI].curves[indexJ].data = curve.data[depth_cond]
 
-    def set_axes(self,plot):
+        self.height = depth_bottom-depth_top
 
-        self.fig,self.axes = plt.subplots(1,len(plot))
+    def set_axes(self,plot_info):
 
-        self.fig.set_figheight(8)
-        self.fig.set_figwidth(2*len(plot))
+        xmult = len(plot_info)
+        zmult = int(self.height/20.)
+        
+        self.spinepos = [1+x/zmult for x in self.spinerelpos]
+
+        self.fig,self.axes = plt.subplots(1,xmult)
+
+        self.fig.set_figwidth(2*xmult)
+        self.fig.set_figheight(8*zmult)
 
         for index,axis in enumerate(self.axes):
             
@@ -911,12 +925,12 @@ class LogView():
 
             self.axes[index].subax = []
 
-            for _ in range(len(plot[index]["lines"])):
+            for _ in range(len(plot_info[index]["lines"])):
                 self.axes[index].subax.append(axis.twiny())
 
-    def set_lines(self,plotinfo):
+    def set_lines(self,plot_info):
 
-        for indexI,axdict in enumerate(plotinfo):
+        for indexI,axdict in enumerate(plot_info):
 
             for indexJ,line in enumerate(axdict["lines"]):
             
@@ -937,7 +951,6 @@ class LogView():
                         self.axes[indexI].subax[indexJ].plot(xvals,depth,color=self.colors[indexJ],linestyle="-")
                     elif axdict["ptype"]=="log":
                         self.axes[indexI].subax[indexJ].semilogx(xvals,depth,color=self.colors[indexJ],linestyle="-")
-                    self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.colors[indexJ])
                     self.axes[indexI].subax[indexJ].minorticks_on()
                     self.axes[indexI].subax[indexJ].grid(True,which="both",axis='x')
                 else:
@@ -945,10 +958,36 @@ class LogView():
                         self.axes[indexI].subax[indexJ].plot(xvals,depth,color=self.colors[indexJ],linestyle="--")
                     elif axdict["ptype"]=="log":
                         self.axes[indexI].subax[indexJ].semilogx(xvals,depth,color=self.colors[indexJ],linestyle="--")
-                    self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.colors[indexJ])
                     self.axes[indexI].subax[indexJ].spines["top"].set_position(("axes",self.spinepos[indexJ]))
                     self.axes[indexI].subax[indexJ].spines["top"].set_color(self.colors[indexJ])
                     self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.colors[indexJ])
+
+                # minXval = np.nanmin(xvals)
+                # maxXval = np.nanmax(xvals)
+
+                # self.axes[indexI].subax[indexJ].set_xticks(np.array([minXval,maxXval]))
+                self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.colors[indexJ])
+
+    def set_GR_cut(self,GRline,indexI,indexJ,cut_perc=40):
+
+        # indexI index of GR containing axis in the plot
+        # indexJ index of GR containing line in the axis
+
+        try:
+            depth = self.lasios[GRline[0]]["MD"]
+        except KeyError:
+            depth = self.lasios[GRline[0]]["DEPT"]
+
+        xvals = self.lasios[GRline[0]][GRline[1]]
+
+        GRmin = np.nanmin(xvals)
+        GRmax = np.nanmax(xvals)
+        GRcut = (GRmin+(GRmax-GRmin)*cut_perc/100)*np.ones(depth.shape)
+
+        self.axes[indexI].subax[indexJ].fill_betweenx(depth,xvals,where=GRcut>=xvals,color="lightblue")
+        self.axes[indexI].subax[indexJ].fill_betweenx(depth,xvals,where=GRcut<=xvals,color="gray")
+
+        return GRcut[0]
 
 class PerfView():
     
