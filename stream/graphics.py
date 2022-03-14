@@ -990,7 +990,7 @@ class LogView():
 
         return GRcut[0]
 
-    def set GammaSCP(self):
+    def set_GammaSCP(self):
 
         self.fig_gscp,self.axis_gscp = plt.subplots()
 
