@@ -1,4 +1,5 @@
 from math import ceil
+
 import os
 
 import tkinter as tk
@@ -902,7 +903,7 @@ class LogView():
 
         self.height = depth_bottom-depth_top
 
-    def set_axes(self,plot_info):
+    def set_DepthView(self,plot_info):
 
         xmult = len(plot_info)
         zmult = int(self.height/20.)
@@ -928,7 +929,7 @@ class LogView():
             for _ in range(len(plot_info[index]["lines"])):
                 self.axes[index].subax.append(axis.twiny())
 
-    def set_lines(self,plot_info):
+    def set_DepthViewLines(self,plot_info):
 
         for indexI,axdict in enumerate(plot_info):
 
@@ -968,7 +969,7 @@ class LogView():
                 # self.axes[indexI].subax[indexJ].set_xticks(np.array([minXval,maxXval]))
                 self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.colors[indexJ])
 
-    def set_GR_cut(self,GRline,indexI,indexJ,cut_perc=40):
+    def set_DepthViewGRcut(self,GRline,indexI,indexJ,cut_perc=40):
 
         # indexI index of GR containing axis in the plot
         # indexJ index of GR containing line in the axis
@@ -988,6 +989,40 @@ class LogView():
         self.axes[indexI].subax[indexJ].fill_betweenx(depth,xvals,where=GRcut<=xvals,color="gray")
 
         return GRcut[0]
+
+    def set GammaSCP(self):
+
+        self.fig_gscp,self.axis_gscp = plt.subplots()
+
+    def set_DenNeuCP(self):
+
+        self.fig_dncp,self.axis_dncp = plt.subplots()
+
+    def set_SonDenCP(self):
+
+        self.fig_sdcp,self.axis_sdcp = plt.subplots()
+
+    def set_SonNeuCP(self):
+
+        self.fig_sncp,self.axis_sncp = plt.subplots()
+
+    def set_DenPheCP(self):
+
+        # density photoelectric cross section cross plot
+
+        self.fig_dpcp,self.axis_dpcp = plt.subplots()
+
+    def set_MNplot(self):
+
+        self.fig_mncp,self.axis_mncp = plt.subplots()
+
+    def set_MIDplot(self):
+
+        self.fig_midp,self.axis_midp = plt.subplots()
+
+    def set_ResSonCP(self):
+
+        self.fig_rscp,self.axis_rscp = plt.subplots()
 
 class PerfView():
     
