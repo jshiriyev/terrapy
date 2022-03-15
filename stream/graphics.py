@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     import setup
 
-class TimeVars():
+class TimeView():
 
     legendpos = (
         "best","right",
