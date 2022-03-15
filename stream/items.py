@@ -107,6 +107,8 @@ class Rectangle(View3D):
         for x_aspect,y_aspect in zip(x_aspects,y_aspects):
             self.boundaries.append(np.array([x_aspect,y_aspect]))
 
+        self.gridded = False
+
     def grid(self,grid_num):
 
         # grid_num must be a tuple or list with length equal to 2
@@ -161,6 +163,8 @@ class Rectangle(View3D):
         self.grid_centers[:,0] = np.tile(xcenter,self.grid_num[1])
         self.grid_centers[:,1] = ycenter.repeat(self.grid_num[0])
         self.grid_centers[:,2] = zcenter.repeat(self.grid_num[0]*self.grid_num[1])
+
+        self.gridded = True     # it is a crucial property to know whether the geometry is gridded or not
 
     def plot(self,axis,showVertices=True,showBounds=True,showGridEdges=True,showGridCenters=True):
 
@@ -327,6 +331,8 @@ class Cuboid(View3D):
         for x_aspect,y_aspect,z_aspect in zip(x_aspects,y_aspects,z_aspects):
             self.boundaries.append(np.array([x_aspect,y_aspect,z_aspect]))
 
+        self.gridded = False
+
     def grid(self,grid_num):
 
         """
@@ -389,6 +395,8 @@ class Cuboid(View3D):
         self.grid_centers[:,0] = np.tile(xcenter,self.grid_num[1]*self.grid_num[2])
         self.grid_centers[:,1] = np.tile(ycenter.repeat(self.grid_num[0]),self.grid_num[2])
         self.grid_centers[:,2] = zcenter.repeat(self.grid_num[0]*self.grid_num[1])
+
+        self.gridded = True
 
     def plot(self):
 
@@ -533,11 +541,11 @@ def get_PorRock(geometry=None):
 
             self.depth = depth
 
-        def set_porosity(self,porosity):
+        def set_porosity(self,porosity,homogeneous=True,X=None,Y=None,Z=None):
 
             self.porosity = porosity
 
-        def set_permeability(self,permeability,homogeneous=True,isotropy=True):
+        def set_permeability(self,permeability,isotropy=True,homogeneous=True,X=None,Y=None,Z=None):
 
             if homogeneous and isotropy:
 
