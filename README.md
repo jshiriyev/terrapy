@@ -1,4 +1,4 @@
-# BhosPy
+# Pluto
 
 BhosPy contains a set of packages used in engineering.
 
