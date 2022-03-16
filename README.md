@@ -1,6 +1,6 @@
-# Pluto
+# PlutoPy
 
-Pluto contains a set of packages used in engineering.
+PlutoPy contains a set of packages used in formation evaluation and modeling.
 
 Flow \# Fluid FLow Modeling:
 
