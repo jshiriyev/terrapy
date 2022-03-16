@@ -21,9 +21,8 @@ ResLog \# Electomagnetic Modeling, Forward models for conductivity measurements 
 - **SIE:** 2D plane simulation with surface integral equations
 - **VIE:** 3D layer simulation volume integral equations
 
-GeoStatistics \# analysis and science of geostatistical data:
+GeoStatistics \# analysis and science of spatiotemporal dataset
 
-Spatiotemporal dataset
 - **connectivity:** variogram
 - **spatial estimation models:** 3D-interpolation, kriging simple, kriging ordinary
 - **spatial prediction models:** gaussian simulation
