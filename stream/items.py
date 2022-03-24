@@ -16,12 +16,73 @@ if __name__ == "__main__":
 
 from stream.dataset import dataset
 
-from stream.graphics import TimeVars
-from stream.graphics import LogView
+from stream.graphics import TimeView
 from stream.graphics import PerfView
+from stream.graphics import LogView
 from stream.graphics import View3D
 from stream.graphics import TableView
 from stream.graphics import TreeView
+
+## NON GEOMETRICAL ITEMS
+
+class Fluids(object):
+
+    def __init__(self,number):
+
+        self.number = number
+
+    def set_names(self,name1,*args):
+
+        self.itemnames = [name1,]
+
+        for arg in args:
+            self.itemnames.append(arg)
+
+    def set_density(self,density1,*args):
+
+        self.density = [density1,]
+
+        for arg in args:
+            self.density.append(arg)
+
+    def set_compressibility(self,compressibility1,*args):
+
+        self.compressibility = [compressibility1,]
+
+        for arg in args:
+            self.compressibility.append(arg)
+
+    def set_viscosity(self,viscosity1,*args):
+
+        self.viscosity = [viscosity1,]
+
+        for arg in args:
+            self.viscosity.append(arg)
+
+    def set_fvf(self,fvf1,*args):
+
+        self.fvf = [fvf1,]
+
+        for arg in args:
+            self.fvf.append(arg)
+
+class Production(TimeView):
+    
+    def __init__(self):
+
+        pass
+    
+class Completion(PerfView):
+    
+    def __init__(self):
+
+        pass
+
+class Logging(LogView):
+
+    def __init__(self):
+
+        pass
 
 ## BASIC GEOMETRIES
 
@@ -1943,54 +2004,6 @@ def get_Wells(geometry=None):
             pass
 
     return Wells
-
-def get_Fluids(base=None):
-
-    if base is None:
-        base = object
-
-    class Fluids(base):
-
-        def __init__(self,number):
-
-            self.number = number
-
-        def set_names(self,name1,*args):
-
-            self.itemnames = [name1,]
-
-            for arg in args:
-                self.itemnames.append(arg)
-
-        def set_density(self,density1,*args):
-
-            self.density = [density1,]
-
-            for arg in args:
-                self.density.append(arg)
-
-        def set_compressibility(self,compressibility1,*args):
-
-            self.compressibility = [compressibility1,]
-
-            for arg in args:
-                self.compressibility.append(arg)
-
-        def set_viscosity(self,viscosity1,*args):
-
-            self.viscosity = [viscosity1,]
-
-            for arg in args:
-                self.viscosity.append(arg)
-
-        def set_fvf(self,fvf1,*args):
-
-            self.fvf = [fvf1,]
-
-            for arg in args:
-                self.fvf.append(arg)
-
-    return Fluids
 
 if __name__ == "__main__":
 
