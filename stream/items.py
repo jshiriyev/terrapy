@@ -84,6 +84,62 @@ class Logging(LogView):
 
         pass
 
+## SPATIAL ITEMS
+
+class SpatProp(np.ndarray):
+
+    """It is a numpy array of shape (N,) with additional spatial attributes x,y,z"""
+
+    def __new__(cls,values,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
+
+        """if provided, X,Y,Z must be one dimensional numpy array"""
+
+        inp1 = (values.size,)
+        inp2 = values.ravel()
+        inp3 = values.dtype
+
+        self = super().__new__(cls,shape=inp1,buffer=inp2,dtype=inp3)
+
+        ones = np.ones(values.shape)
+
+        if X is not None:
+            self.x = X
+        elif ones.ndim>1:
+            self.x = (np.cumsum(ones,0)-1).ravel()*dX
+        else:
+            self.x = ones.flatten()
+
+        if Y is not None:
+            self.y = Y
+        elif ones.ndim>1:
+            self.y = (np.cumsum(ones,1)-1).ravel()*dY
+        else:
+            self.y = ones.flatten()
+
+        if Z is not None:
+            self.z = Z
+        elif ones.ndim>2:
+            self.z = (np.cumsum(ones,2)-1).ravel()*dZ
+        else:
+            self.z = ones.flatten()
+
+        return self
+
+    def set_connection(self):
+
+        """
+        It calculates distance and angle between observation points;
+        both are calculated in 2-dimensional array form.
+        """
+        
+        self.dx = self.x-self.x.reshape((-1,1))
+        self.dy = self.y-self.y.reshape((-1,1))
+        self.dz = self.z-self.z.reshape((-1,1))
+
+        self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
+
+        self.angle = np.arctan2(self.dy,self.dx)
+
 ## BASIC GEOMETRIES
 
 class Line(View3D):

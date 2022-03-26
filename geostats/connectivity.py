@@ -1,61 +1,11 @@
-import os
-import sys
-
 import numpy as np
 
 from scipy.stats import norm
 
-class item():
+if __name__ == "__main__":
+    import setup
 
-    def __init__(self,props,header=None,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
-        """if entered, X,Y,Z must be one dimensional numpy array"""
-        
-        if props is not None:
-            ones = np.ones(props.shape)
-        elif X is not None:
-            ones = np.ones(X.size)
-        elif Y is not None:
-            ones = np.ones(Y.size)
-        elif Z is not None:
-            ones = np.ones(Z.size)
-        else:
-            return
-
-        if props is not None:
-            self.property = props.ravel()
-
-        if header is not None:
-            self.header = header
-
-        if X is not None:
-            self.x = X
-        elif ones.ndim>1:
-            self.x = (np.cumsum(ones,0)-1).ravel()*dX
-        else:
-            self.x = ones
-
-        if Y is not None:
-            self.y = Y
-        elif ones.ndim>1:
-            self.y = (np.cumsum(ones,1)-1).ravel()*dY
-        else:
-            self.y = ones
-
-        if Z is not None:
-            self.z = Z
-        elif ones.ndim>2:
-            self.z = (np.cumsum(ones,2)-1).ravel()*dZ
-        else:
-            self.z = ones
-
-    def set_attribute(self,attribute,attributename,isnone):
-
-        if attribute is None:
-            setattr(self,attributename,isnone)
-        else:
-            setattr(self,attributename,attribute)
-
-class variogram(item):
+class variogram():
 
     """
     variogram class used to represent observational spatial points
@@ -67,34 +17,36 @@ class variogram(item):
     -------
     """
 
-    def __init__(self,props,**kwargs):
+    def __init__(self,prop):
 
-        super(variogram,self).__init__(props,**kwargs)
-        
-        """calculating distance and angle between observation points"""
-        self.set_connection()
+        # self.__dict__ = prop.__dict__.copy()
 
-    def set_connection(self):
-        """distance is calculated in 2-dimensional array form"""
-        self.dx = self.x-self.x.reshape((-1,1))
-        self.dy = self.y-self.y.reshape((-1,1))
-        self.dz = self.z-self.z.reshape((-1,1))
+        self.property = prop
 
-        self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
+        self.x = prop.x
+        self.y = prop.y
+        self.z = prop.z
 
-        """angle is calculated in 2-dimensional array form"""
-        self.angle = np.arctan2(self.dy,self.dx)
+        self.dx = prop.dx
+        self.dy = prop.dy
+        self.dz = prop.dz
 
-    def set_experimental(self,lagdis=None,lagdistol=None,lagmax=None,
-                             azimuth=None,azimuthtol=None,bandwidth=None):
+        self.distance = prop.distance
+        self.angle = prop.angle
+
+    def set_experimental(self,lag=None,lagtol=None,lagmax=None,
+                             azimuth=None,azimuthtol=None,bandwidth=None,returnFlag=False):
+
+        """
+        azimuth range is (-\\pi,\\pi] in radians [(-180,180] in degrees]
+        if we set +x to east and +y to north then the azimuth is selected
+        to be zero in the +x direction and positive counterclockwise
+        """
         
         prop_err = (self.property-self.property.reshape((-1,1)))**2
 
-        self.set_attribute(lagdis,"lagdis",self.distance[self.distance!=0].min())
-        self.set_attribute(lagdistol,"lagdistol",self.lagdis/2.)
-        self.set_attribute(lagmax,"lagmax",self.distance.max())
-        
         """for an anisotropy only 2D data can be used FOR NOW"""
+
         if azimuth is None:
             self.azimuth = 0
             self.azimuthtol = np.pi
@@ -104,28 +56,40 @@ class variogram(item):
             self.azimuthtol = np.radians(azimuthtol)
             self.bandwidth = bandwidth
 
-        self.outbound = self.lagmax+self.lagdistol
-
-        """bins is the array of lag distances"""
-        self.bins_experimental = np.arange(self.lagdis,self.outbound,self.lagdis)
-
-        self.experimental = np.zeros_like(self.bins_experimental)
-
-        """
-        azimuth range is (-\pi,\pi] in radians [(-180,180] in degrees]
-        if we set +x to east and +y to north then the azimuth is selected
-        to be zero in the +x direction and positive counterclockwise
-        """
-        
         delta_angle = np.abs(self.angle-self.azimuth)
         
         con_azmtol = delta_angle<=self.azimuthtol
         con_banwdt = np.sin(delta_angle)*self.distance<=(self.bandwidth/2.)
         con_direct = np.logical_and(con_azmtol,con_banwdt)
+
+        if lag is None:
+            cond0 = self.distance!=0
+            condM = np.logical_and(cond0,con_azmtol)
+            self.lag = self.distance[condM].min()
+        else:
+            self.lag = lag
+
+        if lagtol is None:
+            self.lagtol = self.lag/2.
+        else:
+            self.lagtol = lagtol
+
+        if lagmax is None:
+            self.lagmax = self.distance[con_azmtol].max()
+        else:
+            self.lagmax = lagmax
+
+        self.outbound = self.lagmax+self.lagtol
+
+        """bins is the array of lag distances"""
+
+        self.bins_experimental = np.arange(self.lag,self.outbound,self.lag)
+
+        self.experimental = np.zeros_like(self.bins_experimental)
         
         for i,h in enumerate(self.bins_experimental):
 
-            con_distnc = np.abs(self.distance-h)<=self.lagdistol
+            con_distnc = np.abs(self.distance-h)<=self.lagtol
 
             conoverall = np.logical_and(con_distnc,con_direct)
 
@@ -136,6 +100,9 @@ class variogram(item):
             else:
                 semivariance = prop_err[conoverall].sum()/(2*num_matchcon)
                 self.experimental[i] = semivariance
+
+        if returnFlag:
+            return self.bins_experimental,self.experimental
 
     def draw_search_box(self,origin_x=0,origin_y=0):
 
@@ -199,7 +166,7 @@ class variogram(item):
 
         for h in self.bins_experimental:
             
-            hmin = h-self.lagdistol
+            hmin = h-self.lagtol
             
             hmin_alpha = azmtol(self.bandwidth,hmin,self.azimuthtol)
             hmin_theta = np.linspace(self.azimuth-hmin_alpha,self.azimuth+hmin_alpha)
