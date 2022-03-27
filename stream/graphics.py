@@ -840,12 +840,22 @@ class TimeView():
 
 class LogView():
 
-    colors = (
+    lineColors = (
         "black",
         "crimson",
         "blue",
         "sienna",
         )
+
+    color_clean     = "tan"
+    color_sandstone = "gold"
+    color_limestone = "navajowhite"
+    color_dolomite  = "darkkhaki"
+    color_shale     = "gray"
+    color_water     = "lightblue"
+    color_HC        = "limegreen"
+    color_oil       = "lime"
+    color_gas       = "lightgreen"
 
     spinerelpos = (0,0.1,0.2,0.3)
 
@@ -886,7 +896,7 @@ class LogView():
         else:
             [print_func(index) for index in range(len(self.lasios))]
             
-    def set_interval(self,depth_top,depth_bottom):
+    def set_interval(self,top,bottom):
 
         for indexI,las in enumerate(self.lasios):
 
@@ -895,13 +905,13 @@ class LogView():
             except KeyError:
                 depth = las["DEPT"]
 
-            depth_cond = np.logical_and(depth>depth_top,depth<depth_bottom)
+            depth_cond = np.logical_and(depth>top,depth<bottom)
 
             for indexJ,curve in enumerate(las.curves):
 
                 self.lasios[indexI].curves[indexJ].data = curve.data[depth_cond]
 
-        self.height = depth_bottom-depth_top
+        self.height = bottom-top
 
     def set_DepthView(self,plot_info):
 
@@ -949,27 +959,31 @@ class LogView():
 
                 if indexJ==0:
                     if axdict["ptype"]=="default":
-                        self.axes[indexI].subax[indexJ].plot(xvals,depth,color=self.colors[indexJ],linestyle="-")
+                        self.axes[indexI].subax[indexJ].plot(
+                            xvals,depth,color=self.lineColors[indexJ],linestyle="-")
                     elif axdict["ptype"]=="log":
-                        self.axes[indexI].subax[indexJ].semilogx(xvals,depth,color=self.colors[indexJ],linestyle="-")
+                        self.axes[indexI].subax[indexJ].semilogx(
+                            xvals,depth,color=self.lineColors[indexJ],linestyle="-")
                     self.axes[indexI].subax[indexJ].minorticks_on()
                     self.axes[indexI].subax[indexJ].grid(True,which="both",axis='x')
                 else:
                     if axdict["ptype"]=="default":
-                        self.axes[indexI].subax[indexJ].plot(xvals,depth,color=self.colors[indexJ],linestyle="--")
+                        self.axes[indexI].subax[indexJ].plot(
+                            xvals,depth,color=self.lineColors[indexJ],linestyle="--")
                     elif axdict["ptype"]=="log":
-                        self.axes[indexI].subax[indexJ].semilogx(xvals,depth,color=self.colors[indexJ],linestyle="--")
+                        self.axes[indexI].subax[indexJ].semilogx(
+                            xvals,depth,color=self.lineColors[indexJ],linestyle="--")
                     self.axes[indexI].subax[indexJ].spines["top"].set_position(("axes",self.spinepos[indexJ]))
-                    self.axes[indexI].subax[indexJ].spines["top"].set_color(self.colors[indexJ])
-                    self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.colors[indexJ])
+                    self.axes[indexI].subax[indexJ].spines["top"].set_color(self.lineColors[indexJ])
+                    self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.lineColors[indexJ])
 
                 # minXval = np.nanmin(xvals)
                 # maxXval = np.nanmax(xvals)
 
                 # self.axes[indexI].subax[indexJ].set_xticks(np.array([minXval,maxXval]))
-                self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.colors[indexJ])
+                self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.lineColors[indexJ])
 
-    def set_DepthViewGRcut(self,GRline,indexI,indexJ,cut_perc=40):
+    def set_DepthViewGRcut(self,GRline,indexI,indexJ,perc_cut=40):
 
         # indexI index of GR containing axis in the plot
         # indexJ index of GR containing line in the axis
@@ -983,14 +997,66 @@ class LogView():
 
         GRmin = np.nanmin(xvals)
         GRmax = np.nanmax(xvals)
-        GRcut = (GRmin+(GRmax-GRmin)*cut_perc/100)*np.ones(depth.shape)
 
-        self.axes[indexI].subax[indexJ].fill_betweenx(depth,xvals,where=GRcut>=xvals,color="lightblue")
-        self.axes[indexI].subax[indexJ].fill_betweenx(depth,xvals,where=GRcut<=xvals,color="gray")
+        GRcut = (GRmin+(GRmax-GRmin)*perc_cut/100)
 
-        return GRcut[0]
+        cut_line = GRcut*np.ones(depth.shape)
 
-    def set_GammaSCP(self):
+        cond_clean = cut_line>=xvals
+
+        indexTop = []
+        indexBtm = []
+
+        for i,cond in enumerate(cond_clean):
+            
+            if i>0:
+                old_cond = cond_clean[i-1]
+            else:
+                old_cond = False
+                
+            try:
+                new_cond = cond_clean[i+1]
+            except IndexError:
+                new_cond = False
+                
+            if cond and not old_cond:
+                indexTop.append(i)
+
+            if cond and not new_cond:
+                indexBtm.append(i)
+
+        net_pay = 0
+
+        for i,j in zip(indexTop,indexBtm):
+
+            net_pay += depth[j]-depth[i]
+
+        self.axes[indexI].subax[indexJ].fill_betweenx(
+            depth,xvals,x2=cut_line,where=cond_clean,color=self.color_clean)
+
+        self.netPayThickness = net_pay
+        self.netToGrossRatio = net_pay/self.height*100
+
+        return GRcut
+
+    def set_DepthViewResistivityCut(self,ResLine,indexI,indexJ,ohmm_cut=10):
+
+        # indexI index of Resistivity containing axis in the plot
+        # indexJ index of Resistivity containing line in the axis
+
+        try:
+            depth = self.lasios[ResLine[0]]["MD"]
+        except KeyError:
+            depth = self.lasios[ResLine[0]]["DEPT"]
+
+        xvals = self.lasios[ResLine[0]][ResLine[1]]
+
+        cut_line = ohmm_cut*np.ones(depth.shape)
+
+        self.axes[indexI].subax[indexJ].fill_betweenx(
+            depth,xvals,x2=cut_line,where=ohmm_cut<=xvals,color=self.color_HC)
+
+    def set_GammaSpectralCP(self):
 
         self.fig_gscp,self.axis_gscp = plt.subplots()
 
@@ -1020,9 +1086,17 @@ class LogView():
 
         self.fig_midp,self.axis_midp = plt.subplots()
 
-    def set_ResSonCP(self):
+    def set_rhomaaUmaa(self):
 
-        self.fig_rscp,self.axis_rscp = plt.subplots()
+        self.fig_rhoU,self.axis_rhoU = plt.subplots()
+
+    def set_PickettCP(self):
+
+        self.fig_pcp,self.axis_pcp = plt.subplots()
+
+    def set_HingleCP(self):
+
+        self.fig_hcp,self.axis_hcp = plt.subplots()
 
 class PerfView():
     
