@@ -12,6 +12,7 @@ from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
 import lasio # it should not be here, it should be at dataset
 
+from matplotlib import gridspec
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
@@ -920,26 +921,39 @@ class LogView():
         
         self.spinepos = [1+x/zmult for x in self.spinerelpos]
 
-        self.fig,self.axes = plt.subplots(1,xmult)
+        self.fig = plt.figure()
 
         self.fig.set_figwidth(2*xmult)
         self.fig.set_figheight(8*zmult)
 
-        for index,axis in enumerate(self.axes):
+        self.grids = gridspec.GridSpec(1,xmult)
+        self.grids.update(wspace=0)
+
+        self.axes = []
+
+        for index in range(xmult):
+
+            axis = plt.subplot(self.grids[index])
             
             axis.set_xticks([])
             axis.invert_yaxis()
             axis.grid(True,which="both",axis='y')
             
             if index != 0:
+
+                for tic in axis.yaxis.get_major_ticks():
+                    tic.tick1line.set_visible(False)
+
                 axis.set_yticklabels([])
 
-            self.axes[index].subax = []
+            axis.subax = []
 
             for _ in range(len(plot_info[index]["lines"])):
-                self.axes[index].subax.append(axis.twiny())
+                axis.subax.append(axis.twiny())
 
-    def set_DepthViewLines(self,plot_info):
+            self.axes.append(axis)
+
+    def set_DepthViewLines(self,plot_info,xunits_count_default=11):
 
         for indexI,axdict in enumerate(plot_info):
 
@@ -956,6 +970,38 @@ class LogView():
 
                 mnem = self.lasios[line[0]].curves[indexK].mnemonic
                 unit = self.lasios[line[0]].curves[indexK].unit
+
+                xvals_min = np.nanmin(xvals)
+                xvals_max = np.nanmax(xvals)
+
+                xrange_given = xvals_max-xvals_min
+                
+                xunits_size = xrange_given/(xunits_count_default-1)
+
+                beforeDot,afterDot = format(xunits_size,'f').split('.')
+
+                nondim_xunit_sizes = np.array([1,2,4,5,10])
+
+                if xunits_size>1:
+                    xunits_size_temp = xunits_size/10**(len(beforeDot)-1)
+                    xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
+                    xunits_size = xunits_size_temp*10**(len(beforeDot)-1)
+                else:
+                    zeroCountAfterDot = len(afterDot)-len(afterDot.lstrip('0'))
+                    xunits_size_temp = xunits_size*10**(zeroCountAfterDot+1)
+                    xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
+                    xunits_size = xunits_size_temp/10**(zeroCountAfterDot+1)
+
+                xmin = (np.floor(xvals_min/xunits_size)-1).astype(float)*xunits_size
+                xmax = (np.ceil(xvals_max/xunits_size)+1).astype(float)*xunits_size
+                
+                # xunits_count = np.ceil(xrange_given/xunits_size).astype(int)+2
+
+                # xticks = np.linspace(xmin,xmax,xunits_count+1)
+
+                xticks = np.arange(xmin,xmax+xunits_size/2,xunits_size)
+
+                print(xvals_min,xvals_max,xunits_size,xmin,xmax,xticks)  ##PRINT## ##################################
 
                 if indexJ==0:
                     if axdict["ptype"]=="default":
@@ -977,11 +1023,23 @@ class LogView():
                     self.axes[indexI].subax[indexJ].spines["top"].set_color(self.lineColors[indexJ])
                     self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.lineColors[indexJ])
 
-                # minXval = np.nanmin(xvals)
-                # maxXval = np.nanmax(xvals)
+                self.axes[indexI].subax[indexJ].set_xlim([xmin,xmax])
+                self.axes[indexI].subax[indexJ].set_xticks(xticks)
 
-                # self.axes[indexI].subax[indexJ].set_xticks(np.array([minXval,maxXval]))
                 self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.lineColors[indexJ])
+
+                majorTicks = self.axes[indexI].subax[indexJ].xaxis.get_major_ticks()
+
+                for tic in majorTicks:
+        
+                    tic.label2.set_visible(False)
+                    tic.tick2line.set_visible(False)
+
+                majorTicks[1].label2.set_visible(True)
+                majorTicks[1].tick2line.set_visible(True)
+
+                majorTicks[-2].label2.set_visible(True)
+                majorTicks[-2].tick2line.set_visible(True)
 
     def set_DepthViewGRcut(self,GRline,indexI,indexJ,perc_cut=40):
 
