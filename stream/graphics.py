@@ -14,6 +14,7 @@ import lasio # it should not be here, it should be at dataset
 
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
@@ -860,12 +861,17 @@ class LogView():
 
     spinerelpos = (0,0.1,0.2,0.3)
 
-    def __init__(self,filenames):
+    def __init__(self,filenames=None):
 
         self.lasios = []
 
-        for filename in filenames:
-            self.lasios.append(lasio.read(filename))
+        if filenames is not None:
+            for filename in filenames:
+                self.lasios.append(lasio.read(filename))
+
+    def add_file(self,filename):
+
+        self.lasios.append(lasio.read(filename))
 
     def print_well_info(self,index=None):
 
@@ -914,24 +920,32 @@ class LogView():
 
         self.height = bottom-top
 
-    def set_DepthView(self,plot_info):
+    def set_DepthView(self,plot_dictionary):
 
-        xmult = len(plot_info)
+        self.plot = plot_dictionary
+
+        self.DV_num_axes = len(plot_dictionary)
+
         zmult = int(self.height/20.)
         
         self.spinepos = [1+x/zmult for x in self.spinerelpos]
 
         self.fig = plt.figure()
 
-        self.fig.set_figwidth(2*xmult)
+        self.fig.set_figwidth(2*self.DV_num_axes)
         self.fig.set_figheight(8*zmult)
 
-        self.grids = gridspec.GridSpec(1,xmult)
+        self.grids = gridspec.GridSpec(1,self.DV_num_axes)
         self.grids.update(wspace=0)
 
         self.axes = []
 
-        for index in range(xmult):
+        self.set_DepthViewAxes()
+        self.set_DepthViewLines()
+
+    def set_DepthViewAxes(self):
+
+        for index in range(self.DV_num_axes):
 
             axis = plt.subplot(self.grids[index])
             
@@ -948,14 +962,14 @@ class LogView():
 
             axis.subax = []
 
-            for _ in range(len(plot_info[index]["lines"])):
+            for _ in range(len(self.plot[index]["lines"])):
                 axis.subax.append(axis.twiny())
 
             self.axes.append(axis)
 
-    def set_DepthViewLines(self,plot_info,xunits_count_default=11):
+    def set_DepthViewLines(self):
 
-        for indexI,axdict in enumerate(plot_info):
+        for indexI,axdict in enumerate(self.plot):
 
             for indexJ,line in enumerate(axdict["lines"]):
             
@@ -971,75 +985,118 @@ class LogView():
                 mnem = self.lasios[line[0]].curves[indexK].mnemonic
                 unit = self.lasios[line[0]].curves[indexK].unit
 
-                xvals_min = np.nanmin(xvals)
-                xvals_max = np.nanmax(xvals)
+                xticks = self.get_xticks(xvals,indexI,indexJ)
 
-                xrange_given = xvals_max-xvals_min
-                
-                xunits_size = xrange_given/(xunits_count_default-1)
+                linestyle = "-" if indexJ==0 else "--"
 
-                beforeDot,afterDot = format(xunits_size,'f').split('.')
-
-                nondim_xunit_sizes = np.array([1,2,4,5,10])
-
-                if xunits_size>1:
-                    xunits_size_temp = xunits_size/10**(len(beforeDot)-1)
-                    xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
-                    xunits_size = xunits_size_temp*10**(len(beforeDot)-1)
-                else:
-                    zeroCountAfterDot = len(afterDot)-len(afterDot.lstrip('0'))
-                    xunits_size_temp = xunits_size*10**(zeroCountAfterDot+1)
-                    xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
-                    xunits_size = xunits_size_temp/10**(zeroCountAfterDot+1)
-
-                xmin = (np.floor(xvals_min/xunits_size)-1).astype(float)*xunits_size
-                xmax = (np.ceil(xvals_max/xunits_size)+1).astype(float)*xunits_size
-                
-                # xunits_count = np.ceil(xrange_given/xunits_size).astype(int)+2
-
-                # xticks = np.linspace(xmin,xmax,xunits_count+1)
-
-                xticks = np.arange(xmin,xmax+xunits_size/2,xunits_size)
-
-                print(xvals_min,xvals_max,xunits_size,xmin,xmax,xticks)  ##PRINT## ##################################
+                if axdict["ptype"][indexJ] is None:
+                    self.axes[indexI].subax[indexJ].plot(
+                        xvals,depth,color=self.lineColors[indexJ],linestyle=linestyle)
+                elif axdict["ptype"][indexJ]=="log":
+                    self.axes[indexI].subax[indexJ].semilogx(
+                        xvals,depth,color=self.lineColors[indexJ],linestyle=linestyle)
 
                 if indexJ==0:
-                    if axdict["ptype"]=="default":
-                        self.axes[indexI].subax[indexJ].plot(
-                            xvals,depth,color=self.lineColors[indexJ],linestyle="-")
-                    elif axdict["ptype"]=="log":
-                        self.axes[indexI].subax[indexJ].semilogx(
-                            xvals,depth,color=self.lineColors[indexJ],linestyle="-")
-                    self.axes[indexI].subax[indexJ].minorticks_on()
-                    self.axes[indexI].subax[indexJ].grid(True,which="both",axis='x')
+                    # self.axes[indexI].subax[indexJ].minorticks_on()
+                    self.axes[indexI].subax[indexJ].grid(True,which="major",axis='x')
                 else:
-                    if axdict["ptype"]=="default":
-                        self.axes[indexI].subax[indexJ].plot(
-                            xvals,depth,color=self.lineColors[indexJ],linestyle="--")
-                    elif axdict["ptype"]=="log":
-                        self.axes[indexI].subax[indexJ].semilogx(
-                            xvals,depth,color=self.lineColors[indexJ],linestyle="--")
                     self.axes[indexI].subax[indexJ].spines["top"].set_position(("axes",self.spinepos[indexJ]))
                     self.axes[indexI].subax[indexJ].spines["top"].set_color(self.lineColors[indexJ])
                     self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.lineColors[indexJ])
 
-                self.axes[indexI].subax[indexJ].set_xlim([xmin,xmax])
-                self.axes[indexI].subax[indexJ].set_xticks(xticks)
+                self.axes[indexI].subax[indexJ].set_xlim([xticks.min(),xticks.max()])
+
+                if axdict["ptype"][indexJ] is None:
+                    self.axes[indexI].subax[indexJ].set_xticks(xticks)
+                elif axdict["ptype"][indexJ]=="log":
+                    self.axes[indexI].subax[indexJ].grid(True,which="both",axis='x')
+                    self.axes[indexI].subax[indexJ].xaxis.set_minor_formatter(ScalarFormatter())
+
+                    # minorTicks = self.axes[indexI].subax[indexJ].xaxis.get_minor_ticks()
+
+                    # for tic in minorTicks:
+
+                    #     tic.label2.set_visible(False)
+                    #     tic.tick2line.set_visible(False)
+
+                    # minorTicks[0].label2.set_visible(True)
+                    # minorTicks[0].tick2line.set_visible(True)
+
+                    # plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_minorticklabels()[0],ha="left")
+
+
+
+                # box = self.axes[indexI].subax[indexJ].xaxis.set_clip_box(dict(facecolor='none', edgecolor='black'))
+                # box.set_bbox(dict(facecolor='none', edgecolor='black'))
+
+
+
+
+
+
+                self.axes[indexI].subax[indexJ].xaxis.set_major_formatter(ScalarFormatter())
+
 
                 self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.lineColors[indexJ])
 
                 majorTicks = self.axes[indexI].subax[indexJ].xaxis.get_major_ticks()
 
                 for tic in majorTicks:
-        
                     tic.label2.set_visible(False)
                     tic.tick2line.set_visible(False)
 
-                majorTicks[1].label2.set_visible(True)
-                majorTicks[1].tick2line.set_visible(True)
+                majorTicks[0].label2.set_visible(True)
+                majorTicks[0].tick2line.set_visible(True)
 
-                majorTicks[-2].label2.set_visible(True)
-                majorTicks[-2].tick2line.set_visible(True)
+                majorTicks[-1].label2.set_visible(True)
+                majorTicks[-1].tick2line.set_visible(True)
+
+                plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_majorticklabels()[0],ha="left")
+                plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_majorticklabels()[-1],ha="right")
+
+    def get_xticks(self,xvals,indexI,indexJ,xunits_count_default=11):
+
+        if self.plot[indexI]["xlims"][indexJ] is not None:
+            xmin,xmax,xunits_size = self.plot[indexI]["xlims"][indexJ]
+            xticks = np.arange(xmin,xmax+xunits_size/2,xunits_size)
+            return xticks
+
+        xvals_min = np.nanmin(xvals)
+        xvals_max = np.nanmax(xvals)
+
+        xrange_given = xvals_max-xvals_min
+        
+        xunits_size = xrange_given/(xunits_count_default-1)
+
+        beforeDot,afterDot = format(xunits_size,'f').split('.')
+
+        nondim_xunit_sizes = np.array([1,2,4,5,10])
+
+        if xunits_size>1:
+            xunits_size_temp = xunits_size/10**(len(beforeDot)-1)
+            xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
+            xunits_size = xunits_size_temp*10**(len(beforeDot)-1)
+        else:
+            zeroCountAfterDot = len(afterDot)-len(afterDot.lstrip('0'))
+            xunits_size_temp = xunits_size*10**(zeroCountAfterDot+1)
+            xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
+            xunits_size = xunits_size_temp/10**(zeroCountAfterDot+1)
+
+        xmin = (np.floor(xvals_min/xunits_size)-1).astype(float)*xunits_size
+        xmax = (np.ceil(xvals_max/xunits_size)+1).astype(float)*xunits_size
+        
+        # xunits_count = np.ceil(xrange_given/xunits_size).astype(int)+2
+
+        # xticks = np.linspace(xmin,xmax,xunits_count+1)
+        
+        if self.plot[indexI]["ptype"][indexJ] is None:
+            xticks = np.arange(xmin,xmax+xunits_size/2,xunits_size)
+        if self.plot[indexI]["ptype"][indexJ]=="log":
+            xticks = np.logspace(np.log10(xmin),np.log10(xmax))
+
+        print(xvals_min,xvals_max,xunits_size,xmin,xmax)
+
+        return xticks
 
     def set_DepthViewGRcut(self,GRline,indexI,indexJ,perc_cut=40):
 
