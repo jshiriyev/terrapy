@@ -14,12 +14,14 @@ import lasio # it should not be here, it should be at dataset
 
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+from matplotlib.ticker import AutoMinorLocator
 from matplotlib.ticker import LogFormatter
 from matplotlib.ticker import LogFormatterExponent
 from matplotlib.ticker import LogFormatterMathtext
+from matplotlib.ticker import NullLocator
 from matplotlib.ticker import ScalarFormatter
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
 import numpy as np
 
@@ -908,6 +910,11 @@ class LogView():
             
     def set_interval(self,top,bottom):
 
+        self.top = top
+        self.bottom = bottom
+
+        self.gross_thickness = self.bottom-self.top
+
         for indexI,las in enumerate(self.lasios):
 
             try:
@@ -915,13 +922,11 @@ class LogView():
             except KeyError:
                 depth = las["DEPT"]
 
-            depth_cond = np.logical_and(depth>top,depth<bottom)
+            depth_cond = np.logical_and(depth>self.top,depth<self.bottom)
 
             for indexJ,curve in enumerate(las.curves):
 
                 self.lasios[indexI].curves[indexJ].data = curve.data[depth_cond]
-
-        self.height = bottom-top
 
     def set_DepthView(self,plot_dictionary):
 
@@ -929,7 +934,7 @@ class LogView():
 
         self.DV_num_axes = len(plot_dictionary)
 
-        zmult = int(self.height/20.)
+        zmult = int((self.bottom-self.top)/20.)
         
         self.spinepos = [1+x/zmult for x in self.spinerelpos]
 
@@ -953,15 +958,13 @@ class LogView():
             axis = plt.subplot(self.grids[index])
             
             axis.set_xticks([])
-            axis.invert_yaxis()
-            axis.grid(True,which="both",axis='y')
             
-            if index != 0:
+            axis.grid(True,which="both",axis='y')
 
-                for tic in axis.yaxis.get_major_ticks():
-                    tic.tick1line.set_visible(False)
-
-                axis.set_yticklabels([])
+            for tic in axis.yaxis.get_major_ticks():
+                if index>0:
+                    tic.label1.set_visible(False)
+                tic.tick1line.set_visible(False)
 
             axis.subax = []
 
@@ -971,6 +974,8 @@ class LogView():
             self.axes.append(axis)
 
     def set_DepthViewLines(self):
+
+        yticks = self.get_yticks()
 
         for indexI,axdict in enumerate(self.plot):
 
@@ -1002,18 +1007,35 @@ class LogView():
                 self.axes[indexI].subax[indexJ].set_xlim([xticks.min(),xticks.max()])
                 self.axes[indexI].subax[indexJ].set_xticks(xticks)
 
+                self.axes[indexI].subax[indexJ].set_ylim([yticks.max(),yticks.min()])
+                self.axes[indexI].subax[indexJ].set_yticks(yticks)
+
+                self.axes[indexI].subax[indexJ].grid(True,which="both",axis='y')
+
+                self.axes[indexI].subax[indexJ].yaxis.set_minor_locator(AutoMinorLocator(10))
+
+                for tic in self.axes[indexI].yaxis.get_minor_ticks():
+                    if indexI>0:
+                        tic.tick1line.set_visible(False)
+
                 if indexJ==0:
+
                     self.axes[indexI].subax[indexJ].grid(True,which="major",axis='x')
+
                     if axdict["ptype"][indexJ]=="log":
+
                         self.axes[indexI].subax[indexJ].grid(True,which="minor",axis='x')
+
                         minorTicks = self.axes[indexI].subax[indexJ].xaxis.get_minor_ticks()
+
                         for tic in minorTicks:
                             tic.label2.set_visible(False)
                             tic.tick2line.set_visible(False)
+
                 else:
                     self.axes[indexI].subax[indexJ].spines["top"].set_position(("axes",self.spinepos[indexJ]))
                     self.axes[indexI].subax[indexJ].spines["top"].set_color(self.lineColors[indexJ])
-                    self.axes[indexI].subax[indexJ].tick_params(axis='x',labelcolor=self.lineColors[indexJ])
+                    self.axes[indexI].subax[indexJ].tick_params(axis='x',color=self.lineColors[indexJ],labelcolor=self.lineColors[indexJ])
 
                 # box = self.axes[indexI].subax[indexJ].xaxis.set_clip_box(dict(facecolor='none', edgecolor='black'))
                 # box.set_bbox(dict(facecolor='none', edgecolor='black'))
@@ -1025,20 +1047,30 @@ class LogView():
 
                 self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.lineColors[indexJ])
 
-                majorTicks = self.axes[indexI].subax[indexJ].xaxis.get_major_ticks()
+                majorTicksX = self.axes[indexI].subax[indexJ].xaxis.get_major_ticks()
 
-                for tic in majorTicks:
+                for tic in majorTicksX:
                     tic.label2.set_visible(False)
                     tic.tick2line.set_visible(False)
 
-                majorTicks[0].label2.set_visible(True)
-                majorTicks[0].tick2line.set_visible(True)
+                majorTicksX[0].label2.set_visible(True)
+                majorTicksX[0].tick2line.set_visible(True)
 
-                majorTicks[-1].label2.set_visible(True)
-                majorTicks[-1].tick2line.set_visible(True)
+                majorTicksX[-1].label2.set_visible(True)
+                majorTicksX[-1].tick2line.set_visible(True)
 
                 plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_majorticklabels()[0],ha="left")
                 plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_majorticklabels()[-1],ha="right")
+
+    def get_yticks(self):
+
+        ymin = np.floor(self.top/20)*20
+
+        ymax = np.ceil(self.bottom/20)*20
+
+        yticks = np.arange(ymin,ymax+5,10)
+
+        return yticks
                 
     def get_xticks(self,xvals,indexI,indexJ,xunits_count_default=11):
 
@@ -1133,7 +1165,7 @@ class LogView():
             depth,xvals,x2=cut_line,where=cond_clean,color=self.color_clean)
 
         self.netPayThickness = net_pay
-        self.netToGrossRatio = net_pay/self.height*100
+        self.netToGrossRatio = net_pay/self.gross_thickness*100
 
         return GRcut
 
