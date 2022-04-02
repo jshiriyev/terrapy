@@ -38,6 +38,13 @@ class Fluids(object):
         for arg in args:
             self.itemnames.append(arg)
 
+    def set_molarweight(self,M,*args):
+
+        self.molarweight = [M,]
+
+        for arg in args:
+            self.molarweight.append(arg)
+
     def set_density(self,density1,*args):
 
         self.density = [density1,]
@@ -574,6 +581,16 @@ def get_Pipes(geometry=None):
         def __init__(self):
 
             pass
+
+        def set_length(self,length):
+
+            self.length = length
+
+        def set_diameter(self,diameter):
+
+            self.diameter = diameter
+
+            self.csa = np.pi*self.diameter**2/4
 
         def set_pipe(self,inner_diameter=None,outer_diameter=None,length=1,roughness=None):
             
