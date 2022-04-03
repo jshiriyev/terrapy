@@ -859,10 +859,14 @@ class LogView():
     color_limestone = "navajowhite"
     color_dolomite  = "darkkhaki"
     color_shale     = "gray"
-    color_water     = "lightblue"
+    color_waterclay = "steelblue"
+    color_watercapi = "lightsteelblue"
+    color_waterirre = "lightblue"
+    color_water     = "aqua"
     color_HC        = "limegreen"
     color_oil       = "lime"
     color_gas       = "lightgreen"
+    color_fluidmove = "olivedrab"
 
     spinerelpos = (0,0.1,0.2,0.3)
 
@@ -1186,6 +1190,30 @@ class LogView():
         self.axes[indexI].subax[indexJ].fill_betweenx(
             depth,xvals,x2=cut_line,where=ohmm_cut<=xvals,color=self.color_HC)
 
+    def set_DepthViewNMRfluid(self,NMRline,indexI,water_clay,water_capi,fluid_move):
+
+        # indexL index of NMR containing lasio in the pack
+        # indexI index of NMR containing axis in the plot
+
+        try:
+            depth = self.lasios[NMRline]["MD"]
+        except KeyError:
+            depth = self.lasios[NMRline]["DEPT"]
+
+        xvals0 = np.zeros(water_clay.shape)
+        xvals1 = water_clay
+        xvals2 = water_clay+water_capi
+        xvals3 = water_clay+water_capi+fluid_move
+
+        self.axes[indexI].subax[0].fill_betweenx(
+            depth,xvals1,x2=xvals0,where=xvals0<=xvals1,color=self.color_waterclay)
+
+        self.axes[indexI].subax[0].fill_betweenx(
+            depth,xvals2,x2=xvals1,where=xvals1<=xvals2,color=self.color_watercapi)
+
+        self.axes[indexI].subax[0].fill_betweenx(
+            depth,xvals3,x2=xvals2,where=xvals2<=xvals3,color=self.color_fluidmove)
+
     def set_GammaSpectralCP(self):
 
         self.fig_gscp,self.axis_gscp = plt.subplots()
@@ -1220,9 +1248,92 @@ class LogView():
 
         self.fig_rhoU,self.axis_rhoU = plt.subplots()
 
-    def set_PickettCP(self):
+    def set_PickettCP(self,resLine,phiLine,m=2,n=2,a=0.62,Rw=0.1,depth_correction=False,depth_correction_tol=0.05):
 
         self.fig_pcp,self.axis_pcp = plt.subplots()
+
+        try:
+            depthR = self.lasios[resLine[0]]["MD"]
+        except KeyError:
+            depthR = self.lasios[resLine[0]]["DEPT"]
+
+        try:
+            depthP = self.lasios[phiLine[0]]["MD"]
+        except KeyError:
+            depthP = self.lasios[phiLine[0]]["DEPT"]
+
+        xvalsR = self.lasios[resLine[0]][resLine[1]]
+        xvalsP = self.lasios[phiLine[0]][phiLine[1]]
+
+        indexR = self.lasios[resLine[0]].curves.keys().index(resLine[1])
+        indexP = self.lasios[phiLine[0]].curves.keys().index(phiLine[1])
+
+        mnemR = self.lasios[resLine[0]].curves[indexR].mnemonic
+        unitR = self.lasios[resLine[0]].curves[indexR].unit
+
+        mnemP = self.lasios[phiLine[0]].curves[indexP].mnemonic
+        unitP = self.lasios[phiLine[0]].curves[indexP].unit
+
+        if depth_correction:
+            indicesR,indicesP = np.where(
+                np.abs(depthP-depthR.reshape((-1,1)))<depth_correction_tol)
+            depthR = depthR[indicesR]
+            depthP = depthP[indicesP]
+            xvalsR = xvalsR[indicesR]
+            xvalsP = xvalsP[indicesP]
+
+        resexpmin = np.floor(np.log10(xvalsR.min()))
+        resexpmax = np.ceil(np.log10(xvalsR.max()))
+
+        resSw = np.logspace(resexpmin,resexpmax,100)
+
+        Sw75 = 0.75
+        Sw50 = 0.50
+        Sw25 = 0.25
+
+        phi100 = (a*Rw/resSw)**(1/m)
+        phi75 = (a*Rw/resSw/Sw75**n)**(1/m)
+        phi50 = (a*Rw/resSw/Sw50**n)**(1/m)
+        phi25 = (a*Rw/resSw/Sw25**n)**(1/m)
+
+        phiexpmin = np.floor(np.log10(xvalsP.min()))
+        phiexpmax = np.ceil(np.log10(xvalsP.max()))
+
+        xticks = 10**np.arange(resexpmin,resexpmax+1/2)
+        yticks = 10**np.arange(phiexpmin,phiexpmax+1/2)
+
+        self.axis_pcp.scatter(xvalsR,xvalsP,s=1,color="#BF5700")
+
+        self.axis_pcp.plot(resSw,phi100,c="black",linewidth=1,label="100% Sw")
+        self.axis_pcp.plot(resSw,phi75,c="blue",linewidth=1,label="75% Sw")
+        self.axis_pcp.plot(resSw,phi50,c="blue",linewidth=1,label="50% Sw")
+        self.axis_pcp.plot(resSw,phi25,c="blue",linewidth=1,label="25% Sw")
+
+        self.axis_pcp.set_xscale('log')
+        self.axis_pcp.set_yscale('log')
+
+        self.axis_pcp.set_xlim([xticks.min(),xticks.max()])
+        self.axis_pcp.set_xticks(xticks)
+
+        self.axis_pcp.set_ylim([yticks.min(),yticks.max()])
+        self.axis_pcp.set_yticks(yticks)
+
+        self.axis_pcp.xaxis.set_major_formatter(LogFormatter())
+        self.axis_pcp.yaxis.set_major_formatter(LogFormatter())
+
+        for tic in self.axis_pcp.xaxis.get_minor_ticks():
+            tic.label1.set_visible(False)
+            tic.tick1line.set_visible(False)
+
+        for tic in self.axis_pcp.yaxis.get_minor_ticks():
+            tic.label1.set_visible(False)
+            tic.tick1line.set_visible(False)
+
+        self.axis_pcp.set_xlabel("{} {}".format(mnemR,unitR))
+        self.axis_pcp.set_ylabel("{} {}".format(mnemP,unitP))
+
+        self.axis_pcp.grid(True,which="both",axis='both')
+
 
     def set_HingleCP(self):
 
