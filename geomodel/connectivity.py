@@ -5,29 +5,61 @@ from scipy.stats import norm
 if __name__ == "__main__":
     import setup
 
-class variogram():
+class SpatProp(np.ndarray):
 
-    """
-    variogram class used to represent observational spatial points
-    and calculates semi-variance values
-    ...
-    Attributes
-    ----------
-    Methods
-    -------
-    """
+    """It is a numpy array of shape (N,) with additional spatial attributes x,y,z"""
 
-    def __init__(self,obsprop=None,estprop=None):
+    def __new__(cls,values=None,shape=None,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
 
-        # self.__dict__ = prop.__dict__.copy()
+        """if provided, X,Y,Z must be one dimensional numpy array"""
 
-        if obsprop is not None:
-            self.obsprop = obsprop
+        if values is not None:
+            inp1 = (values.size,)
+            inp2 = values.ravel()
+            inp3 = values.dtype
+            ones = np.ones(values.shape)
+        else:
+            inp1 = (np.prod(shape),)
+            inp2 = np.zeros(shape).ravel()
+            inp3 = np.float64
+            ones = np.ones(shape)
 
-        if estprop is not None:
-            self.estprop = estprop
+        self = super().__new__(cls,shape=inp1,buffer=inp2,dtype=inp3)
 
-    def set_experimental(self,lag=None,lagtol=None,lagmax=None,
+        if X is not None:
+            self.x = X
+        else:
+            self.x = (np.cumsum(ones,0)-1).ravel()*dX
+
+        if Y is not None:
+            self.y = Y
+        elif ones.ndim>1:
+            self.y = (np.cumsum(ones,1)-1).ravel()*dY
+        else:
+            self.y = ones.flatten()
+
+        if Z is not None:
+            self.z = Z
+        elif ones.ndim>2:
+            self.z = (np.cumsum(ones,2)-1).ravel()*dZ
+        else:
+            self.z = ones.flatten()
+
+        return self
+
+    def set_connection(self):
+
+        """
+        It calculates distance and angle between observation points;
+        both are calculated in 2-dimensional array form.
+        """
+        self.dx,self.dy,self.dz = SpatProp.get_distance(self,returnDeltaFlag=True)
+
+        self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
+
+        self.angle = np.arctan2(self.dy,self.dx)
+
+    def set_experimentalVariogram(self,lag=None,lagtol=None,lagmax=None,
         azimuth=None,azimuthtol=None,bandwidth=None,returnFlag=False):
 
         """
@@ -36,7 +68,7 @@ class variogram():
         to be zero in the +x direction and positive counterclockwise
         """
         
-        prop_err = (self.obsprop-self.obsprop.reshape((-1,1)))**2
+        prop_err = (self-np.reshape(self,(-1,1)))**2
 
         """for an anisotropy only 2D data can be used FOR NOW"""
 
@@ -49,16 +81,16 @@ class variogram():
             self.azimuthtol = np.radians(azimuthtol)
             self.bandwidth = bandwidth
 
-        delta_angle = np.abs(self.obsprop.angle-self.azimuth)
+        delta_angle = np.abs(self.angle-self.azimuth)
         
         con_azmtol = delta_angle<=self.azimuthtol
-        con_banwdt = np.sin(delta_angle)*self.obsprop.distance<=(self.bandwidth/2.)
+        con_banwdt = np.sin(delta_angle)*self.distance<=(self.bandwidth/2.)
         con_direct = np.logical_and(con_azmtol,con_banwdt)
 
         if lag is None:
-            cond0 = self.obsprop.distance!=0
+            cond0 = self.distance!=0
             condM = np.logical_and(cond0,con_azmtol)
-            self.lag = self.obsprop.distance[condM].min()
+            self.lag = self.distance[condM].min()
         else:
             self.lag = lag
 
@@ -68,7 +100,7 @@ class variogram():
             self.lagtol = lagtol
 
         if lagmax is None:
-            self.lagmax = self.obsprop.distance[con_azmtol].max()
+            self.lagmax = self.distance[con_azmtol].max()
         else:
             self.lagmax = lagmax
 
@@ -82,7 +114,7 @@ class variogram():
         
         for i,h in enumerate(self.bins_experimental):
 
-            con_distnc = np.abs(self.obsprop.distance-h)<=self.lagtol
+            con_distnc = np.abs(self.distance-h)<=self.lagtol
 
             conoverall = np.logical_and(con_distnc,con_direct)
 
@@ -169,13 +201,13 @@ class variogram():
 
             plt.plot(origin_x+hmin_x,origin_y+hmin_y,'r')
 
-    def set_theoretical(self,vbins=None,vtype='spherical',vsill=None,vrange=None,vnugget=0):
+    def set_theoreticalVariogram(self,vbins=None,vtype='spherical',vsill=None,vrange=None,vnugget=0,**kwars):
 
         if vbins is None:
             if hasattr(self,"bins_experimental"):
                 d = self.bins_experimental
-            elif hasattr(self.obsprop,"distance"):
-                d = self.obsprop.distance
+            elif hasattr(self,"distance"):
+                d = self.distance
         else:
             self.bins_theoretical = vbins
             d = vbins
@@ -183,7 +215,7 @@ class variogram():
         self.type = vtype
 
         if vsill is None:
-            self.sill = self.obsprop.var().tolist()
+            self.sill = self.var().tolist()
         else:
             self.sill = vsill
         
@@ -193,26 +225,54 @@ class variogram():
             self.range = vrange
 
         self.nugget = vnugget
-            
-        self.theoretical = np.zeros_like(d)
-        
-        Co = self.nugget
-        Cd = self.sill-self.nugget
-        
-        if self.type == 'power':
-            self.theoretical[d>0] = Co+Cd*(d[d>0])**self.power
-        elif self.type == 'spherical':
-            self.theoretical[d>0] = Co+Cd*(3/2*(d[d>0]/self.range)-1/2*(d[d>0]/self.range)**3)
-            self.theoretical[d>self.range] = self.sill
-        elif self.type == 'exponential':
-            self.theoretical[d>0] = Co+Cd*(1-np.exp(-3*(d[d>0]/self.range)))
-        elif self.type == 'gaussian':
-            self.theoretical[d>0] = Co+Cd*(1-np.exp(-3*(d[d>0]/self.range)**2))
-        elif self.type == 'hole_effect':
-            self.theoretical[d>0] = Co+Cd*(1-np.sin((d[d>0]/self.range))/(d[d>0]/self.range))
 
-        self.covariance = self.sill-self.theoretical
+        self.theoretical,self.covariance = SpatProp.get_varmodel(
+            d,self.type,self.sill,self.range,self.nugget,**kwars)
+
+    @staticmethod
+    def get_distance(A,B=None,returnDeltaFlag=False):
+
+        if B is None:
+            B = A
+
+        dx = A.x-B.x.reshape((-1,1))
+        dy = A.y-B.y.reshape((-1,1))
+        dz = A.z-B.z.reshape((-1,1))
+
+        if returnDeltaFlag:
+            return dx,dy,dz
+        else:
+            return np.sqrt(dx**2+dy**2+dz**2)
+
+    @staticmethod
+    def get_varmodel(vbins,vtype,vsill,vrange,vnugget,power=1):
+            
+        theoretical = np.zeros_like(vbins)
+        
+        Co = vnugget
+        Cd = vsill-vnugget
+        
+        if vtype == 'power':
+            theoretical[vbins>0] = Co+Cd*(vbins[vbins>0])**power
+        elif vtype == 'spherical':
+            theoretical[vbins>0] = Co+Cd*(3/2*(vbins[vbins>0]/vrange)-1/2*(vbins[vbins>0]/vrange)**3)
+            theoretical[vbins>vrange] = vsill
+        elif vtype == 'exponential':
+            theoretical[vbins>0] = Co+Cd*(1-np.exp(-3*(vbins[vbins>0]/vrange)))
+        elif vtype == 'gaussian':
+            theoretical[vbins>0] = Co+Cd*(1-np.exp(-3*(vbins[vbins>0]/vrange)**2))
+        elif vtype == 'hole_effect':
+            theoretical[vbins>0] = Co+Cd*(1-np.sin((vbins[vbins>0]/vrange))/(vbins[vbins>0]/vrange))
+
+        covariance = vsill-theoretical
+
+        return theoretical,covariance
 
 if __name__ == "__main__":
 
-    pass
+    A = SpatProp(np.array([[1,2,3,4]]))
+
+    A.set_connection()
+
+    A.set_experimentalVariogram()
+

@@ -5,9 +5,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.items import SpatProp
-
-from geomodel.connectivity import variogram
+from geomodel.connectivity import SpatProp
 
 TOC = np.ndarray((8,8))
 
@@ -26,15 +24,13 @@ prop = SpatProp(TOC,dX=1,dY=1)
 
 prop.set_connection()
 
-Var = variogram(prop)
-
-bEEWW,vEEWW = Var.set_experimental(
+bEEWW,vEEWW = prop.set_experimentalVariogram(
     lagmax=4,azimuth=0,azimuthtol=10,bandwidth=1,returnFlag=True)
-bNNSS,vNNSS = Var.set_experimental(
+bNNSS,vNNSS = prop.set_experimentalVariogram(
     lagmax=4,azimuth=90,azimuthtol=10,bandwidth=1,returnFlag=True)
-bNESW,vNESW = Var.set_experimental(
+bNESW,vNESW = prop.set_experimentalVariogram(
     lagmax=6,azimuth=45,azimuthtol=10,bandwidth=1,returnFlag=True)
-bNWSE,vNWSE = Var.set_experimental(
+bNWSE,vNWSE = prop.set_experimentalVariogram(
     lagmax=6,azimuth=135,azimuthtol=10,bandwidth=1,returnFlag=True)
 
 plt.plot(bEEWW,vEEWW,label="E-W")

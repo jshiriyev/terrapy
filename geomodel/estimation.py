@@ -5,16 +5,12 @@ import numpy as np
 
 from scipy.stats import norm
 
+if __name__ == "__main__":
+    import setup
+
+from geomodel.connectivity import SpatProp
+
 class interpolation():
-    
-    """
-    1D interpolation, but here it must be 3D
-    ...
-    Attributes
-    ----------    
-    Methods
-    -------
-    """
     
     def __init__(self):
         pass
@@ -79,51 +75,50 @@ class interpolation():
         else:
             return y
 
-class kriging(variogram):
+class kriging():
 
-    def __init__(self,var,**kwargs):
-        
-        self.var = var
+    def __init__(self,obsSpatProp,estSpatProp):
         
         # super(kriging,self).__init__(None,**kwargs)
         
-        """here distance is calculated in 2-dimensional array form"""
-        self.dx = self.var.estprop.x-self.var.obsprop.x.reshape((-1,1))
-        self.dy = self.var.estprop.y-self.var.obsprop.y.reshape((-1,1))
-        self.dz = self.var.estprop.z-self.var.obsprop.z.reshape((-1,1))
+        self.obs = obsSpatProp
+        self.est = estSpatProp
 
-        self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
+    def simple(self,mean=None):
 
-    def simple(self,perc=0.5):
+        if mean is None:
+            self.mean = self.obs.mean()
+        else:
+            self.mean = mean
         
         "perc -> percentile, perc=0.5 gives mean values"
 
-        # self.set_distance()
+        self.distance = SpatProp.get_distance(self.est,self.obs)
         
-        # self.set_theoretical(self.distance,self.type,self.sill,self.range,self.nugget)
-        
-        # self.covariance = self.sill-self.theoretical
+        _,self.covariance = SpatProp.get_varmodel(
+            self.distance,self.obs.type,
+            self.obs.sill,self.obs.range,
+            self.obs.nugget)
 
-        self.lambdas = np.linalg.solve(self.var.covariance,self.covariance)
+        self.lambdas = np.linalg.solve(self.obs.covariance,self.covariance)
         
-        calc_diff_arr = np.reshape(self.var.property,(-1,1))-self.mean
+        calc_diff_arr = self.obs.reshape((-1,1))-self.mean
         calc_prop_mat = self.lambdas*(calc_diff_arr)
         calc_vars_mat = self.lambdas*self.covariance
         
         self.property = self.mean+calc_prop_mat.sum(axis=0)
-        self.variance = self.sill-calc_vars_mat.sum(axis=0)
+        self.variance = self.obs.sill-calc_vars_mat.sum(axis=0)
 
-        self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
-
-    def ordinary(self,perc=0.5):
+    def ordinary(self):
         
         "perc -> percentile, perc=0.5 gives mean values"
 
-        # self.set_distance()
+        self.distance = SpatProp.get_distance(self.est,self.obs)
         
-        self.set_theoretical(self.distance,self.type,self.sill,self.range,self.nugget)
-
-        self.covariance = self.sill-self.theoretical
+        _,self.covariance = SpatProp.get_varmodel(
+            self.distance,self.obs.type,
+            self.obs.sill,self.obs.range,
+            self.obs.nugget)
         
         Am = self.var.covariance
         Ar = np.ones(Am.shape[0]).reshape((-1,1))
@@ -141,19 +136,21 @@ class kriging(variogram):
         self.lambdas = xm[:-1,:]
         self.beta = xm[-1,:]
 
-        calc_prop_mat = self.lambdas*np.reshape(self.var.property,(-1,1))
+        calc_prop_mat = self.lambdas*self.obs.reshape((-1,1))
         calc_vars_mat = self.lambdas*self.covariance
 
         self.property = calc_prop_mat.sum(axis=0)
         self.variance = self.sill-self.beta-calc_vars_mat.sum(axis=0)
-        
-        self.property = self.property+norm.ppf(perc)*np.sqrt(self.variance)
 
-##    def simulation_gaussian(self):
-##
-##        perc = np.random.rand(self.x.size)
-##
-##        self.kriging_ordinary(perc=perc)
+    def get_percentile(self,perc=0.5):
+
+        return self.property+norm.ppf(perc)*np.sqrt(self.variance)
+
+    def gaussian_simulation(self):
+
+        perc = np.random.rand(self.x.size)
+
+        self.get_percentile(perc=perc)
 
 if __name__ == "__main__":
 

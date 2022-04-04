@@ -3,9 +3,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.items import SpatProp
-
-from geomodel.connectivity import variogram
+from geomodel.connectivity import SpatProp
 
 TOC = np.ndarray((4,4))
 
@@ -20,20 +18,18 @@ prop = SpatProp(TOC,dX=10,dY=10)
 
 prop.set_connection()
 
-Var = variogram(prop)
-
 # Var.set_experimental()
 # Var.set_experimental(azimuth=90,azimuthtol=20,bandwidth=2)
-Var.set_experimental(azimuth=45,azimuthtol=22.5,bandwidth=5)
+prop.set_experimentalVariogram(azimuth=45,azimuthtol=22.5,bandwidth=5)
 
-print(Var.lag)
-print(Var.lagtol)
-print(Var.lagmax)
-print(Var.outbound)
+print(prop.lag)
+print(prop.lagtol)
+print(prop.lagmax)
+print(prop.outbound)
 
-print(Var.azimuth)
-print(Var.azimuthtol)
-print(Var.bandwidth)
+print(prop.azimuth)
+print(prop.azimuthtol)
+print(prop.bandwidth)
 
-print(Var.bins_experimental)
-print(Var.experimental)
+print(prop.bins_experimental)
+print(prop.experimental)
