@@ -5,8 +5,6 @@ import numpy as np
 
 from scipy.stats import norm
 
-from connectivity import variogram
-
 class interpolation():
     
     """
@@ -83,31 +81,16 @@ class interpolation():
 
 class kriging(variogram):
 
-    """
-    estimation class used to represent estimated points
-    ...
-    Attributes
-    ----------    
-    Methods
-    -------
-    """
-
     def __init__(self,var,**kwargs):
-        """var must be theoretical variogram at observation points"""
-        self.var = var
-
-        self.type = self.var.type
-        self.nugget = self.var.nugget
-        self.sill = self.var.sill
-        self.range = self.var.range
         
-        super(kriging,self).__init__(None,**kwargs)
-
-    def set_distance(self):
+        self.var = var
+        
+        # super(kriging,self).__init__(None,**kwargs)
+        
         """here distance is calculated in 2-dimensional array form"""
-        self.dx = self.x-self.var.x.reshape((-1,1))
-        self.dy = self.y-self.var.y.reshape((-1,1))
-        self.dz = self.z-self.var.z.reshape((-1,1))
+        self.dx = self.var.estprop.x-self.var.obsprop.x.reshape((-1,1))
+        self.dy = self.var.estprop.y-self.var.obsprop.y.reshape((-1,1))
+        self.dz = self.var.estprop.z-self.var.obsprop.z.reshape((-1,1))
 
         self.distance = np.sqrt(self.dx**2+self.dy**2+self.dz**2)
 
@@ -115,11 +98,11 @@ class kriging(variogram):
         
         "perc -> percentile, perc=0.5 gives mean values"
 
-        self.set_distance()
+        # self.set_distance()
         
-        self.set_theoretical(self.distance,self.type,self.sill,self.range,self.nugget)
+        # self.set_theoretical(self.distance,self.type,self.sill,self.range,self.nugget)
         
-        self.covariance = self.sill-self.theoretical
+        # self.covariance = self.sill-self.theoretical
 
         self.lambdas = np.linalg.solve(self.var.covariance,self.covariance)
         
@@ -136,7 +119,7 @@ class kriging(variogram):
         
         "perc -> percentile, perc=0.5 gives mean values"
 
-        self.set_distance()
+        # self.set_distance()
         
         self.set_theoretical(self.distance,self.type,self.sill,self.range,self.nugget)
 

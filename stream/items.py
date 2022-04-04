@@ -97,17 +97,22 @@ class SpatProp(np.ndarray):
 
     """It is a numpy array of shape (N,) with additional spatial attributes x,y,z"""
 
-    def __new__(cls,values,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
+    def __new__(cls,values=None,shape=None,X=None,Y=None,Z=None,dX=1,dY=1,dZ=1):
 
         """if provided, X,Y,Z must be one dimensional numpy array"""
 
-        inp1 = (values.size,)
-        inp2 = values.ravel()
-        inp3 = values.dtype
+        if values is not None:
+            inp1 = (values.size,)
+            inp2 = values.ravel()
+            inp3 = values.dtype
+            ones = np.ones(values.shape)
+        else:
+            inp1 = (np.prod(shape),)
+            inp2 = np.zeros(shape).ravel()
+            inp3 = np.float64
+            ones = np.ones(shape)
 
         self = super().__new__(cls,shape=inp1,buffer=inp2,dtype=inp3)
-
-        ones = np.ones(values.shape)
 
         if X is not None:
             self.x = X

@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
 from stream.items import SpatProp
 
-from geostats.connectivity import variogram
+from geomodel.connectivity import variogram
 
 TOC = np.ndarray((8,8))
 

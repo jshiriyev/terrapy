@@ -17,25 +17,18 @@ class variogram():
     -------
     """
 
-    def __init__(self,prop):
+    def __init__(self,obsprop=None,estprop=None):
 
         # self.__dict__ = prop.__dict__.copy()
 
-        self.property = prop
+        if obsprop is not None:
+            self.obsprop = obsprop
 
-        self.x = prop.x
-        self.y = prop.y
-        self.z = prop.z
-
-        self.dx = prop.dx
-        self.dy = prop.dy
-        self.dz = prop.dz
-
-        self.distance = prop.distance
-        self.angle = prop.angle
+        if estprop is not None:
+            self.estprop = estprop
 
     def set_experimental(self,lag=None,lagtol=None,lagmax=None,
-                             azimuth=None,azimuthtol=None,bandwidth=None,returnFlag=False):
+        azimuth=None,azimuthtol=None,bandwidth=None,returnFlag=False):
 
         """
         azimuth range is (-\\pi,\\pi] in radians [(-180,180] in degrees]
@@ -43,7 +36,7 @@ class variogram():
         to be zero in the +x direction and positive counterclockwise
         """
         
-        prop_err = (self.property-self.property.reshape((-1,1)))**2
+        prop_err = (self.obsprop-self.obsprop.reshape((-1,1)))**2
 
         """for an anisotropy only 2D data can be used FOR NOW"""
 
@@ -56,16 +49,16 @@ class variogram():
             self.azimuthtol = np.radians(azimuthtol)
             self.bandwidth = bandwidth
 
-        delta_angle = np.abs(self.angle-self.azimuth)
+        delta_angle = np.abs(self.obsprop.angle-self.azimuth)
         
         con_azmtol = delta_angle<=self.azimuthtol
-        con_banwdt = np.sin(delta_angle)*self.distance<=(self.bandwidth/2.)
+        con_banwdt = np.sin(delta_angle)*self.obsprop.distance<=(self.bandwidth/2.)
         con_direct = np.logical_and(con_azmtol,con_banwdt)
 
         if lag is None:
-            cond0 = self.distance!=0
+            cond0 = self.obsprop.distance!=0
             condM = np.logical_and(cond0,con_azmtol)
-            self.lag = self.distance[condM].min()
+            self.lag = self.obsprop.distance[condM].min()
         else:
             self.lag = lag
 
@@ -75,7 +68,7 @@ class variogram():
             self.lagtol = lagtol
 
         if lagmax is None:
-            self.lagmax = self.distance[con_azmtol].max()
+            self.lagmax = self.obsprop.distance[con_azmtol].max()
         else:
             self.lagmax = lagmax
 
@@ -89,7 +82,7 @@ class variogram():
         
         for i,h in enumerate(self.bins_experimental):
 
-            con_distnc = np.abs(self.distance-h)<=self.lagtol
+            con_distnc = np.abs(self.obsprop.distance-h)<=self.lagtol
 
             conoverall = np.logical_and(con_distnc,con_direct)
 
@@ -181,8 +174,8 @@ class variogram():
         if vbins is None:
             if hasattr(self,"bins_experimental"):
                 d = self.bins_experimental
-            elif hasattr(self,"distance"):
-                d = self.distance
+            elif hasattr(self.obsprop,"distance"):
+                d = self.obsprop.distance
         else:
             self.bins_theoretical = vbins
             d = vbins
@@ -190,12 +183,15 @@ class variogram():
         self.type = vtype
 
         if vsill is None:
-            self.sill = self.property.var()
+            self.sill = self.obsprop.var().tolist()
         else:
             self.sill = vsill
         
-        self.set_attribute(vrange,"range",(d.max()-d.min())/5)
-        
+        if vrange is None:
+            self.range = (d.max()-d.min())/5
+        else:
+            self.range = vrange
+
         self.nugget = vnugget
             
         self.theoretical = np.zeros_like(d)
