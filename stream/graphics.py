@@ -1,5 +1,3 @@
-from math import ceil
-
 import os
 
 import tkinter as tk
@@ -10,12 +8,12 @@ from tkinter import font as tkfont
 
 from ttkwidgets.autocomplete import AutocompleteEntryListbox
 
-import lasio # it should not be here, it should be at dataset
-
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
+
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+
 from matplotlib.ticker import AutoMinorLocator
 from matplotlib.ticker import LogFormatter
 from matplotlib.ticker import LogFormatterExponent
@@ -870,67 +868,9 @@ class LogView():
 
     spinerelpos = (0,0.1,0.2,0.3)
 
-    def __init__(self,filenames=None):
+    def __init__(self):
 
         self.lasios = []
-
-        if filenames is not None:
-            for filename in filenames:
-                self.lasios.append(lasio.read(filename))
-
-    def add_file(self,filename):
-
-        self.lasios.append(lasio.read(filename))
-
-    def print_well_info(self,index=None):
-
-        if index is not None:
-            print("\n\tWELL #{}".format(self.lasios[index].well.WELL.value))
-            for item in self.lasios[index].sections["Well"]:
-                print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
-        else:
-            for las in self.lasios:
-                print("\n\tWELL #{}".format(las.well.WELL.value))
-                for item in las.sections["Well"]:
-                    print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
-
-    def print_curve_info(self,index=None,mnemonic_space=33,tab_space=8):
-
-        def print_func(index):
-            las = self.lasios[index]
-            print("\n\tLOG NUMBER {}".format(index))
-            for count,curve in enumerate(las.curves):
-                minXval = np.nanmin(curve.data)
-                maxXval = np.nanmax(curve.data)
-                tab_num = ceil((mnemonic_space-len(curve.mnemonic))/tab_space)
-                tab_spc = "\t"*tab_num if tab_num>0 else "\t"
-                print("Curve: {}{}Units: {}\tMin: {}\tMax: {}\tDescription: {}".format(
-                    curve.mnemonic,tab_spc,curve.unit,minXval,maxXval,curve.descr))
-
-        if index is not None:
-            print_func(index)
-        else:
-            [print_func(index) for index in range(len(self.lasios))]
-            
-    def set_interval(self,top,bottom):
-
-        self.top = top
-        self.bottom = bottom
-
-        self.gross_thickness = self.bottom-self.top
-
-        for indexI,las in enumerate(self.lasios):
-
-            try:
-                depth = las["MD"]
-            except KeyError:
-                depth = las["DEPT"]
-
-            depth_cond = np.logical_and(depth>self.top,depth<self.bottom)
-
-            for indexJ,curve in enumerate(las.curves):
-
-                self.lasios[indexI].curves[indexJ].data = curve.data[depth_cond]
 
     def set_DepthView(self,plot_dictionary):
 
@@ -1333,7 +1273,6 @@ class LogView():
         self.axis_pcp.set_ylabel("{} {}".format(mnemP,unitP))
 
         self.axis_pcp.grid(True,which="both",axis='both')
-
 
     def set_HingleCP(self):
 

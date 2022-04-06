@@ -430,69 +430,69 @@ class dataset():
             for line in vprint(*self._running):
                 wfile.write(line)
 
-def writexlsx(filepath,**kwargs):
+    def writexlsx(filepath,**kwargs):
 
-    wb = openpyxl.Workbook()
+        wb = openpyxl.Workbook()
 
-    sheet = wb.active
+        sheet = wb.active
 
-    if sheet_title is not None:
-        sheet.title = sheet_title
+        if sheet_title is not None:
+            sheet.title = sheet_title
 
-    for line in running:
-        sheet.append(line)
+        for line in running:
+            sheet.append(line)
 
-    wb.save(filepath)
+        wb.save(filepath)
 
-def writevtk(frac,time,solution):
+    def writevtk(frac,time,solution):
 
-    pass
+        pass
 
-def cyrilictolatin(string):
+    def cyrilictolatin(string):
 
-    aze_cyril_lower = [
-        "а","б","ж","ч","д",
-        "е","я","ф","э","ь",
-        "щ","х","ы","и","ъ",
-        "к","г","л","м","н",
-        "о","ю","п","р","с",
-        "ш","т","у","ц","в",
-        "й","з"]
+        aze_cyril_lower = [
+            "а","б","ж","ч","д",
+            "е","я","ф","э","ь",
+            "щ","х","ы","и","ъ",
+            "к","г","л","м","н",
+            "о","ю","п","р","с",
+            "ш","т","у","ц","в",
+            "й","з"]
 
-    aze_latin_lower = [
-        "a","b","c","ç","d",
-        "e","ə","f","g","ğ",
-        "h","x","ı","i","j",
-        "k","q","l","m","n",
-        "o","ö","p","r","s",
-        "ş","t","u","ü","v",
-        "y","z"]
+        aze_latin_lower = [
+            "a","b","c","ç","d",
+            "e","ə","f","g","ğ",
+            "h","x","ı","i","j",
+            "k","q","l","m","n",
+            "o","ö","p","r","s",
+            "ş","t","u","ü","v",
+            "y","z"]
 
-    aze_cyril_upper = [
-        "А","Б","Ҹ","Ч","Д",
-        "Е","Я","Ф","Ҝ","Ғ",
-        "Щ","Х","Ы","И","Ъ",
-        "К","Г","Л","М","Н",
-        "О","Ю","П","Р","С",
-        "Ш","Т","У","Ц","В",
-        "Й","З"]
+        aze_cyril_upper = [
+            "А","Б","Ҹ","Ч","Д",
+            "Е","Я","Ф","Ҝ","Ғ",
+            "Щ","Х","Ы","И","Ъ",
+            "К","Г","Л","М","Н",
+            "О","Ю","П","Р","С",
+            "Ш","Т","У","Ц","В",
+            "Й","З"]
 
-    aze_latin_upper = [
-        "A","B","C","Ç","D",
-        "E","Ə","F","G","Ğ",
-        "H","X","I","İ","J",
-        "K","Q","L","M","N",
-        "O","Ö","P","R","S",
-        "Ş","T","U","Ü","V",
-        "Y","Z"]
+        aze_latin_upper = [
+            "A","B","C","Ç","D",
+            "E","Ə","F","G","Ğ",
+            "H","X","I","İ","J",
+            "K","Q","L","M","N",
+            "O","Ö","P","R","S",
+            "Ş","T","U","Ü","V",
+            "Y","Z"]
 
-    for cyril,latin in zip(aze_cyril_lower,aze_latin_lower):
-        string.replace(cyril,latin)
+        for cyril,latin in zip(aze_cyril_lower,aze_latin_lower):
+            string.replace(cyril,latin)
 
-    for cyril,latin in zip(aze_cyril_upper,aze_latin_upper):
-        string.replace(cyril,latin)
+        for cyril,latin in zip(aze_cyril_upper,aze_latin_upper):
+            string.replace(cyril,latin)
 
-    return string
+        return string
 
 if __name__ == "__main__":
 
