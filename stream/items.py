@@ -149,11 +149,39 @@ class Rectangle(View3D):
 
     # it is a 2D object in 3D space
 
-    def __init__(self,lengths,width=1):
+    def __init__(self,lengths=None,thickness=1):
+
+        if lengths is not None:
+            self.set_lengths(lengths)
+
+        self.set_thickness(thickness)
+
+        self.gridFlag = False
+
+    def set_lengths(self,lengths):
 
         self.lengths = lengths
+        self.aspect = lengths[0]/lengths[1]
 
-        self.width = width
+        self.set_rectangle()
+
+    def set_area(self,area,aspect=1):
+        
+        self.area = area
+
+        length1 = np.sqrt(self.area*aspect)
+        length2 = length1/aspect
+
+        self.set_lengths(lengths=(length1,length2))
+
+    def set_thickness(self,thickness):
+
+        self.thickness = thickness
+
+        if hasattr(self,"lengths"):
+            self.set_rectangle()
+
+    def set_rectangle(self):
 
         self.edge_vertices = np.zeros((4,2))
 
@@ -175,9 +203,7 @@ class Rectangle(View3D):
         for x_aspect,y_aspect in zip(x_aspects,y_aspects):
             self.boundaries.append(np.array([x_aspect,y_aspect]))
 
-        self.gridded = False
-
-    def grid(self,grid_num):
+    def set_grids(self,grid_num):
 
         # grid_num must be a tuple or list with length equal to 2
         
@@ -205,7 +231,7 @@ class Rectangle(View3D):
 
         self.grid_xnodes = np.linspace(0,self.lengths[0],self.grid_num[0]+1)
         self.grid_ynodes = np.linspace(0,self.lengths[1],self.grid_num[1]+1)
-        self.grid_znodes = np.linspace(-self.width/2,self.width/2,2)
+        self.grid_znodes = np.linspace(-self.thickness/2,self.thickness/2,2)
         
         xsize = self.grid_xnodes[1:]-self.grid_xnodes[:-1]
         ysize = self.grid_ynodes[1:]-self.grid_ynodes[:-1]
@@ -217,8 +243,8 @@ class Rectangle(View3D):
         self.grid_sizes[:,2] = zsize.repeat(self.grid_num[0]*self.grid_num[1])
 
         self.grid_areas = np.zeros((self.grid_numtot,3))
-        self.grid_areas[:,0] = self.grid_sizes[:,1]*self.width
-        self.grid_areas[:,1] = self.grid_sizes[:,0]*self.width
+        self.grid_areas[:,0] = self.grid_sizes[:,1]*self.thickness
+        self.grid_areas[:,1] = self.grid_sizes[:,0]*self.thickness
         self.grid_areas[:,2] = self.grid_sizes[:,0]*self.grid_sizes[:,1]
 
         self.grid_volumes = np.prod(self.grid_sizes,axis=1)
@@ -232,7 +258,7 @@ class Rectangle(View3D):
         self.grid_centers[:,1] = ycenter.repeat(self.grid_num[0])
         self.grid_centers[:,2] = zcenter.repeat(self.grid_num[0]*self.grid_num[1])
 
-        self.gridded = True     # it is a crucial property to know whether the geometry is gridded or not
+        self.gridFlag = True     # it is a crucial property to know whether the geometry is gridded or not
 
     def plot(self,axis,showVertices=True,showBounds=True,showGridEdges=True,showGridCenters=True):
 
@@ -250,7 +276,7 @@ class Rectangle(View3D):
                 axis.hlines(y=node,xmin=0,xmax=self.lengths[0],linestyle="--")
 
         if showGridCenters:
-            axis.scatter(*self.grid_centers.T)
+            axis.scatter(*self.grid_centers.T[:2,:])
 
         axis.set_box_aspect(self.lengths[1]/self.lengths[0])
 
@@ -260,7 +286,7 @@ class Ellipse(View3D):
 
     # origin: location of the center of ellipse
     # lengths: (major radius, minor radius)
-    # width: thickness of the ellipse
+    # thickness: thickness of the ellipse
     # rinner: inner radius
     # dip_angle: 
 
@@ -303,6 +329,8 @@ class Ellipse(View3D):
         for x_aspect,y_aspect,z_aspect in zip(x_aspects,y_aspects,z_aspects):
             self.boundaries.append(np.array([x_aspect,y_aspect,z_aspect]))
 
+        self.gridFlag = False
+
     def set_origin(self,origin):
 
         self.origin = origin # origing has not been implemented yet
@@ -320,6 +348,10 @@ class Ellipse(View3D):
                 raise ValueError('radii must be defined as a number or tuple')
         elif len(radii) == 2:
             self.radii = radii
+
+    def set_area(self,area):
+
+        self.area = area
 
     def set_thickness(self,thickness):
 
@@ -399,7 +431,7 @@ class Cuboid(View3D):
         for x_aspect,y_aspect,z_aspect in zip(x_aspects,y_aspects,z_aspects):
             self.boundaries.append(np.array([x_aspect,y_aspect,z_aspect]))
 
-        self.gridded = False
+        self.gridFlag = False
 
     def grid(self,grid_num):
 
@@ -464,7 +496,7 @@ class Cuboid(View3D):
         self.grid_centers[:,1] = np.tile(ycenter.repeat(self.grid_num[0]),self.grid_num[2])
         self.grid_centers[:,2] = zcenter.repeat(self.grid_num[0]*self.grid_num[1])
 
-        self.gridded = True
+        self.gridFlag = True
 
     def plot(self):
 
@@ -597,7 +629,7 @@ def get_PorRock(geometry=None):
 
     if geometry is None:
         base = object
-    elif geometry=="rectangular":
+    elif geometry=="rectangle" or geometry=="square":
         base = Rectangle
     elif geometry=="ellipse":
         base = Ellipse
@@ -621,31 +653,48 @@ def get_PorRock(geometry=None):
 
         def set_porosity(self,porosity,homogeneous=True,X=None,Y=None,Z=None):
 
-            self.porosity = porosity
+            if isinstance(porosity,float):
+                porosity = np.array([porosity])
+            elif isinstance(porosity,int):
+                porosity = np.array([porosity])
+            elif isinstance(porosity,tuple):
+                porosity = np.array(porosity)
+
+            if homogeneous and self.gridFlag:
+                self.porosity = np.ones(self.grid_numtot)*porosity
+            else:
+                self.porosity = porosity
 
         def set_permeability(self,permeability,isotropy=True,homogeneous=True,X=None,Y=None,Z=None):
 
+            if isinstance(permeability,float):
+                permeability = np.array([permeability])
+            elif isinstance(permeability,int):
+                permeability = np.array([permeability])
+            elif isinstance(permeability,tuple):
+                permeability = np.array(permeability)
+
             if homogeneous and isotropy:
 
-                if hasattr(self,"grid_numtot"):
-                    self.permeability = np.repeat([[permeability]*3],self.grid_numtot,axis=0)
+                if self.gridFlag:
+                    self.permeability = np.ones((self.grid_numtot,3))*permeability
                 else:
                     self.permeability = permeability
                 
             elif not homogeneous and isotropy:
                 
-                self.permeability = np.repeat([permeability],3,axis=0).T
+                self.permeability = np.repeat(permeability,3).reshape((-1,3))
                 
             elif homogeneous and not isotropy:
                 
-                if hasattr(self,"grid_numtot"):
-                    self.permeability = np.repeat([permeability],self.grid_numtot,axis=0)
+                if self.gridFlag:
+                    self.permeability = np.repeat(permeability,self.grid_numtot).reshape((3,-1)).T
                 else:
                     self.permeability = permeability
                 
             elif not homogeneous and not isotropy:
                 
-                self.permeability = np.array(permeability)
+                self.permeability = permeability
 
         def set_compressibility(self,compressibility):
 
@@ -826,7 +875,7 @@ def get_PorRock(geometry=None):
             #         hold on
 
             #         prop.Color = 'w';
-            #         prop.LineWidth = 1;
+            #         prop.Linethickness = 1;
 
             #         plotAll.fracture(frac,prop);
 
@@ -918,7 +967,7 @@ def get_Fractures(geometry=None):
         # nodeCoord
         # map
         # permeability
-        # width
+        # thickness
         # fracID
         # nodeID
         # numAfrac

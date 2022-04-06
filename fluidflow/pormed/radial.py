@@ -18,8 +18,9 @@ from scipy.optimize import root_scalar
 if __name__ == "__main__":
     import setup
 
+from stream.items import Fluids
+
 from stream.items import get_PorRock
-from stream.items import get_Fluids
 from stream.items import get_Wells
 
 class steady():
@@ -31,13 +32,13 @@ class steady():
         # There can be two slightly compressible fluids where the
         # second one is at irreducible saturation, not mobile
 
-        self.Fluids = get_Fluids()(number=2)
+        self.Fluids = Fluids(number=2)
 
         self.Well = get_Wells()(number=1)
 
         self.Well.set_flowconds("rate",flow_rate,"mobfluid")
 
-    def initialize(self,pressure0,Swirr=0):
+    def initialize(self,pressure0,Swirr=0,ctotal=None):
 
         self.pressure0 = pressure0
 
@@ -45,10 +46,12 @@ class steady():
 
         self.So = 1-self.Sw
 
-        coSo = self.Fluids.compressibility[0]*self.So
-        cwSw = self.Fluids.compressibility[1]*self.Sw
+        if ctotal is None:
+            coSo = self.Fluids.compressibility[0]*self.So
+            cwSw = self.Fluids.compressibility[1]*self.Sw
+            ctotal = coSo+cwSw+self.PorRock.compressibility
 
-        self.compressibility = coSo+cwSw+self.PorRock.compressibility
+        self.compressibility = ctotal
 
         cons = self.PorRock.porosity*self.Fluids.viscosity[0]*self.compressibility
 
@@ -66,7 +69,7 @@ class steady():
 
         self.observers = self.observers.reshape((-1,1))
 
-    def solve(self,radius,time,flow_rate):
+    def solve(self):
 
         rateNumer = self.Well.limits*self.Fluids.viscosity[0]
         rateDenom = self.PorRock.permeability*self.PorRock.thickness
@@ -108,7 +111,32 @@ class transient(steady):
 
         return self.tmax
 
-    def set_times(self,times):
+    def set_times(self,times=None,timespace="linear"):
+
+        if not hasattr(self,"tmin"):
+            self.set_tmin()
+
+        if not hasattr(self,"tmax"):
+            self.set_tmax()
+
+        if times is None:
+            if timespace=="linear":
+                times = np.linspace(self.tmin,self.tmax,1000)
+            elif timespace=="log":
+                times = np.logspace(np.log10(self.tmin),np.log10(self.tmax),1000)
+        else:
+            bound_int = times>=self.tmin
+            bound_ext = times<=self.tmax
+
+            if np.any(~bound_int):
+                raise Warning("Not all times satisfy the early time limits!")
+
+            if np.any(~bound_ext):
+                raise Warning("Not all times satisfy the late time limits!")
+
+            validtimes = np.logical_and(bound_int,bound_ext)
+
+            times = times[validtimes]
 
         self.times = times.reshape((1,-1))
 
@@ -117,30 +145,24 @@ class transient(steady):
         if observers is not None:
             self.observers = observers
         else:
-            self.observers = np.linspace(
-                self.Well.radii[0],
-                self.PorRock.radii[0],
-                number)
+            inner = self.Well.radii[0]
+            if self.shape == "circular":
+                outer = self.PorRock.radii[0]
+            elif self.shape == "square":
+                outer = self.PorRock.lengths[0]
+            self.observers = np.linspace(inner,outer,number)
 
         self.observers = self.observers.reshape((-1,1))
 
     def solve(self):
 
+        if not hasattr(self,"times"):
+            self.set_times()
+
         rateNumer = self.Well.limits*self.Fluids.viscosity[0]
         rateDenom = self.PorRock.permeability*self.PorRock.thickness
 
         constRate = (rateNumer)/(2*np.pi*rateDenom)
-
-        bound_int = (self.times>=self.tmin)[0]
-        bound_ext = (self.times<=self.tmax)[0]
-
-        validTime = np.logical_and(bound_int,bound_ext)
-
-        if np.any(~bound_int):
-            raise Warning("Not all times satisfy the early time limits!")
-
-        if np.any(~bound_ext):
-            raise Warning("Not all times satisfy the late time limits!")
 
         Ei = expi(-(self.observers**2)/(4*self.diffusivity*self.times))
 
@@ -150,62 +172,90 @@ class transient(steady):
 
 class pseudosteady():
 
-    def __init__(self,PorRock,fluid,well):
+    gamma = 1.781
 
-        self.permeability       = PorRock.permeability
-        self.porosity           = PorRock.porosity
-        self.viscosity          = fluid.viscosity
-        self.compressibility    = PorRock.compressibility+fluid.compressibility
+    def __init__(self,flow_rate,shape="circle"):
 
-        self.hdiffusivity       = self.permeability/(self.porosity*self.viscosity*self.compressibility)
+        self.PorRock = get_PorRock(shape)()
 
-        self.flowrate           = well.flowrate
+        self.set_shapefactor(shape)
+        
+        # There can be two slightly compressible fluids where the
+        # second one is at irreducible saturation, not mobile
 
-        self.radius_int         = well.radii
-        self.radius_ext         = PorRock.lengths[0]
+        self.Fluids = Fluids(number=2)
 
-        self.thickness          = PorRock.lengths[2]
+        self.Well = get_Wells()(number=1)
 
-        self.timelimit          = 0.1*np.pi*self.radius_ext**2/self.hdiffusivity
+        self.Well.set_flowconds("rate",flow_rate,"mobfluid")
 
-    def discretize(self,point_num):
+    def set_shapefactor(self,shape):
 
-        if self.geometry == "rectangular":
+        if shape=="circle":
+            self.shapefactor = 31.62
+            self.exactdimtime = 0.1
+        elif shape=="triangle":
+            self.shapefactor = 27.6
+            self.exactdimtime = 0.2
+        elif shape=="square":
+            self.shapefactor = 30.8828
+            self.exactdimtime = 0.1
+        elif shape=="hexagon":
+            self.shapefactor = 31.6
+            self.exactdimtime = 0.1
 
-            pass
+        self.shape = shape
 
-        elif self.geometry == "cylindrical":
+    def initialize(self,pressure0,Swirr=0,ctotal=None):
 
-            self.spacepoints = np.linspace(self.radius_int,self.radius_ext)
-            self.spacepoints = self.spacepoints.reshape((-1,1))
+        steady.initialize(self,pressure0,Swirr,ctotal)
 
-        elif self.geometry == "unstructured":
+    def set_tmin(self):
 
-            pass
+        self.tmin = self.exactdimtime*self.PorRock.area/self.diffusivity
 
-    def set_time(self,timesteps):
+    def set_tmax(self,tmax=None):
 
-        self.timesteps = timesteps.reshape((1,-1))
+        if tmax is None:
+            tmax = self.tmin+1_000_000
 
-    def solve(self,radius,time,flow_rate):
+        self.tmax = tmax
 
-        self.radius = radius.reshape((-1,1))
+    def set_times(self,times=None,timespace="linear"):
 
-        self.time = time.reshape((1,-1))
+        if not hasattr(self,"tmin"):
+            self.set_tmin()
 
-        self.flow_rate = flow_rate
+        if not hasattr(self,"tmax"):
+            self.set_tmax()
 
-        self.pdim = (self.flow_rate*self.viscosity)/(2*np.pi*self.permeability*self.thickness)
+        if times is None:
+            if timespace=="linear":
+                times = np.linspace(self.tmin,self.tmax,1000)
+            elif timespace=="log":
+                times = np.logspace(np.log10(self.tmin),np.log10(self.tmax),1000)
+        else:
+            validtimes = times>self.tmin
+            times = times[validtimes]
 
-        self.deltap = np.zeros((self.radius.size,self.time.size))
+        self.times = times.reshape((1,-1))
 
-        valid_ps = (self.time>self.time_limit_ps)[0]
+    def solve(self):
 
-        Sd = np.log(self.radius_ext/self.radius)
+        if not hasattr(self,"times"):
+            self.set_times()
 
-        Td = (self.radius**2+4*self.hdiffusivity*self.time[0,valid_ps])/(2*self.radius_ext**2)
+        rateNumer = self.Well.limits*self.Fluids.viscosity[0]
+        rateDenom = self.PorRock.permeability*self.PorRock.thickness
 
-        self.deltap[:,valid_ps] = self.pdim*(Sd+Td-3/4)
+        constRate = (rateNumer)/(2*np.pi*rateDenom)
+
+        inner1 = (4*self.PorRock.area)/(self.gamma*self.shapefactor*self.Well.radii[0]**2)
+        inner2 = 2*np.pi*self.diffusivity*self.times/self.PorRock.area
+
+        self.deltap = constRate*(1/2*np.log(inner1)+inner2)
+
+        self.pressure = self.pressure0-self.deltap
 
 class everdingen():
 

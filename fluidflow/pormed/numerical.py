@@ -9,6 +9,11 @@ from scipy.sparse.linalg import spsolve as sps
 if __name__ == "__main__":
     import setup
 
+from stream.items import Fluids
+
+from stream.items import get_PorRock
+from stream.items import get_Wells
+
 class singlephase():
     
     """
@@ -20,79 +25,82 @@ class singlephase():
     
     def __init__(self):
         
-        pass
+        self.PorRock = get_PorRock("rectangle")()
 
-    def initialize(self,
-                   permeability=(1,1,1),
-                   porosity=1,
-                   viscosity=1,
-                   compressibility=1,
-                   timetot=None,
-                   timestep=None,
-                   pressure=None):
+        # There can be two slightly compressible fluids where the
+        # second one is at irreducible saturation, not mobile
 
-        if isinstance(permeability,tuple):
-            permeability = np.array(permeability)
-        elif isinstance(permeability,float):
-            permeability = np.array([permeability])
-        elif isinstance(permeability,int):
-            permeability = np.array([permeability])
-            
-        if permeability.shape==(self.num,3):
-            self.permeability = permeability
-        elif permeability.shape==(1,):
-            self.permeability = np.tile(permeability,(self.num,3))
-        elif permeability.shape==(3,):
-            self.permeability = permeability.repeat(self.num).reshape((-1,self.num)).T
-        elif permeability.shape==(self.num,):
-            self.permeability = permeability.repeat(3).reshape((-1,3))
-            
-        self.porosity = porosity
-        
-        self.viscosity = viscosity
-        
-        self.compressibility = compressibility #total compressibility
+        self.Fluids = Fluids(number=2)
 
-        if timetot is None: return
-        
-        self.time = np.arange(0.,timetot+timestep/2,timestep)
+        self.Wells = get_Wells()()
 
-        self.timestep = float(timestep)
+    def initialize(self,pressure0,Swirr=0,ctotal=None):
 
-        self.pressure = np.zeros((self.num,self.time.size))
+        self.pressure0 = pressure0
 
-        self.pressure[:,0] = pressure
+        self.Sw = Swirr
+        self.So = 1-self.Sw
+
+        if ctotal is None:
+            coSo = self.Fluids.compressibility[0]*self.So
+            cwSw = self.Fluids.compressibility[1]*self.Sw
+            ctotal = coSo+cwSw+self.PorRock.compressibility
+
+        self.compressibility = ctotal
+
+        cons = self.PorRock.porosity*self.Fluids.viscosity[0]*self.compressibility
+
+        self.diffusivity = (self.PorRock.permeability)/(np.reshape(cons,(-1,1)))
+
+    def set_times(self,step,total):
+
+        self.time_step = float(step)
+        self.time_total = float(total)
+
+        self.times = np.arange(step,total+step,step)
+
+        self.pressure = np.zeros((self.PorRock.grid_numtot,self.times.size))
 
     def transmissibility(self):
+
+        sizes = self.PorRock.grid_sizes
+
+        indices = self.PorRock.grid_indices
+
+        permeability = self.PorRock.permeability
         
-        dx_m = (self.size[:,0]+self.size[self.id[:,1],0])/2
-        dx_p = (self.size[:,0]+self.size[self.id[:,2],0])/2
-        dy_m = (self.size[:,1]+self.size[self.id[:,3],1])/2
-        dy_p = (self.size[:,1]+self.size[self.id[:,4],1])/2
-        dz_m = (self.size[:,2]+self.size[self.id[:,5],2])/2
-        dz_p = (self.size[:,2]+self.size[self.id[:,6],2])/2
+        dx_m = (sizes[:,0]+sizes[indices[:,1],0])/2
+        dx_p = (sizes[:,0]+sizes[indices[:,2],0])/2
+        dy_m = (sizes[:,1]+sizes[indices[:,3],1])/2
+        dy_p = (sizes[:,1]+sizes[indices[:,4],1])/2
+        dz_m = (sizes[:,2]+sizes[indices[:,5],2])/2
+        dz_p = (sizes[:,2]+sizes[indices[:,6],2])/2
 
-        kx_m = (2*dx_m)/(self.size[:,0]/self.permeability[:,0]+
-                         self.size[self.id[:,1],0]/self.permeability[self.id[:,1],0])
-        kx_p = (2*dx_p)/(self.size[:,0]/self.permeability[:,0]+
-                         self.size[self.id[:,2],0]/self.permeability[self.id[:,2],0])
-        ky_m = (2*dy_m)/(self.size[:,1]/self.permeability[:,1]+
-                         self.size[self.id[:,3],1]/self.permeability[self.id[:,3],1])
-        ky_p = (2*dy_p)/(self.size[:,1]/self.permeability[:,1]+
-                         self.size[self.id[:,4],1]/self.permeability[self.id[:,4],1])
-        kz_m = (2*dz_m)/(self.size[:,2]/self.permeability[:,2]+
-                         self.size[self.id[:,5],2]/self.permeability[self.id[:,5],2])
-        kz_p = (2*dz_p)/(self.size[:,2]/self.permeability[:,2]+
-                         self.size[self.id[:,6],2]/self.permeability[self.id[:,6],2])
+        kx_m = (2*dx_m)/(sizes[:,0]/permeability[:,0]+
+                         sizes[indices[:,1],0]/permeability[indices[:,1],0])
+        kx_p = (2*dx_p)/(sizes[:,0]/permeability[:,0]+
+                         sizes[indices[:,2],0]/permeability[indices[:,2],0])
+        ky_m = (2*dy_m)/(sizes[:,1]/permeability[:,1]+
+                         sizes[indices[:,3],1]/permeability[indices[:,3],1])
+        ky_p = (2*dy_p)/(sizes[:,1]/permeability[:,1]+
+                         sizes[indices[:,4],1]/permeability[indices[:,4],1])
+        kz_m = (2*dz_m)/(sizes[:,2]/permeability[:,2]+
+                         sizes[indices[:,5],2]/permeability[indices[:,5],2])
+        kz_p = (2*dz_p)/(sizes[:,2]/permeability[:,2]+
+                         sizes[indices[:,6],2]/permeability[indices[:,6],2])
 
-        etax_m = kx_m/(self.porosity*self.viscosity*self.compressibility)
-        etax_p = kx_p/(self.porosity*self.viscosity*self.compressibility)
-        etay_m = ky_m/(self.porosity*self.viscosity*self.compressibility)
-        etay_p = ky_p/(self.porosity*self.viscosity*self.compressibility)
-        etaz_m = kz_m/(self.porosity*self.viscosity*self.compressibility)
-        etaz_p = kz_p/(self.porosity*self.viscosity*self.compressibility)
+        porosity = self.PorRock.porosity
 
-        self.transmissibility = np.zeros((self.num,6))
+        viscosity = self.Fluids.viscosity[0]
+
+        etax_m = kx_m/(porosity*viscosity*self.compressibility)
+        etax_p = kx_p/(porosity*viscosity*self.compressibility)
+        etay_m = ky_m/(porosity*viscosity*self.compressibility)
+        etay_p = ky_p/(porosity*viscosity*self.compressibility)
+        etaz_m = kz_m/(porosity*viscosity*self.compressibility)
+        etaz_p = kz_p/(porosity*viscosity*self.compressibility)
+
+        self.transmissibility = np.zeros((self.PorRock.grid_numtot,6))
 
         self.transmissibility[:,0] = (2*etax_m)/(dx_m*(dx_m+dx_p))
         self.transmissibility[:,1] = (2*etax_p)/(dx_p*(dx_m+dx_p))
@@ -103,26 +111,28 @@ class singlephase():
 
     def central(self,order=2):
 
-        noxmin = ~(self.id[:,0]==self.id[:,1])
-        noxmax = ~(self.id[:,0]==self.id[:,2])
-        noymin = ~(self.id[:,0]==self.id[:,3])
-        noymax = ~(self.id[:,0]==self.id[:,4])
-        nozmin = ~(self.id[:,0]==self.id[:,5])
-        nozmax = ~(self.id[:,0]==self.id[:,6])
+        indices = self.PorRock.grid_indices
 
-        id_noxmin = self.id[noxmin,0] #id of grids not at xmin boundary
-        id_noxmax = self.id[noxmax,0] #id of grids not at xmax boundary
-        id_noymin = self.id[noymin,0] #id of grids not at ymin boundary
-        id_noymax = self.id[noymax,0] #id of grids not at ymax boundary
-        id_nozmin = self.id[nozmin,0] #id of grids not at zmin boundary
-        id_nozmax = self.id[nozmax,0] #id of grids not at zmax boundary
+        noxmin = ~(indices[:,0]==indices[:,1])
+        noxmax = ~(indices[:,0]==indices[:,2])
+        noymin = ~(indices[:,0]==indices[:,3])
+        noymax = ~(indices[:,0]==indices[:,4])
+        nozmin = ~(indices[:,0]==indices[:,5])
+        nozmax = ~(indices[:,0]==indices[:,6])
 
-        idNnoxmin = self.id[noxmin,1] #id of xmin neighbors for id_noxmin grids
-        idNnoxmax = self.id[noxmax,2] #id of xmax neighbors for id_noxmax grids
-        idNnoymin = self.id[noymin,3] #id of ymin neighbors for id_noymin grids
-        idNnoymax = self.id[noymax,4] #id of ymax neighbors for id_noymax grids
-        idNnozmin = self.id[nozmin,5] #id of zmin neighbors for id_nozmin grids
-        idNnozmax = self.id[nozmax,6] #id of zmax neighbors for id_nozmax grids
+        id_noxmin = indices[noxmin,0] #id of grids not at xmin boundary
+        id_noxmax = indices[noxmax,0] #id of grids not at xmax boundary
+        id_noymin = indices[noymin,0] #id of grids not at ymin boundary
+        id_noymax = indices[noymax,0] #id of grids not at ymax boundary
+        id_nozmin = indices[nozmin,0] #id of grids not at zmin boundary
+        id_nozmax = indices[nozmax,0] #id of grids not at zmax boundary
+
+        idNnoxmin = indices[noxmin,1] #id of xmin neighbors for id_noxmin grids
+        idNnoxmax = indices[noxmax,2] #id of xmax neighbors for id_noxmax grids
+        idNnoymin = indices[noymin,3] #id of ymin neighbors for id_noymin grids
+        idNnoymax = indices[noymax,4] #id of ymax neighbors for id_noymax grids
+        idNnozmin = indices[nozmin,5] #id of zmin neighbors for id_nozmin grids
+        idNnozmax = indices[nozmax,6] #id of zmax neighbors for id_nozmax grids
 
         cx_m = self.transmissibility[noxmin,0]
         cx_p = self.transmissibility[noxmax,1]
@@ -131,7 +141,7 @@ class singlephase():
         cz_m = self.transmissibility[nozmin,4]
         cz_p = self.transmissibility[nozmax,5]
 
-        shape = (self.num,self.num)
+        shape = (self.PorRock.grid_numtot,self.PorRock.grid_numtot)
 
         self.Amatrix = csr(shape)
 
@@ -153,36 +163,34 @@ class singlephase():
         self.Amatrix += csr((cz_p,(id_nozmax,idNnozmax)),shape=shape)
         self.Amatrix -= csr((cz_p,(id_nozmax,id_nozmax)),shape=shape)
         
-    def implement_bc(self,
-                     b_xmin=(0,1,0),
-                     b_xmax=(0,1,0),
-                     b_ymin=(0,1,0),
-                     b_ymax=(0,1,0),
-                     b_zmin=(0,1,0),
-                     b_zmax=(0,1,0)):
+    def implement_bc(self,b_xmin=(0,1,0),b_xmax=(0,1,0),b_ymin=(0,1,0),b_ymax=(0,1,0),b_zmin=(0,1,0),b_zmax=(0,1,0)):
 
         """
         b_xmin,b_xmax,b_ymin,b_ymax,b_zmin and b_zmax have three entries:
         - dirichlet boundary condition coefficient,
         - neumann boundary condition coefficient,
         - function value of boundary condition
-        If not specified, no flow boundary conditions are implemented.
+        Default is no flow boundary conditions at the exterior boundaries
         """
 
-        self.b_correction = np.zeros(self.num)
+        sizes = self.PorRock.grid_sizes
+
+        indices = self.PorRock.grid_indices
+
+        self.b_correction = np.zeros(self.PorRock.grid_numtot)
 
         questbound = lambda x: True if x>1 else False
 
-        if questbound(self.num_x):
+        if questbound(self.PorRock.grid_num[0]):
 
-            xmin = self.id[:,0]==self.id[:,1]
-            xmax = self.id[:,0]==self.id[:,2]
+            xmin = indices[:,0]==indices[:,1]
+            xmax = indices[:,0]==indices[:,2]
 
-            id_xmin = self.id[xmin,0]
-            id_xmax = self.id[xmax,0]
+            id_xmin = indices[xmin,0]
+            id_xmax = indices[xmax,0]
 
-            dx_xmin = self.size[id_xmin,0]
-            dx_xmax = self.size[id_xmax,0]
+            dx_xmin = sizes[id_xmin,0]
+            dx_xmax = sizes[id_xmax,0]
 
             tx_xmin = self.transmissibility[id_xmin,0]
             tx_xmax = self.transmissibility[id_xmax,1]
@@ -196,16 +204,16 @@ class singlephase():
             self.b_correction[id_xmin] -= bc_xmin*b_xmin[2]
             self.b_correction[id_xmax] -= bc_xmax*b_xmax[2]
 
-        if questbound(self.num_y):
+        if questbound(self.PorRock.grid_num[1]):
 
-            ymin = self.id[:,0]==self.id[:,3]
-            ymax = self.id[:,0]==self.id[:,4]
+            ymin = indices[:,0]==indices[:,3]
+            ymax = indices[:,0]==indices[:,4]
 
-            id_ymin = self.id[ymin,0]
-            id_ymax = self.id[ymax,0]
+            id_ymin = indices[ymin,0]
+            id_ymax = indices[ymax,0]
 
-            dy_ymin = self.size[id_ymin,1]
-            dy_ymax = self.size[id_ymax,1]
+            dy_ymin = sizes[id_ymin,1]
+            dy_ymax = sizes[id_ymax,1]
 
             ty_ymin = self.transmissibility[id_ymin,2]
             ty_ymax = self.transmissibility[id_ymax,3]
@@ -218,17 +226,22 @@ class singlephase():
             
             self.b_correction[id_ymin] -= bc_ymin*b_ymin[2]
             self.b_correction[id_ymax] -= bc_ymax*b_ymax[2]
+
+        try:
+            grid_num_x = self.PorRock.grid_num[2]
+        except IndexError:
+            grid_num_x = 1
             
-        if questbound(self.num_z):
+        if questbound(grid_num_x):
 
-            zmin = self.id[:,0]==self.id[:,5]
-            zmax = self.id[:,0]==self.id[:,6]
+            zmin = indices[:,0]==indices[:,5]
+            zmax = indices[:,0]==indices[:,6]
 
-            id_zmin = self.id[zmin,0]
-            id_zmax = self.id[zmax,0]
+            id_zmin = indices[zmin,0]
+            id_zmax = indices[zmax,0]
 
-            dz_zmin = self.size[id_zmin,2]
-            dz_zmax = self.size[id_zmax,2]
+            dz_zmin = sizes[id_zmin,2]
+            dz_zmax = sizes[id_zmax,2]
 
             tz_zmin = self.transmissibility[id_zmin,4]
             tz_zmax = self.transmissibility[id_zmax,5]
@@ -242,27 +255,26 @@ class singlephase():
             self.b_correction[id_zmin] -= bc_zmin*b_zmin[2]
             self.b_correction[id_zmax] -= bc_zmax*b_zmax[2]
             
-    def solve(self,rhs=0):
+    def solve(self):
 
-        if not hasattr(self,'time'):
-            
-            bvector = np.full(self.num,rhs).astype('float')
-            
-            bvector += self.b_correction
-            
-            self.unknown = sps(self.Amatrix,bvector)
+        indices = self.PorRock.grid_indices
 
-            return
+        shape = (self.PorRock.grid_numtot,self.PorRock.grid_numtot)
+
+        oneperdtime = np.ones(self.PorRock.grid_numtot)/self.time_step
         
-        t_correction = csr((np.ones(self.num)/self.timestep,
-                           (self.id[:,0],self.id[:,0])),
-                            shape=(self.num,self.num))
+        t_correction = csr((oneperdtime,(indices[:,0],indices[:,0])),shape=shape)
         
         A = self.Amatrix-t_correction
         
-        for i in range(1,self.time.size):
+        for i in range(1,self.times.size):
+
+            if i == 0:
+                pressurePrev = self.pressure0
+            else:
+                pressurePrev = self.pressure[:,i-1]
             
-            b = -self.pressure[:,i-1]/self.timestep+self.b_correction
+            b = -pressurePrev/self.time_step+self.b_correction
             
             self.pressure[:,i] = sps(A,b)
 
