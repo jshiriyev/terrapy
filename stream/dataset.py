@@ -1,6 +1,7 @@
 import calendar
 
 from datetime import datetime
+
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 
@@ -8,14 +9,16 @@ import os
 
 import numpy as np
 
+import openpyxl
+
+import lasio
+
 if __name__ == "__main__":
     import setup
 
-class dataset():
+class MDS():
 
-    special_extensions = (
-        ".db",".xlsx",".las",
-        )
+    # MAIN DATA STRUCTURE
 
     def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
@@ -110,50 +113,6 @@ class dataset():
         nparray = np.array(self._running).T
 
         self._running = [np.asarray(column) for column in nparray]
-
-    def read_special(self,sheetname=None,min_row=1,min_col=1,max_row=None,max_col=None):
-
-        if self.extension == ".xlsx":
-
-            import openpyxl
-
-            wb = openpyxl.load_workbook(self.filepath,read_only=True)
-
-            rows = wb[sheetname].iter_rows(min_row=min_row,min_col=min_col,
-                max_row=min_row+self.skiplines-1,max_col=max_col,values_only=True)
-
-            rows = list(rows)
-
-            self._headers = list(rows[self.headerline-1])
-
-            if self.headerline<self.skiplines:
-
-                for index,(header,header_lower) in enumerate(zip(self._headers,rows[self.skiplines-1])):
-                    if header_lower is not None:
-                        self._headers[index] = header_lower.strip()
-                    elif header is not None:
-                        self._headers[index] = header.strip()
-                    else:
-                        self._headers[index] = None
-
-            columns = wb[sheetname].iter_rows(min_row=min_row+self.skiplines,min_col=min_col,
-                max_row=max_row,max_col=max_col,values_only=True)
-
-            nparray = np.array(list(columns)).T
-
-            self._running = [np.asarray(column) for column in nparray]
-
-            wb._archive.close()
-
-        elif self.extension == ".las":
-
-            import lasio
-
-            las = lasio.read(self.filepath)
-
-            self._headers = las.keys()
-
-            self._running = [np.asarray(column) for column in las.data.transpose()]
 
     def set_header(self,header_index,header):
 
@@ -430,7 +389,43 @@ class dataset():
             for line in vprint(*self._running):
                 wfile.write(line)
 
-    def writexlsx(filepath,**kwargs):
+class excel():
+
+    def __init__(self,filepath):
+
+        self.filepath = filepath
+
+    def read(self,sheetname=None,min_row=1,min_col=1,max_row=None,max_col=None):
+
+        wb = openpyxl.load_workbook(self.filepath,read_only=True)
+
+        rows = wb[sheetname].iter_rows(min_row=min_row,min_col=min_col,
+            max_row=min_row+self.skiplines-1,max_col=max_col,values_only=True)
+
+        rows = list(rows)
+
+        self._headers = list(rows[self.headerline-1])
+
+        if self.headerline<self.skiplines:
+
+            for index,(header,header_lower) in enumerate(zip(self._headers,rows[self.skiplines-1])):
+                if header_lower is not None:
+                    self._headers[index] = header_lower.strip()
+                elif header is not None:
+                    self._headers[index] = header.strip()
+                else:
+                    self._headers[index] = None
+
+        columns = wb[sheetname].iter_rows(min_row=min_row+self.skiplines,min_col=min_col,
+            max_row=max_row,max_col=max_col,values_only=True)
+
+        nparray = np.array(list(columns)).T
+
+        self._running = [np.asarray(column) for column in nparray]
+
+        wb._archive.close()
+
+    def write(self):
 
         wb = openpyxl.Workbook()
 
@@ -444,55 +439,252 @@ class dataset():
 
         wb.save(filepath)
 
-    def writevtk(frac,time,solution):
+class vtkit():
+
+    def __init__(self):
 
         pass
 
-    def cyrilictolatin(string):
+    def read(self,):
 
-        aze_cyril_lower = [
-            "а","б","ж","ч","д",
-            "е","я","ф","э","ь",
-            "щ","х","ы","и","ъ",
-            "к","г","л","м","н",
-            "о","ю","п","р","с",
-            "ш","т","у","ц","в",
-            "й","з"]
+        pass
 
-        aze_latin_lower = [
-            "a","b","c","ç","d",
-            "e","ə","f","g","ğ",
-            "h","x","ı","i","j",
-            "k","q","l","m","n",
-            "o","ö","p","r","s",
-            "ş","t","u","ü","v",
-            "y","z"]
+    def write(self,):
 
-        aze_cyril_upper = [
-            "А","Б","Ҹ","Ч","Д",
-            "Е","Я","Ф","Ҝ","Ғ",
-            "Щ","Х","Ы","И","Ъ",
-            "К","Г","Л","М","Н",
-            "О","Ю","П","Р","С",
-            "Ш","Т","У","Ц","В",
-            "Й","З"]
+        pass
 
-        aze_latin_upper = [
-            "A","B","C","Ç","D",
-            "E","Ə","F","G","Ğ",
-            "H","X","I","İ","J",
-            "K","Q","L","M","N",
-            "O","Ö","P","R","S",
-            "Ş","T","U","Ü","V",
-            "Y","Z"]
+class schedule():
 
-        for cyril,latin in zip(aze_cyril_lower,aze_latin_lower):
-            string.replace(cyril,latin)
+    # KEYWORDS: DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN 
 
-        for cyril,latin in zip(aze_cyril_upper,aze_latin_upper):
-            string.replace(cyril,latin)
+    filename   = "schedule"
 
-        return string
+    headers    = ["DATE","KEYWORD","DETAILS",]
+
+    dates      = " {} / "#.format(date)
+    welspecs   = " '{}'\t1*\t2* / "
+    compdatop  = " '{}'\t1*\t{}\t{}\tMD\t{}\t2*\t0.14 / "#.format(wellname,top,bottom,optype)
+    compdatsh  = " '{}'\t1*\t{}\t{}\tMD\t{} / "#.format(wellname,top,bottom,optype)
+    compord    = " '{}'\tINPUT\t/ "#.format(wellname)
+    prodhist   = " '{}'\tOPEN\tORAT\t{}\t{}\t{} / "#.format(wellname,oilrate,waterrate,gasrate)
+    injhist    = " '{}'\tWATER\tOPEN\t{}\t7*\tRATE / "#.format(wellname,waterrate)
+    wefac      = " '{}'\t{} / "#.format(wellname,efficiency)
+    welopen    = " '{}'\tSHUT\t3* / "#.format(wellname)
+
+    def __init__(self):
+
+        pass
+
+    def read(self):
+
+        pass
+
+    def get_wells(self,wellname=None):
+
+        pass
+
+    def write(self):
+
+        path = os.path.join(self.workdir,self.schedule_filename)
+
+        with open(path,"w",encoding='utf-8') as wfile:
+
+            welspec = schedule.running[1]=="WELSPECS"
+            compdat = schedule.running[1]=="COMPDATMD"
+            compord = schedule.running[1]=="COMPORD"
+            prodhst = schedule.running[1]=="WCONHIST"
+            injdhst = schedule.running[1]=="WCONINJH"
+            wefffac = schedule.running[1]=="WEFAC"
+            welopen = schedule.running[1]=="WELOPEN"
+
+            for date in np.unique(schedule.running[0]):
+
+                currentdate = schedule.running[0]==date
+
+                currentcont = schedule.running[1][currentdate]
+
+                wfile.write("\n\n")
+                wfile.write("DATES\n")
+                wfile.write(self.schedule_dates.format(date.strftime("%d %b %Y").upper()))
+                wfile.write("\n")
+                wfile.write("/\n\n")
+
+                if any(currentcont=="WELSPECS"):
+                    indices = np.logical_and(currentdate,welspec)
+                    wfile.write("WELSPECS\n")
+                    for detail in schedule.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="COMPDATMD"):
+                    indices = np.logical_and(currentdate,compdat)
+                    wfile.write("COMPDATMD\n")
+                    for detail in schedule.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="COMPORD"):
+                    indices = np.logical_and(currentdate,compord)
+                    wfile.write("COMPORD\n")
+                    for detail in schedule.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="WCONHIST"):
+                    indices = np.logical_and(currentdate,prodhst)
+                    wfile.write("WCONHIST\n")
+                    for detail in schedule.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="WCONINJH"):
+                    indices = np.logical_and(currentdate,injdhst)
+                    wfile.write("WCONINJH\n")
+                    for detail in schedule.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="WEFAC"):
+                    indices = np.logical_and(currentdate,wefffac)
+                    wfile.write("WEFAC\n")
+                    for detail in schedule.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+                if any(currentcont=="WELOPEN"):
+                    indices = np.logical_and(currentdate,welopen)
+                    wfile.write("WELOPEN\n")
+                    for detail in schedule.running[2][indices]:
+                        wfile.write(detail)
+                        wfile.write("\n")
+                    wfile.write("/\n\n")
+
+class logascii():
+
+    def __init__(self,filenames=None):
+
+        self.lasios = []
+
+        if filenames is not None:
+            for filename in filenames:
+                las = lasio.read(filename)
+                self.lasios.append(las)
+
+    def add_file(self,filename):
+
+        las = lasio.read(filename)
+
+        self.lasios.append(las)
+
+        _headers = las.keys()
+
+        _running = [np.asarray(column) for column in las.data.transpose()]
+
+    def print_well_info(self,index=None):
+
+        if index is not None:
+            print("\n\tWELL #{}".format(self.lasios[index].well.WELL.value))
+            for item in self.lasios[index].sections["Well"]:
+                print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
+        else:
+            for las in self.lasios:
+                print("\n\tWELL #{}".format(las.well.WELL.value))
+                for item in las.sections["Well"]:
+                    print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
+
+    def print_curve_info(self,index=None,mnemonic_space=33,tab_space=8):
+
+        def print_func(index):
+            las = self.lasios[index]
+            print("\n\tLOG NUMBER {}".format(index))
+            for count,curve in enumerate(las.curves):
+                minXval = np.nanmin(curve.data)
+                maxXval = np.nanmax(curve.data)
+                tab_num = np.ceil((mnemonic_space-len(curve.mnemonic))/tab_space)
+                tab_spc = "\t"*tab_num if tab_num>0 else "\t"
+                print("Curve: {}{}Units: {}\tMin: {}\tMax: {}\tDescription: {}".format(
+                    curve.mnemonic,tab_spc,curve.unit,minXval,maxXval,curve.descr))
+
+        if index is not None:
+            print_func(index)
+        else:
+            [print_func(index) for index in range(len(self.lasios))]
+            
+    def set_interval(self,top,bottom):
+
+        self.top = top
+        self.bottom = bottom
+
+        self.gross_thickness = self.bottom-self.top
+
+        for indexI,las in enumerate(self.lasios):
+
+            try:
+                depth = las["MD"]
+            except KeyError:
+                depth = las["DEPT"]
+
+            depth_cond = np.logical_and(depth>self.top,depth<self.bottom)
+
+            for indexJ,curve in enumerate(las.curves):
+
+                self.lasios[indexI].curves[indexJ].data = curve.data[depth_cond]
+
+    def write(self):
+
+        pass
+
+def cyrilictolatin(string):
+
+    aze_cyril_lower = [
+        "а","б","ж","ч","д",
+        "е","я","ф","э","ь",
+        "щ","х","ы","и","ъ",
+        "к","г","л","м","н",
+        "о","ю","п","р","с",
+        "ш","т","у","ц","в",
+        "й","з"]
+
+    aze_latin_lower = [
+        "a","b","c","ç","d",
+        "e","ə","f","g","ğ",
+        "h","x","ı","i","j",
+        "k","q","l","m","n",
+        "o","ö","p","r","s",
+        "ş","t","u","ü","v",
+        "y","z"]
+
+    aze_cyril_upper = [
+        "А","Б","Ҹ","Ч","Д",
+        "Е","Я","Ф","Ҝ","Ғ",
+        "Щ","Х","Ы","И","Ъ",
+        "К","Г","Л","М","Н",
+        "О","Ю","П","Р","С",
+        "Ш","Т","У","Ц","В",
+        "Й","З"]
+
+    aze_latin_upper = [
+        "A","B","C","Ç","D",
+        "E","Ə","F","G","Ğ",
+        "H","X","I","İ","J",
+        "K","Q","L","M","N",
+        "O","Ö","P","R","S",
+        "Ş","T","U","Ü","V",
+        "Y","Z"]
+
+    for cyril,latin in zip(aze_cyril_lower,aze_latin_lower):
+        string.replace(cyril,latin)
+
+    for cyril,latin in zip(aze_cyril_upper,aze_latin_upper):
+        string.replace(cyril,latin)
+
+    return string
 
 if __name__ == "__main__":
 
