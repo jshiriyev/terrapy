@@ -14,18 +14,22 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.dataset import dataset
-
-from stream.geometries import Line 
-from stream.geometries import Rectangle 
-from stream.geometries import Ellipse 
-from stream.geometries import Cuboid 
-from stream.geometries import Cylinder 
+from stream.dataset import MDS
+from stream.dataset import excel
+from stream.dataset import vtkit
+from stream.dataset import schedule
+from stream.dataset import logascii
 
 from stream.graphics import TableView
 from stream.graphics import PerfView
 from stream.graphics import LogView
 from stream.graphics import TimeView
+
+from stream.geometries import Line 
+from stream.geometries import Rectangle 
+from stream.geometries import Ellipse 
+from stream.geometries import Cuboid 
+from stream.geometries import Cylinder
 
 class Fluids(object):
 
@@ -247,7 +251,7 @@ def get_PorRock(geometry=None):
             # fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
             # fprintf(fid,'ASCII\r\n');
 
-            # fprintf(fid,'\r\nDATASET UNSTRUCTURED_GRID\r\n');
+            # fprintf(fid,'\r\nMDS UNSTRUCTURED_GRID\r\n');
 
             # fprintf(fid,'\r\nPOINTS %d FLOAT\r\n',frac.numAnode*2);
 
@@ -520,75 +524,89 @@ def get_Fractures(geometry=None):
 
     return Fractures
 
-def get_Wells(geometry=None):
+def get_Wells(geometry=None,graph=None,data=None,**kwargs):
 
-    if geometry is None:
+    if geometry is None and graph is None and data is None:
         base = object
     elif geometry=="line":
         base = Line
+    elif geometry is None and graph is None and data=="excel":
+        base = excel
 
     class Wells(base):
 
-        def __init__(self,workdir=None,window=None,wnamefstr=None,number=None,**kwargs):
+        itemnames = []                 # well names
+        statuses = []
+        radii = []
+        flowconds = []
 
-            if workdir is not None:
-                self.workdir = workdir          # working directory to save and retrieve saved data
+        def __init__(self,window=None,number=0,**kwargs):
 
             if window is not None:
                 super().__init__(window)
-
-            if wnamefstr is not None:
-                self.wnamefstr = wnamefstr      # string format to save well names
             else:
-                self.wnamefstr = "Well-{}"
-
-            self.attrnames = []                 # prod, comp, wtrack, wlog, compuni, schedule
+                super().__init__()
 
             self.number = number                # number of wells
+
+            self.wnamefstr = "Well-{}"
 
             self.Trajectory = Trajectory()
             self.Completion = Completion()
             self.Logging    = Logging()
             self.Production = Production()
 
-        def set_names(self,*args,wellnamelist=None):
+        def set_wellnames(self,*args,wnamefstr=None,sortFlag=False):
 
-            warnNWIF = "No well name could be found."
+            warnNWIF = "No well name was added or could be found."
 
-            self.itemnames = []
-
-            for arg in args[:self.number]:
+            for arg in args:
                 self.itemnames.append(arg)
 
-            if wellnamelist is not None:
-                self.itemnames = wellnamelist
-            # elif len(self.attrnames)==0:
-            #     # warnings.warn(warnNWIF)
-            #     self.op_get(filending="0")
-            #     attrvals = getattr(self,self.attrnames[0])
-            #     self.itemnames = np.unique(attrvals.running[0])
-            # else:
-            #     attrvals = getattr(self,self.attrnames[0])
-            #     self.itemnames = np.unique(attrvals.running[0])
+            if len(args)==0:
 
-            if self.wnamefstr is not None:
-                get_windex = lambda x: self.wnamefstr.format(re.sub("[^0-9]","",str(x)).zfill(3))
-                set_wnames = np.vectorize(get_windex)
-                self.itemnames = set_wnames(self.itemnames)
+                twells = np.unique(self.Trajectory.get_wellnames())
+                cwells = np.unique(self.Completion.get_wellnames())
+                lwells = np.unique(self.Logging.get_wellnames())
+                pwells = np.unique(self.Production.get_wellnames())
 
-            # self.itemnames.sort()
+                self.itemnames = np.concatenate((twells,cwells,lwells,pwells)).tolist()
 
-        def set_radii(self,*args,radiilist=None):
+            self.number = len(self.itemnames)
 
-            self.radii = []
+            if self.number==0:
+                warnings.warn(warnNWIF)
+                return
 
-            for arg in args[:self.number]:
+            if wnamefstr is not None:
+                self.wnamefstr = wnamefstr      # string format to save well names
+
+            get_digits = lambda x: re.sub("[^0-9]","",str(x))
+
+            get_digitnum = lambda x: len(get_digits(x))
+            arr_digitnum = np.vectorize(get_digitnum)
+
+            max_digitnum = arr_digitnum(self.itemnames).max()
+
+            get_wellname = lambda x: self.wnamefstr.format(get_digits(x).zfill(max_digitnum))
+            arr_wellname = np.vectorize(get_wellname)
+
+            self.itemnames = arr_wellname(self.itemnames).tolist()
+
+            # self.itemnames = np.unique(np.array(self.itemnames)).tolist()
+
+            if sortFlag:
+                self.itemnames.sort()
+
+        def set_statuses(self,*args,):
+
+            for arg in args:
+                self.statuses.append(arg)
+
+        def set_radii(self,*args):
+
+            for arg in args:
                 self.radii.append(arg)
-
-            if radiilist is not None:
-                self.radii = radiilist
-
-            self.radii = np.array(self.radii)
 
         def set_flowconds(self,conditions,limits,fluids=None):
 
@@ -636,8 +654,8 @@ def get_Wells(geometry=None):
             for wname in np.setdiff1d(compwellnames,prodwellnames):
                 warnings.warn(warnNOPROD.format(wname))
 
-            proddata = dataset(headers=self.headers_op[:7])
-            schedule = dataset(headers=self.schedule_headers)
+            proddata = MDS(headers=self.headers_op[:7])
+            schedule = MDS(headers=self.schedule_headers)
 
             for wname in self.itemnames:
 
@@ -935,7 +953,7 @@ def get_Wells(geometry=None):
                 if prodeff>1:
                     warnings.warn(warnWEFAC.format(prodmonthENDday,wname,days,compday))
 
-    return Wells
+    return Wells(**kwargs)
 
 class Trajectory():
 
@@ -944,6 +962,10 @@ class Trajectory():
     headersOPT = ["WELL","X","Y","Z","MD",]
 
     def __init__(self):
+
+        pass
+
+    def get_wellnames(self):
 
         pass
 
@@ -958,7 +980,7 @@ class Trajectory():
         
         filepath = os.path.join(self.dirtraj,folder1,folder2,filename)
 
-        traj = dataset(filepath=filepath,skiplines=1,comment="#")
+        traj = MDS(filepath=filepath,skiplines=1,comment="#")
 
         traj.texttocolumn(0,deliminator=None,maxsplit=None)
 
@@ -985,6 +1007,10 @@ class Completion(PerfView):
 
         pass
 
+    def get_wellnames(self):
+
+        pass
+
     def comp_call(self,wellname=None):
 
         warnWELLNAME = "{} has name conflict in completion directory."
@@ -996,7 +1022,7 @@ class Completion(PerfView):
         warnSTOPDATE = "{} stop date is not set properly in completion directory."
         warnSTARTEND = "{} start date is after or equal to stop date in completion directory."
 
-        compraw = dataset(headers=self.headers_compraw)
+        compraw = MDS(headers=self.headers_compraw)
 
         for wname in self.itemnames:
 
@@ -1010,7 +1036,7 @@ class Completion(PerfView):
 
             filepath = os.path.join(self.comprawdir,folder1,filename)
             
-            comp = dataset(filepath=filepath,sheetname=folder1,headerline=1,skiplines=2,min_row=2,min_col=2)
+            comp = MDS(filepath=filepath,sheetname=folder1,headerline=1,skiplines=2,min_row=2,min_col=2)
 
             comp.get_columns(headers=self.headers_compraw,inplace=True)
 
@@ -1057,8 +1083,8 @@ class Completion(PerfView):
 
         path = os.path.join(self.workdir,self.filename_comp+"0")
 
-        comp1 = dataset(filepath=path,skiplines=1)
-        comp2 = dataset(filepath=path,skiplines=1)
+        comp1 = MDS(filepath=path,skiplines=1)
+        comp2 = MDS(filepath=path,skiplines=1)
 
         comp1.texttocolumn(0,deliminator="\t")
         comp2.texttocolumn(0,deliminator="\t")
@@ -1112,7 +1138,7 @@ class Completion(PerfView):
 
         comp1.write(filepath=path,fstring=fstring)
 
-        compuni = dataset(headers=self.headers_compuni)
+        compuni = MDS(headers=self.headers_compuni)
 
         for wname in self.itemnames:
 
@@ -1190,7 +1216,7 @@ class Completion(PerfView):
 
                 attrname = filename[:4]+ending
 
-                attrvals = dataset(filepath=path,skiplines=1)
+                attrvals = MDS(filepath=path,skiplines=1)
 
                 setattr(self,attrname,attrvals)
 
@@ -1226,6 +1252,10 @@ class Logging(LogView):
 
         super().__init__(filenames)
 
+    def get_wellnames(self):
+
+        pass
+
 class Production(TimeView):
 
     headersSIM = ["Wells","Date","Days","oil","water","gas","Wi",]
@@ -1233,6 +1263,10 @@ class Production(TimeView):
     headersOPT = ["WELL","DATE","DAYS","OPTYPE","ROIL","RWATER","RGAS","TOIL","TWATER","TGAS",]
     
     def __init__(self):
+
+        pass
+
+    def get_wellnames(self):
 
         pass
 
@@ -1249,7 +1283,7 @@ class Production(TimeView):
 
         path = os.path.join(self.workdir,self.filename_op+"0")
 
-        prod = dataset(filepath=path,skiplines=1)
+        prod = MDS(filepath=path,skiplines=1)
 
         prod.texttocolumn(0,deliminator="\t",maxsplit=7)
         prod.get_columns(headers=self.headers_opraw,inplace=True)
@@ -1389,7 +1423,7 @@ class Production(TimeView):
 
                 attrname = filename[:2]+ending
 
-                attrvals = dataset(filepath=path,skiplines=1)
+                attrvals = MDS(filepath=path,skiplines=1)
 
                 setattr(self,attrname,attrvals)
 

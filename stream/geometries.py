@@ -3,7 +3,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.dataset import dataset
+from stream.dataset import MDS
 
 from stream.graphics import View3D
 
@@ -208,7 +208,7 @@ class Ellipse(View3D):
 
     # lamda: node spacing, radius ratio
 
-    def __init__(self,thickness=1,inner_radii):
+    def __init__(self,thickness=1,inner_radii=0):
 
         numverts = 50
 

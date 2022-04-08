@@ -27,6 +27,12 @@ if __name__ == "__main__":
 
     import setup
 
+from stream.dataset import MDS
+from stream.dataset import excel
+from stream.dataset import vtkit
+from stream.dataset import schedule
+from stream.dataset import logascii
+
 class TimeView():
 
     legendpos = (
@@ -843,7 +849,7 @@ class TimeView():
             plt.plot([xs2[i-1],xs3[number-1-i]],[ys2[i-1],ys3[number-1-i]],'k',linewidth=0.5)
             plt.plot([xs3[i-1],xs1[number-1-i]],[ys3[i-1],ys1[number-1-i]],'k',linewidth=0.5)
 
-class LogView():
+class LogView(logascii):
 
     lineColors = (
         "black",
@@ -868,7 +874,9 @@ class LogView():
 
     spinerelpos = (0,0.1,0.2,0.3)
 
-    def __init__(self):
+    def __init__(self,filenames):
+
+        super().__init__(filenames)
 
         self.lasios = []
 

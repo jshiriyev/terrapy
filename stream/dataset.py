@@ -391,39 +391,52 @@ class MDS():
 
 class excel():
 
-    def __init__(self,filepath):
+    def __init__(self,filepath=None):
 
-        self.filepath = filepath
+        self.files = []
+
+        if filepath is not None:
+            self.add_file(filepath)
+
+    def add_home(self,homepath):
+
+        self.home = homepath
+
+    def add_file(self,filepath,homeFlag=False):
+
+        if homeFlag and hasattr(self,"home"):
+
+            filepath = os.path.join(self.home,filepath)
+
+        self.files.append(openpyxl.load_workbook(filepath,read_only=True))
 
     def read(self,sheetname=None,min_row=1,min_col=1,max_row=None,max_col=None):
 
-        wb = openpyxl.load_workbook(self.filepath,read_only=True)
-
-        rows = wb[sheetname].iter_rows(min_row=min_row,min_col=min_col,
+        rows = self.files[0][sheetname].iter_rows(min_row=min_row,min_col=min_col,
             max_row=min_row+self.skiplines-1,max_col=max_col,values_only=True)
 
         rows = list(rows)
 
-        self._headers = list(rows[self.headerline-1])
+        # self._headers = list(rows[self.headerline-1])
 
-        if self.headerline<self.skiplines:
+        # if self.headerline<self.skiplines:
 
-            for index,(header,header_lower) in enumerate(zip(self._headers,rows[self.skiplines-1])):
-                if header_lower is not None:
-                    self._headers[index] = header_lower.strip()
-                elif header is not None:
-                    self._headers[index] = header.strip()
-                else:
-                    self._headers[index] = None
+        #     for index,(header,header_lower) in enumerate(zip(self._headers,rows[self.skiplines-1])):
+        #         if header_lower is not None:
+        #             self._headers[index] = header_lower.strip()
+        #         elif header is not None:
+        #             self._headers[index] = header.strip()
+        #         else:
+        #             self._headers[index] = None
 
-        columns = wb[sheetname].iter_rows(min_row=min_row+self.skiplines,min_col=min_col,
-            max_row=max_row,max_col=max_col,values_only=True)
+        # columns = self.files[0][sheetname].iter_rows(min_row=min_row,min_col=min_col,
+        #     max_row=max_row,max_col=max_col,values_only=True)
 
-        nparray = np.array(list(columns)).T
+        # nparray = np.array(list(columns)).T
 
-        self._running = [np.asarray(column) for column in nparray]
+        # self._running = [np.asarray(column) for column in nparray]
 
-        wb._archive.close()
+        # self.files[0]._archive.close()
 
     def write(self):
 
