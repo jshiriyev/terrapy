@@ -5,6 +5,8 @@ from datetime import datetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 
+import math
+
 import os
 
 import re
@@ -582,33 +584,32 @@ class schedule(frame):
 
 class logascii():
 
-    def __init__(self,filenames=None):
+    def __init__(self,filepaths=None):
 
-        self.lasios = []
+        self.files = []
 
-        if filenames is not None:
-            for filename in filenames:
-                las = lasio.read(filename)
-                self.lasios.append(las)
+        if filepaths is not None:
+            for filepath in filepaths:
+                self.add_file(filepath)
 
-    def add_file(self,filename):
+    def add_file(self,filepath):
 
-        las = lasio.read(filename)
+        las = lasio.read(filepath)
 
-        self.lasios.append(las)
+        self.files.append(las)
 
-        _headers = las.keys()
+        # _headers = las.keys()
 
-        _running = [np.asarray(column) for column in las.data.transpose()]
+        # _running = [np.asarray(column) for column in las.data.transpose()]
 
     def print_well_info(self,index=None):
 
         if index is not None:
-            print("\n\tWELL #{}".format(self.lasios[index].well.WELL.value))
-            for item in self.lasios[index].sections["Well"]:
+            print("\n\tWELL #{}".format(self.files[index].well.WELL.value))
+            for item in self.files[index].sections["Well"]:
                 print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
         else:
-            for las in self.lasios:
+            for las in self.files:
                 print("\n\tWELL #{}".format(las.well.WELL.value))
                 for item in las.sections["Well"]:
                     print(f"{item.descr} ({item.mnemonic}):\t\t{item.value}")
@@ -616,12 +617,12 @@ class logascii():
     def print_curve_info(self,index=None,mnemonic_space=33,tab_space=8):
 
         def print_func(index):
-            las = self.lasios[index]
+            las = self.files[index]
             print("\n\tLOG NUMBER {}".format(index))
             for count,curve in enumerate(las.curves):
                 minXval = np.nanmin(curve.data)
                 maxXval = np.nanmax(curve.data)
-                tab_num = np.ceil((mnemonic_space-len(curve.mnemonic))/tab_space)
+                tab_num = math.ceil((mnemonic_space-len(curve.mnemonic))/tab_space)
                 tab_spc = "\t"*tab_num if tab_num>0 else "\t"
                 print("Curve: {}{}Units: {}\tMin: {}\tMax: {}\tDescription: {}".format(
                     curve.mnemonic,tab_spc,curve.unit,minXval,maxXval,curve.descr))
@@ -629,7 +630,7 @@ class logascii():
         if index is not None:
             print_func(index)
         else:
-            [print_func(index) for index in range(len(self.lasios))]
+            [print_func(index) for index in range(len(self.files))]
             
     def set_interval(self,top,bottom):
 
@@ -638,7 +639,7 @@ class logascii():
 
         self.gross_thickness = self.bottom-self.top
 
-        for indexI,las in enumerate(self.lasios):
+        for indexI,las in enumerate(self.files):
 
             try:
                 depth = las["MD"]
@@ -649,7 +650,7 @@ class logascii():
 
             for indexJ,curve in enumerate(las.curves):
 
-                self.lasios[indexI].curves[indexJ].data = curve.data[depth_cond]
+                self.files[indexI].curves[indexJ].data = curve.data[depth_cond]
 
     def write(self):
 

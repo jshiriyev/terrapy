@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     import setup
 
-from stream.dataset import MDS
+from stream.dataset import frame
 from stream.dataset import excel
 from stream.dataset import vtkit
 from stream.dataset import schedule
@@ -874,11 +874,9 @@ class LogView(logascii):
 
     spinerelpos = (0,0.1,0.2,0.3)
 
-    def __init__(self,filenames):
+    def __init__(self,filepaths):
 
-        super().__init__(filenames)
-
-        self.lasios = []
+        super().__init__(filepaths)
 
     def set_DepthView(self,plot_dictionary):
 
@@ -934,16 +932,16 @@ class LogView(logascii):
             for indexJ,line in enumerate(axdict["lines"]):
             
                 try:
-                    depth = self.lasios[line[0]]["MD"]
+                    depth = self.files[line[0]]["MD"]
                 except KeyError:
-                    depth = self.lasios[line[0]]["DEPT"]
+                    depth = self.files[line[0]]["DEPT"]
                     
-                xvals = self.lasios[line[0]][line[1]]
+                xvals = self.files[line[0]][line[1]]
 
-                indexK = self.lasios[line[0]].curves.keys().index(line[1])
+                indexK = self.files[line[0]].curves.keys().index(line[1])
 
-                mnem = self.lasios[line[0]].curves[indexK].mnemonic
-                unit = self.lasios[line[0]].curves[indexK].unit
+                mnem = self.files[line[0]].curves[indexK].mnemonic
+                unit = self.files[line[0]].curves[indexK].unit
 
                 linestyle = "-" if indexJ==0 else "--"
 
@@ -1071,11 +1069,11 @@ class LogView(logascii):
         # indexJ index of GR containing line in the axis
 
         try:
-            depth = self.lasios[GRline[0]]["MD"]
+            depth = self.files[GRline[0]]["MD"]
         except KeyError:
-            depth = self.lasios[GRline[0]]["DEPT"]
+            depth = self.files[GRline[0]]["DEPT"]
 
-        xvals = self.lasios[GRline[0]][GRline[1]]
+        xvals = self.files[GRline[0]][GRline[1]]
 
         GRmin = np.nanmin(xvals)
         GRmax = np.nanmax(xvals)
@@ -1127,11 +1125,11 @@ class LogView(logascii):
         # indexJ index of Resistivity containing line in the axis
 
         try:
-            depth = self.lasios[ResLine[0]]["MD"]
+            depth = self.files[ResLine[0]]["MD"]
         except KeyError:
-            depth = self.lasios[ResLine[0]]["DEPT"]
+            depth = self.files[ResLine[0]]["DEPT"]
 
-        xvals = self.lasios[ResLine[0]][ResLine[1]]
+        xvals = self.files[ResLine[0]][ResLine[1]]
 
         cut_line = ohmm_cut*np.ones(depth.shape)
 
@@ -1144,9 +1142,9 @@ class LogView(logascii):
         # indexI index of NMR containing axis in the plot
 
         try:
-            depth = self.lasios[NMRline]["MD"]
+            depth = self.files[NMRline]["MD"]
         except KeyError:
-            depth = self.lasios[NMRline]["DEPT"]
+            depth = self.files[NMRline]["DEPT"]
 
         xvals0 = np.zeros(water_clay.shape)
         xvals1 = water_clay
@@ -1174,9 +1172,70 @@ class LogView(logascii):
 
         self.fig_sdcp,self.axis_sdcp = plt.subplots()
 
-    def set_SonNeuCP(self):
+    def set_SonNeuCP(self,
+        a_SND=+0.00,
+        a_LMS=+0.00,
+        a_DOL=-0.06,
+        b_SND=+0.90,
+        b_LMS=+0.80,
+        b_DOL=+0.84,
+        p_SND=+0.02,
+        p_LMS=+0.00,
+        p_DOL=-0.01,
+        DT_FLUID=189,
+        DT_SND=55.6,
+        DT_LMS=47.5,
+        DT_DOL=43.5):
 
         self.fig_sncp,self.axis_sncp = plt.subplots()
+
+        self.fig_sncp.set_figwidth(5)
+        self.fig_sncp.set_figheight(6)
+
+        c1_SND = 10**((a_LMS-a_SND)/b_LMS)
+        c1_LMS = 10**((a_LMS-a_LMS)/b_LMS)
+        c1_DOL = 10**((a_LMS-a_DOL)/b_LMS)
+
+        c2_SND = b_SND/b_LMS
+        c2_LMS = b_LMS/b_LMS
+        c2_DOL = b_DOL/b_LMS
+
+        porSND = np.linspace(0,0.45,46)
+        porLMS = np.linspace(0,0.45,46)
+        porDOL = np.linspace(0,0.45,46)
+
+        sonicSND = porSND*(DT_FLUID-DT_SND)+DT_SND
+        sonicLMS = porLMS*(DT_FLUID-DT_LMS)+DT_LMS
+        sonicDOL = porDOL*(DT_FLUID-DT_DOL)+DT_DOL
+
+        porLMS_SND = c1_SND*(porSND)**c2_SND-p_SND
+        porLMS_LMS = c1_LMS*(porLMS)**c2_LMS-p_LMS
+        porLMS_DOL = c1_DOL*(porDOL)**c2_DOL-p_DOL
+
+        self.axis_sncp.plot(porLMS_SND,sonicSND,color='blue',linewidth=0.3)
+        self.axis_sncp.plot(porLMS_LMS,sonicLMS,color='blue',linewidth=0.3)
+        self.axis_sncp.plot(porLMS_DOL,sonicDOL,color='blue',linewidth=0.3)
+
+        self.axis_sncp.scatter(porLMS_SND[::5],sonicSND[::5],marker=(2,0,45),color="blue")
+        self.axis_sncp.scatter(porLMS_LMS[::5],sonicLMS[::5],marker=(2,0,45),color="blue")
+        self.axis_sncp.scatter(porLMS_DOL[::5],sonicDOL[::5],marker=(2,0,45),color="blue")
+
+        self.axis_sncp.text(porLMS_SND[27],sonicSND[26],'Sandstone',rotation=50.)
+        self.axis_sncp.text(porLMS_LMS[18],sonicLMS[17],'Calcite (limestone)',rotation=50.)
+        self.axis_sncp.text(porLMS_DOL[19],sonicDOL[18],'Dolomite',rotation=50.)
+
+        self.axis_sncp.set_xlabel("Apparent Limestone Neutron Porosity")
+        self.axis_sncp.set_ylabel("Sonic Transit Time $\\Delta$t [$\\mu$s/ft]")
+
+        self.axis_sncp.set_xlim([-0.05,0.45])
+        self.axis_sncp.set_ylim([40,111])
+
+        self.axis_sncp.xaxis.set_minor_locator(AutoMinorLocator(10))
+        self.axis_sncp.yaxis.set_minor_locator(AutoMinorLocator(10))
+
+        self.axis_sncp.grid(True,which="both",axis='both')
+
+        self.fig_sncp.tight_layout()
 
     def set_DenPheCP(self):
 
@@ -1196,31 +1255,39 @@ class LogView(logascii):
 
         self.fig_rhoU,self.axis_rhoU = plt.subplots()
 
-    def set_PickettCP(self,resLine,phiLine,m=2,n=2,a=0.62,Rw=0.1,depth_correction=False,depth_correction_tol=0.05):
+    def set_PickettCP(self,
+        resLine,
+        phiLine,
+        m=2,
+        n=2,
+        a=0.62,
+        Rw=0.1,
+        depth_correction=False,
+        depth_correction_tol=0.05):
 
         self.fig_pcp,self.axis_pcp = plt.subplots()
 
         try:
-            depthR = self.lasios[resLine[0]]["MD"]
+            depthR = self.files[resLine[0]]["MD"]
         except KeyError:
-            depthR = self.lasios[resLine[0]]["DEPT"]
+            depthR = self.files[resLine[0]]["DEPT"]
 
         try:
-            depthP = self.lasios[phiLine[0]]["MD"]
+            depthP = self.files[phiLine[0]]["MD"]
         except KeyError:
-            depthP = self.lasios[phiLine[0]]["DEPT"]
+            depthP = self.files[phiLine[0]]["DEPT"]
 
-        xvalsR = self.lasios[resLine[0]][resLine[1]]
-        xvalsP = self.lasios[phiLine[0]][phiLine[1]]
+        xvalsR = self.files[resLine[0]][resLine[1]]
+        xvalsP = self.files[phiLine[0]][phiLine[1]]
 
-        indexR = self.lasios[resLine[0]].curves.keys().index(resLine[1])
-        indexP = self.lasios[phiLine[0]].curves.keys().index(phiLine[1])
+        indexR = self.files[resLine[0]].curves.keys().index(resLine[1])
+        indexP = self.files[phiLine[0]].curves.keys().index(phiLine[1])
 
-        mnemR = self.lasios[resLine[0]].curves[indexR].mnemonic
-        unitR = self.lasios[resLine[0]].curves[indexR].unit
+        mnemR = self.files[resLine[0]].curves[indexR].mnemonic
+        unitR = self.files[resLine[0]].curves[indexR].unit
 
-        mnemP = self.lasios[phiLine[0]].curves[indexP].mnemonic
-        unitP = self.lasios[phiLine[0]].curves[indexP].unit
+        mnemP = self.files[phiLine[0]].curves[indexP].mnemonic
+        unitP = self.files[phiLine[0]].curves[indexP].unit
 
         if depth_correction:
             indicesR,indicesP = np.where(
