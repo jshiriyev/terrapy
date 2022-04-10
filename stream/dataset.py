@@ -7,6 +7,8 @@ from dateutil.relativedelta import relativedelta
 
 import os
 
+import re
+
 import numpy as np
 
 import openpyxl
@@ -16,9 +18,9 @@ import lasio
 if __name__ == "__main__":
     import setup
 
-class MDS():
+class frame():
 
-    # MAIN DATA STRUCTURE
+    # MAIN DATA FRAME
 
     def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
@@ -119,39 +121,6 @@ class MDS():
         self._headers[header_index] = header
 
         self.headers = self._headers
-
-    def set_subheaders(self,header_index=None,header=None,regex=None,regex_builtin="INC_HEADERS",title="SUB-HEADERS"):
-
-        nparray = np.array(self._running[header_index])
-
-        if regex is None and regex_builtin=="INC_HEADERS":
-            regex = r'^[A-Z]+$'                         #for strings with only capital letters no digits
-        elif regex is None and regex_builtin=="INC_DATES":
-            regex = r'^\d{1,2} [A-Za-z]{3} \d{2}\d{2}?$'   #for strings with [1 or 2 digits][space][3 capital letters][space][2 or 4 digits], e.g. DATES
-
-        vmatch = np.vectorize(lambda x: bool(re.compile(regex).match(x)))
-
-        match_index = vmatch(nparray)
-
-        firstocc = np.argmax(match_index)
-
-        lower = np.where(match_index)[0]
-        upper = np.append(lower[1:],nparray.size)
-
-        repeat_count = upper-lower-1
-
-        match_content = nparray[match_index]
-
-        nparray[firstocc:][~match_index[firstocc:]] = np.repeat(match_content,repeat_count)
-
-        self._headers.insert(header_index,title)
-        self._running.insert(header_index,np.asarray(nparray))
-
-        for index,column in enumerate(self._running):
-            self._running[index] = np.array(self._running[index][firstocc:][~match_index[firstocc:]])
-
-        self.headers = self._headers
-        self.running = [np.asarray(column) for column in self._running]
 
     def texttocolumn(self,header_index=None,header=None,deliminator=None,maxsplit=None):
 
@@ -389,7 +358,7 @@ class MDS():
             for line in vprint(*self._running):
                 wfile.write(line)
 
-class excel():
+class excel(frame):
 
     def __init__(self,filepath=None):
 
@@ -466,7 +435,7 @@ class vtkit():
 
         pass
 
-class schedule():
+class schedule(frame):
 
     # KEYWORDS: DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN 
 
@@ -491,6 +460,39 @@ class schedule():
     def read(self):
 
         pass
+
+    def set_subheaders(self,header_index=None,header=None,regex=None,regex_builtin="INC_HEADERS",title="SUB-HEADERS"):
+
+        nparray = np.array(self._running[header_index])
+
+        if regex is None and regex_builtin=="INC_HEADERS":
+            regex = r'^[A-Z]+$'                         #for strings with only capital letters no digits
+        elif regex is None and regex_builtin=="INC_DATES":
+            regex = r'^\d{1,2} [A-Za-z]{3} \d{2}\d{2}?$'   #for strings with [1 or 2 digits][space][3 capital letters][space][2 or 4 digits], e.g. DATES
+
+        vmatch = np.vectorize(lambda x: bool(re.compile(regex).match(x)))
+
+        match_index = vmatch(nparray)
+
+        firstocc = np.argmax(match_index)
+
+        lower = np.where(match_index)[0]
+        upper = np.append(lower[1:],nparray.size)
+
+        repeat_count = upper-lower-1
+
+        match_content = nparray[match_index]
+
+        nparray[firstocc:][~match_index[firstocc:]] = np.repeat(match_content,repeat_count)
+
+        self._headers.insert(header_index,title)
+        self._running.insert(header_index,np.asarray(nparray))
+
+        for index,column in enumerate(self._running):
+            self._running[index] = np.array(self._running[index][firstocc:][~match_index[firstocc:]])
+
+        self.headers = self._headers
+        self.running = [np.asarray(column) for column in self._running]
 
     def get_wells(self,wellname=None):
 
