@@ -283,10 +283,13 @@ class frame():
             self.headers = [self._headers[index] for index in header_indices]
             self.running = [np.asarray(self._running[index]) for index in header_indices]
 
-    def del_rows(self,row_indices,inplace=False):
+    def del_rows(self,row_indices=None,noneColIndex=None,inplace=False):
 
         all_rows = np.array([np.arange(self._running[0].size)])
 
+        if row_indices is None:
+            row_indices = [index for index,val in enumerate(self.running[noneColIndex]) if val is None]
+        
         row_indices = np.array(row_indices).reshape((-1,1))
 
         comp_mat = all_rows==row_indices
@@ -299,6 +302,21 @@ class frame():
         else:
             self.running = [np.asarray(column[keep_index]) for column in self._running]
 
+    def fill_nones(self,inplace=False):
+
+        for col_index,column in enumerate(self._running):
+
+            indices = [index for index,val in enumerate(column) if val is None]
+
+            for index in indices:
+                column[index] = column[index-1]
+
+            if inplace:
+                self._running[col_index] = column
+                self.running[col_index] = np.asarray(column)
+            else:
+                self.running[col_index] = np.asarray(column)
+            
     def sort(self,header_indices=None,headers=None,reverse=False,inplace=False,returnFlag=False):
 
         if header_indices is None:
@@ -381,33 +399,39 @@ class excel(frame):
 
         self.files.append(openpyxl.load_workbook(filepath,read_only=True))
 
+    def get_sheetname(self,keyword):
+
+        # This method returns sheetname similar to the keyword
+
+        for sheetname in self.files[0].sheetnames:
+            if sheetname[:len(keyword)]==keyword:
+                return sheetname
+            else:
+                return keyword
+
     def read(self,sheetname=None,min_row=1,min_col=1,max_row=None,max_col=None):
 
+        self._headers = []
+
         rows = self.files[0][sheetname].iter_rows(min_row=min_row,min_col=min_col,
-            max_row=min_row+self.skiplines-1,max_col=max_col,values_only=True)
+            max_row=max_row,max_col=max_col,values_only=True)
 
-        rows = list(rows)
+        nparray = np.array(list(rows)).T
 
-        # self._headers = list(rows[self.headerline-1])
+        self._running = [np.asarray(column) for column in nparray]
 
-        # if self.headerline<self.skiplines:
+        self.files[0]._archive.close()
 
-        #     for index,(header,header_lower) in enumerate(zip(self._headers,rows[self.skiplines-1])):
-        #         if header_lower is not None:
-        #             self._headers[index] = header_lower.strip()
-        #         elif header is not None:
-        #             self._headers[index] = header.strip()
-        #         else:
-        #             self._headers[index] = None
+        default_header = "Col {}"
 
-        # columns = self.files[0][sheetname].iter_rows(min_row=min_row,min_col=min_col,
-        #     max_row=max_row,max_col=max_col,values_only=True)
+        for index,header_lower in enumerate(self.get_rows(0)[0]):
+            if header_lower is not None:
+                self._headers.append(header_lower.strip())
+            else:
+                self._headers.append(default_header.format(index))
 
-        # nparray = np.array(list(columns)).T
-
-        # self._running = [np.asarray(column) for column in nparray]
-
-        # self.files[0]._archive.close()
+        self.headers = self._headers
+        self.running = [np.asarray(column) for column in self._running]
 
     def write(self):
 

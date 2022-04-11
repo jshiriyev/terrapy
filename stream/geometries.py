@@ -3,7 +3,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.dataset import MDS
+from stream.dataset import frame
 
 from stream.graphics import View3D
 

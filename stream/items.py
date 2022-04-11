@@ -14,7 +14,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.dataset import MDS
+from stream.dataset import frame
 from stream.dataset import excel
 from stream.dataset import vtkit
 from stream.dataset import schedule
@@ -251,7 +251,7 @@ def get_PorRock(geometry=None):
             # fprintf(fid,'FRACTURE FLOW ANALYTICAL SOLUTION\r\n');
             # fprintf(fid,'ASCII\r\n');
 
-            # fprintf(fid,'\r\nMDS UNSTRUCTURED_GRID\r\n');
+            # fprintf(fid,'\r\nframe UNSTRUCTURED_GRID\r\n');
 
             # fprintf(fid,'\r\nPOINTS %d FLOAT\r\n',frac.numAnode*2);
 
@@ -591,7 +591,7 @@ def get_Wells(geometry=None,graph=None,data=None,**kwargs):
             get_wellname = lambda x: self.wnamefstr.format(get_digits(x).zfill(max_digitnum))
             arr_wellname = np.vectorize(get_wellname)
 
-            self.itemnames = arr_wellname(self.itemnames).tolist()
+            self.itemnames = arr_wellname(self.itemnames).tolist()[0]
 
             # self.itemnames = np.unique(np.array(self.itemnames)).tolist()
 
@@ -654,8 +654,8 @@ def get_Wells(geometry=None,graph=None,data=None,**kwargs):
             for wname in np.setdiff1d(compwellnames,prodwellnames):
                 warnings.warn(warnNOPROD.format(wname))
 
-            proddata = MDS(headers=self.headers_op[:7])
-            schedule = MDS(headers=self.schedule_headers)
+            proddata = frame(headers=self.headers_op[:7])
+            schedule = frame(headers=self.schedule_headers)
 
             for wname in self.itemnames:
 
@@ -980,7 +980,7 @@ class Trajectory():
         
         filepath = os.path.join(self.dirtraj,folder1,folder2,filename)
 
-        traj = MDS(filepath=filepath,skiplines=1,comment="#")
+        traj = frame(filepath=filepath,skiplines=1,comment="#")
 
         traj.texttocolumn(0,deliminator=None,maxsplit=None)
 
@@ -1022,7 +1022,7 @@ class Completion(PerfView):
         warnSTOPDATE = "{} stop date is not set properly in completion directory."
         warnSTARTEND = "{} start date is after or equal to stop date in completion directory."
 
-        compraw = MDS(headers=self.headers_compraw)
+        compraw = frame(headers=self.headers_compraw)
 
         for wname in self.itemnames:
 
@@ -1036,7 +1036,7 @@ class Completion(PerfView):
 
             filepath = os.path.join(self.comprawdir,folder1,filename)
             
-            comp = MDS(filepath=filepath,sheetname=folder1,headerline=1,skiplines=2,min_row=2,min_col=2)
+            comp = frame(filepath=filepath,sheetname=folder1,headerline=1,skiplines=2,min_row=2,min_col=2)
 
             comp.get_columns(headers=self.headers_compraw,inplace=True)
 
@@ -1083,8 +1083,8 @@ class Completion(PerfView):
 
         path = os.path.join(self.workdir,self.filename_comp+"0")
 
-        comp1 = MDS(filepath=path,skiplines=1)
-        comp2 = MDS(filepath=path,skiplines=1)
+        comp1 = frame(filepath=path,skiplines=1)
+        comp2 = frame(filepath=path,skiplines=1)
 
         comp1.texttocolumn(0,deliminator="\t")
         comp2.texttocolumn(0,deliminator="\t")
@@ -1138,7 +1138,7 @@ class Completion(PerfView):
 
         comp1.write(filepath=path,fstring=fstring)
 
-        compuni = MDS(headers=self.headers_compuni)
+        compuni = frame(headers=self.headers_compuni)
 
         for wname in self.itemnames:
 
@@ -1216,7 +1216,7 @@ class Completion(PerfView):
 
                 attrname = filename[:4]+ending
 
-                attrvals = MDS(filepath=path,skiplines=1)
+                attrvals = frame(filepath=path,skiplines=1)
 
                 setattr(self,attrname,attrvals)
 
@@ -1283,7 +1283,7 @@ class Production(TimeView):
 
         path = os.path.join(self.workdir,self.filename_op+"0")
 
-        prod = MDS(filepath=path,skiplines=1)
+        prod = frame(filepath=path,skiplines=1)
 
         prod.texttocolumn(0,deliminator="\t",maxsplit=7)
         prod.get_columns(headers=self.headers_opraw,inplace=True)
@@ -1423,7 +1423,7 @@ class Production(TimeView):
 
                 attrname = filename[:2]+ending
 
-                attrvals = MDS(filepath=path,skiplines=1)
+                attrvals = frame(filepath=path,skiplines=1)
 
                 setattr(self,attrname,attrvals)
 
