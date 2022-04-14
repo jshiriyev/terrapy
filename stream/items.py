@@ -561,7 +561,7 @@ def get_Wells(geometry=None,graph=None,data=None,**kwargs):
             warnNWIF = "No well name was added or could be found."
 
             for arg in args:
-                self.itemnames.append(arg)
+                self.itemnames.append(str(arg))
 
             if len(args)==0:
 
@@ -581,7 +581,7 @@ def get_Wells(geometry=None,graph=None,data=None,**kwargs):
             if wnamefstr is not None:
                 self.wnamefstr = wnamefstr      # string format to save well names
 
-            get_digits = lambda x: re.sub("[^0-9]","",str(x))
+            get_digits = lambda x: re.sub("[^0-9]","",x)
 
             get_digitnum = lambda x: len(get_digits(x))
             arr_digitnum = np.vectorize(get_digitnum)
@@ -591,7 +591,7 @@ def get_Wells(geometry=None,graph=None,data=None,**kwargs):
             get_wellname = lambda x: self.wnamefstr.format(get_digits(x).zfill(max_digitnum))
             arr_wellname = np.vectorize(get_wellname)
 
-            self.itemnames = arr_wellname(self.itemnames).tolist()[0]
+            self.itemnames = arr_wellname(self.itemnames)
 
             # self.itemnames = np.unique(np.array(self.itemnames)).tolist()
 
@@ -994,7 +994,7 @@ class Trajectory():
     def track_get(self,wellname=None):
 
         pass
-    
+
 class Completion(PerfView):
 
     headersRAW = ["Wells","Horizont","Top","Bottom","start","stoped",]

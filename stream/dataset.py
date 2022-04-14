@@ -1,20 +1,15 @@
 import calendar
 
 from datetime import datetime
-
-from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
+from dateutil import parser
+from dateutil import relativedelta
 
 import math
-
 import os
-
 import re
 
 import numpy as np
-
-import openpyxl
-
+import openpyxl as opxl
 import lasio
 
 if __name__ == "__main__":
@@ -199,7 +194,7 @@ class frame():
         if datestring:
 
             def shifting(string):
-                date = parse(string)+relativedelta(months=shiftmonths)
+                date = parser.parse(string)+relativedelta.relativedelta(months=shiftmonths)
                 days = calendar.monthrange(date.year,date.month)[1]
                 return datetime(date.year,date.month,days)
 
@@ -207,12 +202,12 @@ class frame():
                 if shiftmonths != 0:
                     vdate = np.vectorize(lambda x: shifting(x))
                 else:
-                    vdate = np.vectorize(lambda x: parse(x))
+                    vdate = np.vectorize(lambda x: parser.parse(x))
             else:
                 if shiftmonths != 0:
                     vdate = np.vectorize(lambda x: dtype(shifting(x)))
                 else:
-                    vdate = np.vectorize(lambda x: dtype(parse(x)))
+                    vdate = np.vectorize(lambda x: dtype(parser.parse(x)))
             
         else:
             vdate = np.vectorize(lambda x: dtype(x))
@@ -302,14 +297,19 @@ class frame():
         else:
             self.running = [np.asarray(column[keep_index]) for column in self._running]
 
-    def fill_nones(self,inplace=False):
+    def fill_nones(self,col_indices=None,inplace=False):
 
-        for col_index,column in enumerate(self._running):
+        if col_indices is None:
+            col_indices = range(len(self._running))
 
-            indices = [index for index,val in enumerate(column) if val is None]
+        for col_index in col_indices:
 
-            for index in indices:
-                column[index] = column[index-1]
+            column = self._running[col_index]
+
+            row_indices = [row_index for row_index,val in enumerate(column) if val is None]
+
+            for row_index in row_indices:
+                column[row_index] = column[row_index-1]
 
             if inplace:
                 self._running[col_index] = column
@@ -397,7 +397,7 @@ class excel(frame):
 
             filepath = os.path.join(self.home,filepath)
 
-        self.files.append(openpyxl.load_workbook(filepath,read_only=True))
+        self.files.append(opxl.load_workbook(filepath,read_only=True,data_only=True))
 
     def get_sheetname(self,keyword):
 
@@ -420,13 +420,11 @@ class excel(frame):
 
         self._running = [np.asarray(column) for column in nparray]
 
-        self.files[0]._archive.close()
-
         default_header = "Col {}"
 
         for index,header_lower in enumerate(self.get_rows(0)[0]):
             if header_lower is not None:
-                self._headers.append(header_lower.strip())
+                self._headers.append(re.sub(r"[^\w]","",header_lower))
             else:
                 self._headers.append(default_header.format(index))
 
@@ -435,7 +433,7 @@ class excel(frame):
 
     def write(self):
 
-        wb = openpyxl.Workbook()
+        wb = opxl.Workbook()
 
         sheet = wb.active
 
@@ -446,6 +444,13 @@ class excel(frame):
             sheet.append(line)
 
         wb.save(filepath)
+
+    def close(self,index=None):
+
+        if index is None:
+            [file._archive.close() for file in self.files]
+        else:
+            self.files[index]._archive.close()
 
 class vtkit():
 

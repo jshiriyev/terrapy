@@ -1357,7 +1357,7 @@ class PerfView():
     
     pass
 
-class View3D():
+class View3D(vtkit):
 
     def __init__(self,window):
 
