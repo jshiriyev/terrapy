@@ -73,12 +73,15 @@ sps = singlephase()
 
 sps.PorRock.set_area(A)
 sps.PorRock.set_thickness(h)
-sps.PorRock.set_grids((10,10))
+sps.PorRock.set_grids((11,11))
 sps.PorRock.set_porosity(p)
 sps.PorRock.set_permeability(k)
 
+sps.Wells.set_names("Prod#1")
+sps.Wells.Trajectory.set_tracks(((( 200,200,60),( 200,200,0)),))
 sps.Wells.set_radii(rw)
-sps.Wells.set_flowconds("rate",qo,"mobfluid")
+sps.Wells.set_skinfactors(0)
+sps.Wells.set_flowconds(["rate"],[-qo],["mobfluid"]) #conditions,limits,fluids
 
 sps.Fluids.set_viscosity(muo)
 
@@ -86,11 +89,14 @@ sps.initialize(pressure0=Pi,ctotal=ct)
 
 sps.set_times(pss.tmax/5000,pss.tmax)
 
-sps.transmissibility()
-sps.central()
-sps.implement_bc()
+sps.set_transmissibility()
+sps.set_matrix()
+sps.set_externalBC()
+sps.set_wells()
 
 sps.solve()
+
+Pwf = sps.postprocess()
 
 ##fig,axis = plt.subplots()
 ##
@@ -100,20 +106,24 @@ sps.solve()
 
 ## RESULTS
 
-##ur.Quantity(trs.times,'sec').ito('days')
-##ur.Quantity(trs.pressure,'Pa').ito('psi')
-##
-##ur.Quantity(pss.times,'sec').ito('days')
-##ur.Quantity(pss.pressure,'Pa').ito('psi')
-##
-##plt.semilogx(trs.times[0,:],trs.pressure[0,:],label="Transient Solution")
-##plt.semilogx(pss.times[0,:],pss.pressure[0,:],label="Pseudo-Steady-State Solution")
-##
-##plt.xlabel("Time [days]")
-##plt.ylabel("Pressure [psi]")
-##
-##plt.legend()
-##
-##plt.grid()
-##
-##plt.show()
+ur.Quantity(trs.times,'sec').ito('days')
+ur.Quantity(trs.pressure,'Pa').ito('psi')
+
+ur.Quantity(pss.times,'sec').ito('days')
+ur.Quantity(pss.pressure,'Pa').ito('psi')
+
+ur.Quantity(sps.times,'sec').ito('days')
+ur.Quantity(Pwf,'Pa').ito('psi')
+
+plt.semilogx(trs.times[0,:],trs.pressure[0,:],label="Transient Solution")
+plt.semilogx(pss.times[0,:],pss.pressure[0,:],label="Pseudo-Steady-State Solution")
+plt.scatter(sps.times,Pwf)
+
+plt.xlabel("Time [days]")
+plt.ylabel("Pressure [psi]")
+
+plt.legend()
+
+plt.grid()
+
+plt.show()

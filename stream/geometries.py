@@ -198,17 +198,77 @@ class Rectangle(View3D):
 
 class Ellipse(View3D):
 
-    # This class is supposed to create 2-D surface in 3-D space
-
-    # origin: location of the center of ellipse
-    # lengths: (major radius, minor radius)
+    # This class is supposed to create 2-D surface in 3-D domain
     # thickness: thickness of the ellipse
     # rinner: inner radius
     # dip_angle: 
 
     # lamda: node spacing, radius ratio
 
-    def __init__(self,thickness=1,inner_radii=0):
+    def __init__(self,radii=None,inner_radii=(0,0),thickness=1):
+
+        if radii is not None:
+            self.set_radii(radii)
+
+        self.set_thickness(thickness)
+
+        self.gridFlag = False
+
+    def set_origin(self,origin=(0,0,0)):
+
+        # origin: location of the center of ellipse
+
+        self.origin = origin # origing has not been implemented yet
+
+    def set_radii(self,radii=(1,1)):
+
+        # lengths: (major_radius,minor_radius)
+
+        if type(radii) == int:
+            self.radii = (float(radii),float(radii))
+        elif type(radii) == float:
+            self.radii = (radii,radii)
+        elif type(radii) == str:
+            raise ValueError('Radii must be defined as a number or tuple.')
+        elif len(radii) == 2:
+            self.radii = radii
+
+        self.radiusMajor = max(self.radii)
+        self.radiusMinor = min(self.radii)
+
+        self.set_ellipse()
+
+    def set_inradii(self,inradii=(0,0)):
+
+        if type(inradii) == int:
+            self.inradii = (float(inradii),float(inradii))
+        elif type(inradii) == float:
+            self.inradii = (inradii,inradii)
+        elif type(inradii) == str:
+            raise ValueError('Inner radii must be defined as a number or tuple.')
+        elif len(inradii) == 2:
+            self.inradii = inradii
+
+        self.inradiusMajor = max(inradii)
+        self.inradiusMinor = min(inradii)
+
+    def set_area(self,area,aspect=1):
+        
+        self.area = area
+
+        radius1 = np.sqrt(area*aspect/np.pi)
+        radius2 = radius1/aspect
+
+        self.set_radii(radii=(radius1,radius2))
+
+    def set_thickness(self,thickness):
+
+        self.thickness = thickness
+
+        if hasattr(self,"radii"):
+            self.set_ellipse()
+
+    def set_ellipse(self):
 
         numverts = 50
 
@@ -238,51 +298,6 @@ class Ellipse(View3D):
             self.boundaries.append(np.array([x_aspect,y_aspect,z_aspect]))
 
         self.gridFlag = False
-
-    def set_origin(self,origin=(0,0,0)):
-
-        self.origin = origin # origing has not been implemented yet
-
-    def set_radii(self,radii=(1,1)):
-
-        if type(radii) == int:
-            self.radii = (float(radii),float(radii))
-        elif type(radii) == float:
-            self.radii = (radii,radii)
-        elif type(radii) == str:
-            raise ValueError('Radii must be defined as a number or tuple.')
-        elif len(radii) == 2:
-            self.radii = radii
-
-        self.radiusMajor = max(radii)
-        self.radiusMinor = min(radii)
-
-    def set_area(self,area,aspect=1):
-        
-        self.area = area
-
-        radius1 = np.sqrt(area*aspect/np.pi)
-        radius2 = radius1/aspect
-
-        self.set_radii(radii=(radius1,radius2))
-
-    def set_inradii(self,inradii=(0,0)):
-
-        if type(inradii) == int:
-            self.inradii = (float(inradii),float(inradii))
-        elif type(inradii) == float:
-            self.inradii = (inradii,inradii)
-        elif type(inradii) == str:
-            raise ValueError('Inner radii must be defined as a number or tuple.')
-        elif len(inradii) == 2:
-            self.inradii = inradii
-
-        self.inradiusMajor = max(inradii)
-        self.inradiusMinor = min(inradii)
-
-    def set_thickness(self,thickness=1):
-
-        self.thickness = thickness
 
     def grid(self,lamda):
 

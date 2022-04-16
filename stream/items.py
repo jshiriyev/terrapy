@@ -556,7 +556,7 @@ def get_Wells(geometry=None,graph=None,data=None,**kwargs):
             self.Logging    = Logging()
             self.Production = Production()
 
-        def set_wellnames(self,*args,wnamefstr=None,sortFlag=False):
+        def set_names(self,*args,wnamefstr=None,sortFlag=False):
 
             warnNWIF = "No well name was added or could be found."
 
@@ -607,6 +607,8 @@ def get_Wells(geometry=None,graph=None,data=None,**kwargs):
 
             for arg in args:
                 self.radii.append(arg)
+
+            self.radii = np.array(self.radii)
 
         def set_flowconds(self,conditions,limits,fluids=None):
 
@@ -955,7 +957,7 @@ def get_Wells(geometry=None,graph=None,data=None,**kwargs):
 
     return Wells(**kwargs)
 
-class Trajectory():
+class Trajectory(Line):
 
     headersRaw = ["X","Y","Z","MD",]
 

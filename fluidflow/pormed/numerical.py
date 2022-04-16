@@ -14,13 +14,13 @@ from stream.items import Fluids
 from stream.items import get_PorRock
 from stream.items import get_Wells
 
+from fluidflow.pormed.conrelation import relative_permeability
+
 class singlephase():
     
     """
-    This class is supposed to generate regular grids in cartesian and
-    radial coordinates and perform the given first or second order central
-    derivative operation by generating A matrix and implementing boundary
-    condition and solving for the given right hand side.
+    This class is supposed to generate regular grids in cartesian
+    coordinates and perform reservoir simulation.
     """
     
     def __init__(self):
@@ -32,7 +32,7 @@ class singlephase():
 
         self.Fluids = Fluids(number=2)
 
-        self.Wells = get_Wells()()
+        self.Wells = get_Wells()
 
     def initialize(self,pressure0,Swirr=0,ctotal=None):
 
@@ -61,7 +61,9 @@ class singlephase():
 
         self.pressure = np.zeros((self.PorRock.grid_numtot,self.times.size))
 
-    def transmissibility(self):
+        self.pressure[:,0] = self.pressure0
+
+    def set_transmissibility(self):
 
         sizes = self.PorRock.grid_sizes
 
@@ -109,7 +111,7 @@ class singlephase():
         self.transmissibility[:,4] = (2*etaz_m)/(dz_m*(dz_m+dz_p))
         self.transmissibility[:,5] = (2*etaz_p)/(dz_p*(dz_m+dz_p))
 
-    def central(self,order=2):
+    def set_matrix(self,order=2):
 
         indices = self.PorRock.grid_indices
 
@@ -143,27 +145,27 @@ class singlephase():
 
         shape = (self.PorRock.grid_numtot,self.PorRock.grid_numtot)
 
-        self.Amatrix = csr(shape)
+        self.Gmatrix = csr(shape)
 
-        self.Amatrix += csr((cx_m,(id_noxmin,idNnoxmin)),shape=shape)
-        self.Amatrix -= csr((cx_m,(id_noxmin,id_noxmin)),shape=shape)
+        self.Gmatrix += csr((cx_m,(id_noxmin,idNnoxmin)),shape=shape)
+        self.Gmatrix -= csr((cx_m,(id_noxmin,id_noxmin)),shape=shape)
         
-        self.Amatrix += csr((cx_p,(id_noxmax,idNnoxmax)),shape=shape)
-        self.Amatrix -= csr((cx_p,(id_noxmax,id_noxmax)),shape=shape)
+        self.Gmatrix += csr((cx_p,(id_noxmax,idNnoxmax)),shape=shape)
+        self.Gmatrix -= csr((cx_p,(id_noxmax,id_noxmax)),shape=shape)
         
-        self.Amatrix += csr((cy_m,(id_noymin,idNnoymin)),shape=shape)
-        self.Amatrix -= csr((cy_m,(id_noymin,id_noymin)),shape=shape)
+        self.Gmatrix += csr((cy_m,(id_noymin,idNnoymin)),shape=shape)
+        self.Gmatrix -= csr((cy_m,(id_noymin,id_noymin)),shape=shape)
         
-        self.Amatrix += csr((cy_p,(id_noymax,idNnoymax)),shape=shape)
-        self.Amatrix -= csr((cy_p,(id_noymax,id_noymax)),shape=shape)
+        self.Gmatrix += csr((cy_p,(id_noymax,idNnoymax)),shape=shape)
+        self.Gmatrix -= csr((cy_p,(id_noymax,id_noymax)),shape=shape)
         
-        self.Amatrix += csr((cz_m,(id_nozmin,idNnozmin)),shape=shape)
-        self.Amatrix -= csr((cz_m,(id_nozmin,id_nozmin)),shape=shape)
+        self.Gmatrix += csr((cz_m,(id_nozmin,idNnozmin)),shape=shape)
+        self.Gmatrix -= csr((cz_m,(id_nozmin,id_nozmin)),shape=shape)
 
-        self.Amatrix += csr((cz_p,(id_nozmax,idNnozmax)),shape=shape)
-        self.Amatrix -= csr((cz_p,(id_nozmax,id_nozmax)),shape=shape)
+        self.Gmatrix += csr((cz_p,(id_nozmax,idNnozmax)),shape=shape)
+        self.Gmatrix -= csr((cz_p,(id_nozmax,id_nozmax)),shape=shape)
         
-    def implement_bc(self,b_xmin=(0,1,0),b_xmax=(0,1,0),b_ymin=(0,1,0),b_ymax=(0,1,0),b_zmin=(0,1,0),b_zmax=(0,1,0)):
+    def set_externalBC(self,b_xmin=(0,1,0),b_xmax=(0,1,0),b_ymin=(0,1,0),b_ymax=(0,1,0),b_zmin=(0,1,0),b_zmax=(0,1,0)):
 
         """
         b_xmin,b_xmax,b_ymin,b_ymax,b_zmin and b_zmax have three entries:
@@ -198,8 +200,8 @@ class singlephase():
             bc_xmin = (2*tx_xmin*dx_xmin)/(b_xmin[0]*dx_xmin-2*b_xmin[1])
             bc_xmax = (2*tx_xmax*dx_xmax)/(b_xmax[0]*dx_xmax+2*b_xmax[1])
             
-            self.Amatrix[id_xmin,id_xmin] -= bc_xmin*b_xmin[0]
-            self.Amatrix[id_xmax,id_xmax] -= bc_xmax*b_xmax[0]
+            self.Gmatrix[id_xmin,id_xmin] -= bc_xmin*b_xmin[0]
+            self.Gmatrix[id_xmax,id_xmax] -= bc_xmax*b_xmax[0]
             
             self.b_correction[id_xmin] -= bc_xmin*b_xmin[2]
             self.b_correction[id_xmax] -= bc_xmax*b_xmax[2]
@@ -221,8 +223,8 @@ class singlephase():
             bc_ymin = (2*ty_ymin*dy_ymin)/(b_ymin[0]*dy_ymin-2*b_ymin[1])
             bc_ymax = (2*ty_ymax*dy_ymax)/(b_ymax[0]*dy_ymax+2*b_ymax[1])
             
-            self.Amatrix[id_ymin,id_ymin] -= bc_ymin*b_ymin[0]
-            self.Amatrix[id_ymax,id_ymax] -= bc_ymax*b_ymax[0]
+            self.Gmatrix[id_ymin,id_ymin] -= bc_ymin*b_ymin[0]
+            self.Gmatrix[id_ymax,id_ymax] -= bc_ymax*b_ymax[0]
             
             self.b_correction[id_ymin] -= bc_ymin*b_ymin[2]
             self.b_correction[id_ymax] -= bc_ymax*b_ymax[2]
@@ -249,13 +251,72 @@ class singlephase():
             bc_zmin = (2*tz_zmin*dz_zmin)/(b_zmin[0]*dz_zmin-2*b_zmin[1])
             bc_zmax = (2*tz_zmax*dz_zmax)/(b_zmax[0]*dz_zmax+2*b_zmax[1])
 
-            self.Amatrix[id_zmin,id_zmin] -= bc_zmin*b_zmin[0]
-            self.Amatrix[id_zmax,id_zmax] -= bc_zmax*b_zmax[0]
+            self.Gmatrix[id_zmin,id_zmin] -= bc_zmin*b_zmin[0]
+            self.Gmatrix[id_zmax,id_zmax] -= bc_zmax*b_zmax[0]
             
             self.b_correction[id_zmin] -= bc_zmin*b_zmin[2]
             self.b_correction[id_zmax] -= bc_zmax*b_zmax[2]
+
+    def set_wells(self):
+
+        self.well_grids      = np.array([],dtype=int)
+        self.well_indices    = np.array([],dtype=int)
+        self.well_bhpflags   = np.array([],dtype=bool)
+        self.well_limits     = np.array([],dtype=float)
+
+        wells = zip(
+            self.Wells.Trajectory.tracks,
+            self.Wells.consbhp,
+            self.Wells.limits,
+            )
+
+        for index,(track,flag,limit) in enumerate(wells):
+
+            ttrack = np.transpose(track[:,:,np.newaxis],(2,1,0))
+
+            vector = self.PorRock.grid_centers[:,:,np.newaxis]-ttrack
+
+            distance = np.sqrt(np.sum(vector**2,axis=1))
+
+            well_grid = np.unique(np.argmin(distance,axis=0))
+
+            well_index = np.full(well_grid.size,index,dtype=int)
+    
+            well_bhpflag = np.full(well_grid.size,flag,dtype=bool)
+
+            well_limit = np.full(well_grid.size,limit,dtype=float)
+
+            self.well_grids = np.append(self.well_grids,well_grid)
+
+            self.well_indices = np.append(self.well_indices,well_index)
+
+            self.well_bhpflags = np.append(self.well_bhpflags,well_bhpflag)
+
+            self.well_limits = np.append(self.well_limits,well_limit)
+
+        dx = self.PorRock.grid_sizes[self.well_grids,0]
+        dy = self.PorRock.grid_sizes[self.well_grids,1]
+        dz = self.PorRock.grid_sizes[self.well_grids,2]
+
+        req = 0.14*np.sqrt(dx**2+dy**2)
+
+        rw = self.Wells.radii[self.well_indices]
+
+        skin = self.Wells.skinfactors[self.well_indices]
+
+        kx = self.PorRock.permeability[:,0][self.well_grids]
+        ky = self.PorRock.permeability[:,1][self.well_grids]
+
+        dz = self.PorRock.grid_sizes[:,2][self.well_grids]
+
+        self.JR = (2*np.pi*dz*np.sqrt(kx*ky))/(np.log(req/rw)+skin)
             
     def solve(self):
+
+        mshape = (self.PorRock.grid_numtot,self.PorRock.grid_numtot)
+        vshape = (self.PorRock.grid_numtot,1)
+
+        vzeros = np.zeros(self.Wells.number,dtype=int)
 
         indices = self.PorRock.grid_indices
 
@@ -264,27 +325,56 @@ class singlephase():
         oneperdtime = np.ones(self.PorRock.grid_numtot)/self.time_step
         
         t_correction = csr((oneperdtime,(indices[:,0],indices[:,0])),shape=shape)
+
+        J_v = (self.JR)/(self.Fluids.viscosity[0]) #*self.Fluids.fvf[0]
+
+        self.J = csr((J_v[self.well_bhpflags],(self.well_grids[self.well_bhpflags],self.well_grids[self.well_bhpflags])),shape=mshape)
         
-        A = self.Amatrix-t_correction
+        self.Q = csr(vshape)
+
+        q_cp = self.well_limits[self.well_bhpflags]*J_v[self.well_bhpflags]
+
+        q_cr = self.well_limits[~self.well_bhpflags]
+
+        self.Q += csr((q_cp,(self.well_grids[self.well_bhpflags],vzeros[self.well_bhpflags])),shape=vshape)
+
+        self.Q += csr((q_cr,(self.well_grids[~self.well_bhpflags],vzeros[~self.well_bhpflags])),shape=vshape)
+
+        self.Q = self.Q.toarray().flatten()
+
+        G = self.Gmatrix-t_correction
+
+        CCC = self.Q/self.PorRock.grid_volumes/self.PorRock.porosity/self.compressibility
         
         for i in range(1,self.times.size):
+            
+            b = -self.pressure[:,i-1]/self.time_step+self.b_correction-CCC
+            
+            self.pressure[:,i] = sps(G,b)
 
-            if i == 0:
-                pressurePrev = self.pressure0
-            else:
-                pressurePrev = self.pressure[:,i-1]
-            
-            b = -pressurePrev/self.time_step+self.b_correction
-            
-            self.pressure[:,i] = sps(A,b)
+    def postprocess(self):
+
+        N = self.PorRock.grid_numtot
+
+        Y = int((N-1)/2)
+
+        Pwf = self.pressure[Y,:]+self.Q[Y]/self.JR*self.Fluids.viscosity[0]
+
+        return Pwf
 
 class IMPES():
     
     def __init__(self,res,fluids,wells,relperm):
 
-        self.res    = res 
-        self.fluids = fluids
-        self.wells  = wells
+        self.PorRock = get_PorRock("rectangle")()
+
+        # There can be two slightly compressible fluids where the
+        # second one is at irreducible saturation, not mobile
+
+        self.Fluids = Fluids(number=2)
+
+        self.Wells = get_Wells()
+
         self.rp     = relperm
 
     def set_transmissibility(self):

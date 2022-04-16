@@ -34,7 +34,7 @@ class steady():
 
         self.Fluids = Fluids(number=2)
 
-        self.Well = get_Wells()(number=1)
+        self.Well = get_Wells(number=1)
 
         self.Well.set_flowconds("rate",flow_rate,"mobfluid")
 
@@ -55,7 +55,7 @@ class steady():
 
         cons = self.PorRock.porosity*self.Fluids.viscosity[0]*self.compressibility
 
-        self.diffusivity = (self.PorRock.permeability)/(cons)
+        self.diffusivity = (self.PorRock.permeability[0])/(cons[0])
 
     def set_observers(self,observers=None,number=50):
 
@@ -92,7 +92,7 @@ class transient(steady):
 
         # setting mimimum time limit because of the wellbore size
 
-        self.tmin = 100*self.Well.radii**2/self.diffusivity
+        self.tmin = 100*self.Well.radii[0]**2/self.diffusivity
 
         return self.tmin
 
@@ -185,7 +185,7 @@ class pseudosteady():
 
         self.Fluids = Fluids(number=2)
 
-        self.Well = get_Wells()(number=1)
+        self.Well = get_Wells(number=1)
 
         self.Well.set_flowconds("rate",flow_rate,"mobfluid")
 
