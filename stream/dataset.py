@@ -681,6 +681,19 @@ class logascii():
 
                 self.files[indexI].curves[indexJ].data = curve.data[depth_cond]
 
+    def resample(self,x_old,y_old,x_new):
+
+        diff = x_old-x_new.reshape((-1,1))
+
+        indices_lower = np.where(diff<0,diff,-np.inf).argmax(axis=1)
+        indices_upper = np.where(diff>0,diff,np.inf).argmin(axis=1)
+
+        grads = (x_new-x_old[indices_lower])/(x_old[indices_upper]-x_old[indices_lower])
+
+        y_new = y_old[indices_lower]+grads*(y_old[indices_upper]-y_old[indices_lower])
+
+        return y_new
+
     def write(self):
 
         pass
