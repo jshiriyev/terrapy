@@ -858,19 +858,20 @@ class LogView(logascii):
         "sienna",
         )
 
-    color_clean     = "tan"
     color_sandstone = "gold"
     color_limestone = "navajowhite"
     color_dolomite  = "darkkhaki"
+    color_clean     = "tan"
     color_shale     = "gray"
-    color_waterclay = "steelblue"
+    color_waterclay = "lightskyblue"
     color_watercapi = "lightsteelblue"
     color_waterirre = "lightblue"
+    color_watermove = "steelblue"
     color_water     = "aqua"
-    color_HC        = "limegreen"
-    color_oil       = "lime"
+    color_HC        = "green"
+    color_oil       = "limegreen"
     color_gas       = "lightgreen"
-    color_fluidmove = "olivedrab"
+    color_fluidmove = "seagreen"
 
     spinerelpos = (0,0.1,0.2,0.3)
 
@@ -1136,7 +1137,7 @@ class LogView(logascii):
         self.axes[indexI].subax[indexJ].fill_betweenx(
             depth,xvals,x2=cut_line,where=ohmm_cut<=xvals,color=self.color_HC)
 
-    def set_DepthViewNMRfluid(self,NMRline,indexI,water_clay,water_capi,fluid_move):
+    def set_DepthViewNMRfluid(self,NMRline,indexI,water_clay,water_capi,water_move,HC):
 
         # indexL index of NMR containing lasio in the pack
         # indexI index of NMR containing axis in the plot
@@ -1149,7 +1150,8 @@ class LogView(logascii):
         xvals0 = np.zeros(water_clay.shape)
         xvals1 = water_clay
         xvals2 = water_clay+water_capi
-        xvals3 = water_clay+water_capi+fluid_move
+        xvals3 = water_clay+water_capi+water_move
+        xvals4 = water_clay+water_capi+water_move+HC
 
         self.axes[indexI].subax[0].fill_betweenx(
             depth,xvals1,x2=xvals0,where=xvals0<=xvals1,color=self.color_waterclay)
@@ -1158,7 +1160,10 @@ class LogView(logascii):
             depth,xvals2,x2=xvals1,where=xvals1<=xvals2,color=self.color_watercapi)
 
         self.axes[indexI].subax[0].fill_betweenx(
-            depth,xvals3,x2=xvals2,where=xvals2<=xvals3,color=self.color_fluidmove)
+            depth,xvals3,x2=xvals2,where=xvals2<=xvals3,color=self.color_watermove)
+
+        self.axes[indexI].subax[0].fill_betweenx(
+            depth,xvals4,x2=xvals3,where=xvals3<=xvals4,color=self.color_HC)
 
     def set_GammaSpectralCP(self):
 
@@ -1255,15 +1260,17 @@ class LogView(logascii):
 
         self.fig_rhoU,self.axis_rhoU = plt.subplots()
 
-    def set_PickettCP(self,
+    def set_PickettCP(
+        self,
         resLine,
         phiLine,
+        showSaturationFlag=True,
+        returnSaturationFlag=False,
         m=2,
         n=2,
         a=0.62,
-        Rw=0.1,
-        depth_correction=False,
-        depth_correction_tol=0.05):
+        Rw=0.1
+        ):
 
         self.fig_pcp,self.axis_pcp = plt.subplots()
 
@@ -1289,65 +1296,63 @@ class LogView(logascii):
         mnemP = self.files[phiLine[0]].curves[indexP].mnemonic
         unitP = self.files[phiLine[0]].curves[indexP].unit
 
-        if depth_correction:
-            indicesR,indicesP = np.where(
-                np.abs(depthP-depthR.reshape((-1,1)))<depth_correction_tol)
-            depthR = depthR[indicesR]
-            depthP = depthP[indicesP]
-            xvalsR = xvalsR[indicesR]
-            xvalsP = xvalsP[indicesP]
-
         resexpmin = np.floor(np.log10(xvalsR.min()))
         resexpmax = np.ceil(np.log10(xvalsR.max()))
 
         resSw = np.logspace(resexpmin,resexpmax,100)
 
-        Sw75 = 0.75
-        Sw50 = 0.50
-        Sw25 = 0.25
+        if not returnSaturationFlag:
+            self.axis_pcp.scatter(xvalsR,xvalsP,s=1,color="#BF5700")
 
-        phi100 = (a*Rw/resSw)**(1/m)
-        phi75 = (a*Rw/resSw/Sw75**n)**(1/m)
-        phi50 = (a*Rw/resSw/Sw50**n)**(1/m)
-        phi25 = (a*Rw/resSw/Sw25**n)**(1/m)
+        if showSaturationFlag:
 
-        phiexpmin = np.floor(np.log10(xvalsP.min()))
-        phiexpmax = np.ceil(np.log10(xvalsP.max()))
+            Sw75,Sw50,Sw25 = 0.75,0.50,0.25
 
-        xticks = 10**np.arange(resexpmin,resexpmax+1/2)
-        yticks = 10**np.arange(phiexpmin,phiexpmax+1/2)
+            philine_atSw100 = (a*Rw/resSw)**(1/m)
 
-        self.axis_pcp.scatter(xvalsR,xvalsP,s=1,color="#BF5700")
+            philine_atSw075 = philine_atSw100*Sw75**(-n/m)
+            philine_atSw050 = philine_atSw100*Sw50**(-n/m)
+            philine_atSw025 = philine_atSw100*Sw25**(-n/m)
 
-        self.axis_pcp.plot(resSw,phi100,c="black",linewidth=1,label="100% Sw")
-        self.axis_pcp.plot(resSw,phi75,c="blue",linewidth=1,label="75% Sw")
-        self.axis_pcp.plot(resSw,phi50,c="blue",linewidth=1,label="50% Sw")
-        self.axis_pcp.plot(resSw,phi25,c="blue",linewidth=1,label="25% Sw")
+            self.axis_pcp.plot(resSw,philine_atSw100,c="black",linewidth=1)#,label="100% Sw")
+            self.axis_pcp.plot(resSw,philine_atSw075,c="blue",linewidth=1)#,label="75% Sw")
+            self.axis_pcp.plot(resSw,philine_atSw050,c="blue",linewidth=1)#,label="50% Sw")
+            self.axis_pcp.plot(resSw,philine_atSw025,c="blue",linewidth=1)#,label="25% Sw")
 
-        self.axis_pcp.set_xscale('log')
-        self.axis_pcp.set_yscale('log')
+        if not returnSaturationFlag:
+            phiexpmin = np.floor(np.log10(xvalsP.min()))
+            phiexpmax = np.ceil(np.log10(xvalsP.max()))
 
-        self.axis_pcp.set_xlim([xticks.min(),xticks.max()])
-        self.axis_pcp.set_xticks(xticks)
+            xticks = 10**np.arange(resexpmin,resexpmax+1/2)
+            yticks = 10**np.arange(phiexpmin,phiexpmax+1/2)
 
-        self.axis_pcp.set_ylim([yticks.min(),yticks.max()])
-        self.axis_pcp.set_yticks(yticks)
+            self.axis_pcp.set_xscale('log')
+            self.axis_pcp.set_yscale('log')
 
-        self.axis_pcp.xaxis.set_major_formatter(LogFormatter())
-        self.axis_pcp.yaxis.set_major_formatter(LogFormatter())
+            self.axis_pcp.set_xlim([xticks.min(),xticks.max()])
+            self.axis_pcp.set_xticks(xticks)
 
-        for tic in self.axis_pcp.xaxis.get_minor_ticks():
-            tic.label1.set_visible(False)
-            tic.tick1line.set_visible(False)
+            self.axis_pcp.set_ylim([yticks.min(),yticks.max()])
+            self.axis_pcp.set_yticks(yticks)
 
-        for tic in self.axis_pcp.yaxis.get_minor_ticks():
-            tic.label1.set_visible(False)
-            tic.tick1line.set_visible(False)
+            self.axis_pcp.xaxis.set_major_formatter(LogFormatter())
+            self.axis_pcp.yaxis.set_major_formatter(LogFormatter())
 
-        self.axis_pcp.set_xlabel("{} {}".format(mnemR,unitR))
-        self.axis_pcp.set_ylabel("{} {}".format(mnemP,unitP))
+            for tic in self.axis_pcp.xaxis.get_minor_ticks():
+                tic.label1.set_visible(False)
+                tic.tick1line.set_visible(False)
 
-        self.axis_pcp.grid(True,which="both",axis='both')
+            for tic in self.axis_pcp.yaxis.get_minor_ticks():
+                tic.label1.set_visible(False)
+                tic.tick1line.set_visible(False)
+
+            self.axis_pcp.set_xlabel("{} {}".format(mnemR,unitR))
+            self.axis_pcp.set_ylabel("{} {}".format(mnemP,unitP))
+
+            self.axis_pcp.grid(True,which="both",axis='both')
+
+        if returnSaturationFlag:
+            return ((a*Rw)/(xvalsR*xvalsP**m))**(1/n)
 
     def set_HingleCP(self):
 

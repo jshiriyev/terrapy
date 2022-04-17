@@ -661,12 +661,15 @@ class logascii():
         else:
             [print_func(index) for index in range(len(self.files))]
             
-    def set_interval(self,top,bottom):
+    def set_interval(self,top,bottom,returnDepthIndexFlag=False):
 
         self.top = top
         self.bottom = bottom
 
         self.gross_thickness = self.bottom-self.top
+
+        if returnDepthIndexFlag:
+            indices = []
 
         for indexI,las in enumerate(self.files):
 
@@ -677,11 +680,45 @@ class logascii():
 
             depth_cond = np.logical_and(depth>self.top,depth<self.bottom)
 
-            for indexJ,curve in enumerate(las.curves):
+            if returnDepthIndexFlag:
+                indices.append(depth_cond)
+            else:
+                for indexJ,curve in enumerate(las.curves):
+                    self.files[indexI].curves[indexJ].data = curve.data[depth_cond]
 
-                self.files[indexI].curves[indexJ].data = curve.data[depth_cond]
+        if returnDepthIndexFlag:
+            return indices
 
-    def resample(self,x_old,y_old,x_new):
+    def resample(self,indexI,depth_new):
+
+        # indexI is the index of files
+        # indexJ is the index of curve in the las file
+
+        las = self.files[indexI]
+
+        try:
+            depth = las["MD"]
+        except KeyError:
+            depth = las["DEPT"]
+
+        for indexJ,curve in enumerate(las.curves):
+
+            y_new = self.resample_(depth,curve.data,depth_new)
+
+            self.files[indexI].curves[indexJ].data = y_new
+
+    def resample_(self,x_old,y_old,x_new):
+
+        # x_old should be sorted, and y_old should be listed based on x_old sorting
+
+        lowerend = x_new<x_old.min()
+        upperend = x_new>x_old.max()
+
+        interior = np.logical_and(~lowerend,~upperend)
+
+        y_new = np.empty(x_new.shape)
+
+        x_new = x_new[interior]
 
         diff = x_old-x_new.reshape((-1,1))
 
@@ -690,13 +727,16 @@ class logascii():
 
         grads = (x_new-x_old[indices_lower])/(x_old[indices_upper]-x_old[indices_lower])
 
-        y_new = y_old[indices_lower]+grads*(y_old[indices_upper]-y_old[indices_lower])
+        y_new[lowerend] = y_old[0]
+        y_new[interior] = y_old[indices_lower]+grads*(y_old[indices_upper]-y_old[indices_lower])
+        y_new[upperend] = y_old[-1]
 
         return y_new
 
-    def write(self):
+    def write(self,filepath,*args):
 
         pass
+        # lasio.writer.write()
 
 def cyrilictolatin(string):
 
