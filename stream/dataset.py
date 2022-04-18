@@ -15,7 +15,7 @@ import lasio
 if __name__ == "__main__":
     import setup
 
-class frame():
+class Frame():
 
     # MAIN DATA FRAME
 
@@ -378,7 +378,7 @@ class frame():
             for line in vprint(*self._running):
                 wfile.write(line)
 
-class excel(frame):
+class Excel(Frame):
 
     def __init__(self,filepath=None):
 
@@ -452,7 +452,7 @@ class excel(frame):
         else:
             self.files[index]._archive.close()
 
-class vtkit():
+class VTKit():
 
     def __init__(self):
 
@@ -466,11 +466,9 @@ class vtkit():
 
         pass
 
-class schedule(frame):
+class History(Frame):
 
     # KEYWORDS: DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN 
-
-    filename   = "schedule"
 
     headers    = ["DATE","KEYWORD","DETAILS",]
 
@@ -611,7 +609,7 @@ class schedule(frame):
                         wfile.write("\n")
                     wfile.write("/\n\n")
 
-class logascii():
+class LogASCII():
 
     def __init__(self,filepaths=None):
 
