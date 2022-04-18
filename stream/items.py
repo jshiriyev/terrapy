@@ -524,13 +524,11 @@ def get_Fractures(geometry=None):
 
     return Fractures
 
-def get_Wells(geometry=None,graph=None,data=None,**kwargs):
+def get_Wells(graph=None,data=None,**kwargs):
 
-    if geometry is None and graph is None and data is None:
+    if graph is None and data is None:
         base = object
-    elif geometry=="line":
-        base = Line
-    elif geometry is None and graph is None and data=="excel":
+    elif graph is None and data=="excel":
         base = excel
 
     class Wells(base):

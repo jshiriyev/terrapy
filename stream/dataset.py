@@ -617,6 +617,8 @@ class logascii():
 
         self.files = []
 
+        self.headers = []
+
         if filepaths is not None:
             for filepath in filepaths:
                 self.add_file(filepath)
@@ -627,9 +629,7 @@ class logascii():
 
         self.files.append(las)
 
-        # _headers = las.keys()
-
-        # _running = [np.asarray(column) for column in las.data.transpose()]
+        self.headers.append(las.keys())
 
     def print_well_info(self,index=None):
 
@@ -671,7 +671,7 @@ class logascii():
         if returnDepthIndexFlag:
             indices = []
 
-        for indexI,las in enumerate(self.files):
+        for fileID,las in enumerate(self.files):
 
             try:
                 depth = las["MD"]
@@ -683,60 +683,143 @@ class logascii():
             if returnDepthIndexFlag:
                 indices.append(depth_cond)
             else:
-                for indexJ,curve in enumerate(las.curves):
-                    self.files[indexI].curves[indexJ].data = curve.data[depth_cond]
+                for curveID,curve in enumerate(las.curves):
+                    self.files[fileID].curves[curveID].data = curve.data[depth_cond]
 
         if returnDepthIndexFlag:
             return indices
 
-    def resample(self,indexI,depth_new):
+    def resample(self,depthsFID=None,depths=None,fileID=None,curveID=None):
 
-        # indexI is the index of files
-        # indexJ is the index of curve in the las file
+        """
 
-        las = self.files[indexI]
+        depthsFID:  The index of file id from which to take new depths where new curve data will be calculated;
+        depths:     The numpy array of new depths where new curve data will be calculated;
+        
+        fileID:     The index of file to resample;
+                    If None, all files will be resampled;
+        
+        curveID:    The index of curve in the las file to resample;
+                    If None, all curves in the file will be resampled;
 
-        try:
-            depth = las["MD"]
-        except KeyError:
-            depth = las["DEPT"]
+        """
 
-        for indexJ,curve in enumerate(las.curves):
+        if depthsFID is not None:
+            try:
+                depths = self.files[depthsFID]["MD"]
+            except KeyError:
+                depths = self.files[depthsFID]["DEPT"]
 
-            y_new = self.resample_(depth,curve.data,depth_new)
+        if fileID is None:
+            fileIDs = range(len(self.files))
+        else:
+            fileIDs = range(fileID,fileID+1)
 
-            self.files[indexI].curves[indexJ].data = y_new
+        for indexI in fileIDs:
 
-    def resample_(self,x_old,y_old,x_new):
+            if depthsFID is not None:
+                if indexI==depthsFID:
+                    continue
 
-        # x_old should be sorted, and y_old should be listed based on x_old sorting
+            las = self.files[indexI]
 
-        lowerend = x_new<x_old.min()
-        upperend = x_new>x_old.max()
+            try:
+                depths_original = las["MD"]
+            except KeyError:
+                depths_original = las["DEPT"]
 
-        interior = np.logical_and(~lowerend,~upperend)
+            lowerend = depths<depths_original.min()
+            upperend = depths>depths_original.max()
 
-        y_new = np.empty(x_new.shape)
+            interior = np.logical_and(~lowerend,~upperend)
 
-        x_new = x_new[interior]
+            depths_interior = depths[interior]
 
-        diff = x_old-x_new.reshape((-1,1))
+            diff = depths_original-depths_interior.reshape((-1,1))
 
-        indices_lower = np.where(diff<0,diff,-np.inf).argmax(axis=1)
-        indices_upper = np.where(diff>0,diff,np.inf).argmin(axis=1)
+            indices_lower = np.where(diff<0,diff,-np.inf).argmax(axis=1)
+            indices_upper = np.where(diff>0,diff,np.inf).argmin(axis=1)
 
-        grads = (x_new-x_old[indices_lower])/(x_old[indices_upper]-x_old[indices_lower])
+            grads = (depths_interior-depths_original[indices_lower])/(depths_original[indices_upper]-depths_original[indices_lower])
 
-        y_new[lowerend] = y_old[0]
-        y_new[interior] = y_old[indices_lower]+grads*(y_old[indices_upper]-y_old[indices_lower])
-        y_new[upperend] = y_old[-1]
+            if curveID is None:
+                curveIDs = range(1,len(las.curves))
+            else:
+                curveIDs = range(curveID,curveID+1)
 
-        return y_new
+            for indexJ in curveIDs:
 
-    def write(self,filepath,*args):
+                curve = las.curves[indexJ]
 
-        pass
-        # lasio.writer.write()
+                data_resampled = np.empty(depths.shape)
+
+                data_resampled[lowerend] = curve.data[0]
+                data_resampled[interior] = curve.data[indices_lower]+grads*(curve.data[indices_upper]-curve.data[indices_lower])
+                data_resampled[upperend] = curve.data[-1]
+
+                self.files[indexI].curves[indexJ].data = data_resampled
+
+    def write(self,filepath,mnemonics,data,fileID=None,units=None,descriptions=None,values=None):
+
+        """
+        
+        filepath:       It will write a lasio.LASFile to the given filepath
+        fileID:         The file index which to write to the given filepath
+                        If fileID is None, new lasio.LASFile will be created
+
+        kwargs:         These are mnemonics, data, units, descriptions, values
+
+        """
+
+        if fileID is not None:
+
+            lasfile = self.files[fileID]
+
+        else:
+
+            lasfile = lasio.LASFile()
+
+            lasfile.well.DATE = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+
+            depthExistFlag = False
+
+            for mnemonic in mnemonics:
+                if mnemonic=="MD" or mnemonic=="DEPT":
+                    depthExistFlag = True
+                    break
+
+            if not depthExistFlag:
+                curve = lasio.CurveItem(
+                    mnemonic="DEPT",
+                    unit="",
+                    value="",
+                    descr="Depth index",
+                    data=np.arange(data[0].size))
+                lasfile.append_curve_item(curve)            
+
+        for index,(mnemonic,datum) in enumerate(zip(mnemonics,data)):
+
+            if units is not None:
+                unit = units[index]
+            else:
+                unit = ""
+
+            if descriptions is not None:
+                description = descriptions[index]
+            else:
+                description = ""
+
+            if values is not None:
+                value = values[index]
+            else:
+                value = ""
+
+            curve = lasio.CurveItem(mnemonic=mnemonic,data=datum,unit=unit,descr=description,value=value)
+
+            lasfile.append_curve_item(curve)
+
+        with open(filepath, mode='w') as filePathToWrite:
+            lasfile.write(filePathToWrite)
 
 def cyrilictolatin(string):
 
