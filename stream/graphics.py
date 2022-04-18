@@ -1166,7 +1166,10 @@ class LogView(LogASCII):
 
         self.fig_sdcp,self.axis_sdcp = plt.subplots()
 
-    def set_SonNeuCP(self,
+    def set_SonNeuCP(
+        self,
+        porLine,
+        sonLine,
         a_SND=+0.00,
         a_LMS=+0.00,
         a_DOL=-0.06,
@@ -1206,6 +1209,21 @@ class LogView(LogASCII):
         porLMS_LMS = c1_LMS*(porLMS)**c2_LMS-p_LMS
         porLMS_DOL = c1_DOL*(porDOL)**c2_DOL-p_DOL
 
+        xaxis_max = 0.5
+        yaxis_max = 110
+
+        for depth in self.depths:
+
+            xaxis = self.get_interval(*depth[1:],fileID=porLine[0],curveID=porLine[1])
+            yaxis = self.get_interval(*depth[1:],fileID=sonLine[0],curveID=sonLine[1])
+
+            xaxis_max = max((xaxis_max,xaxis[0].max()))
+            yaxis_max = max((yaxis_max,yaxis[0].max()))
+
+            self.axis_sncp.scatter(xaxis,yaxis,s=1,label=depth[0])
+
+        self.axis_sncp.legend(scatterpoints=10)
+
         self.axis_sncp.plot(porLMS_SND,sonicSND,color='blue',linewidth=0.3)
         self.axis_sncp.plot(porLMS_LMS,sonicLMS,color='blue',linewidth=0.3)
         self.axis_sncp.plot(porLMS_DOL,sonicDOL,color='blue',linewidth=0.3)
@@ -1221,8 +1239,8 @@ class LogView(LogASCII):
         self.axis_sncp.set_xlabel("Apparent Limestone Neutron Porosity")
         self.axis_sncp.set_ylabel("Sonic Transit Time $\\Delta$t [$\\mu$s/ft]")
 
-        self.axis_sncp.set_xlim([-0.05,0.45])
-        self.axis_sncp.set_ylim([40,111])
+        self.axis_sncp.set_xlim([-0.05,xaxis_max])
+        self.axis_sncp.set_ylim([+40.0,yaxis_max])
 
         self.axis_sncp.xaxis.set_minor_locator(AutoMinorLocator(10))
         self.axis_sncp.yaxis.set_minor_locator(AutoMinorLocator(10))

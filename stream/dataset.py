@@ -659,15 +659,12 @@ class LogASCII():
         else:
             [print_func(index) for index in range(len(self.files))]
             
-    def set_interval(self,top,bottom,returnDepthIndexFlag=False):
+    def set_interval(self,top,bottom):
 
         self.top = top
         self.bottom = bottom
 
         self.gross_thickness = self.bottom-self.top
-
-        if returnDepthIndexFlag:
-            indices = []
 
         for fileID,las in enumerate(self.files):
 
@@ -678,21 +675,45 @@ class LogASCII():
 
             depth_cond = np.logical_and(depth>self.top,depth<self.bottom)
 
-            if returnDepthIndexFlag:
-                indices.append(depth_cond)
-            else:
-                for curveID,curve in enumerate(las.curves):
-                    self.files[fileID].curves[curveID].data = curve.data[depth_cond]
+            for curveID,curve in enumerate(las.curves):
+                self.files[fileID].curves[curveID].data = curve.data[depth_cond]
 
-        if returnDepthIndexFlag:
-            return indices
+    def get_interval(self,top,bottom,fileID=None,curveID=None):
+
+        returningList = []
+
+        if fileID is None:
+            fileIDs = range(len(self.files))
+        else:
+            fileIDs = range(fileID,fileID+1)
+
+        for indexI in fileIDs:
+
+            las = self.files[indexI]
+
+            try:
+                depth = las["MD"]
+            except KeyError:
+                depth = las["DEPT"]
+
+            depth_cond = np.logical_and(depth>top,depth<bottom)
+
+            if curveID is None:
+                returningList.append(depth_cond)
+            else:
+                returningList.append(las.curves[curveID].data[depth_cond])
+
+        return returningList
 
     def resample(self,depthsFID=None,depths=None,fileID=None,curveID=None):
 
         """
 
-        depthsFID:  The index of file id from which to take new depths where new curve data will be calculated;
-        depths:     The numpy array of new depths where new curve data will be calculated;
+        depthsFID:  The index of file id from which to take new depths
+                    where new curve data will be calculated;
+
+        depths:     The numpy array of new depths
+                    where new curve data will be calculated;
         
         fileID:     The index of file to resample;
                     If None, all files will be resampled;
@@ -742,6 +763,7 @@ class LogASCII():
 
             if curveID is None:
                 curveIDs = range(1,len(las.curves))
+                self.files[indexI].curves[0].data = depths
             else:
                 curveIDs = range(curveID,curveID+1)
 
