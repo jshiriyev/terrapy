@@ -152,7 +152,7 @@ class Pipes(Cylinder):
 
         pass
 
-def PorRock(geometry=None,**kwargs):
+def PorRock(geometry=None):
 
     if geometry is None:
         base = object
@@ -476,9 +476,9 @@ def PorRock(geometry=None,**kwargs):
             #         pressure(:,i) = P/inpput.convFactorDetermine('pressure');
             pass
             
-    return PorRock(**kwargs)
+    return PorRockClass
 
-def Fractures(geometry=None,**kwargs):
+def Fractures(geometry=None):
 
     if geometry is None:
         base = object
@@ -525,9 +525,9 @@ def Fractures(geometry=None,**kwargs):
 
             pass
 
-    return FracturesClass(**kwargs)
+    return FracturesClass
 
-class Wells(TableView(History)):
+class Wells(TableView("history")):
 
     itemnames = []                 # well names
     statuses = []
@@ -988,7 +988,7 @@ class Trajectory(Line):
 
         pass
 
-class Completion(PerfView(Excel)):
+class Completion(PerfView("excel")):
 
     headersRAW = ["Wells","Horizont","Top","Bottom","start","stoped",]
 
@@ -1249,7 +1249,7 @@ class Logging(LogView):
 
         pass
 
-class Production(TimeView(Excel)):
+class Production(TimeView("excel")):
 
     headersSIM = ["Wells","Date","Days","oil","water","gas","Wi",]
 
