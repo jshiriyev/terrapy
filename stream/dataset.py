@@ -659,14 +659,21 @@ class LogASCII():
         else:
             [print_func(index) for index in range(len(self.files))]
             
-    def set_interval(self,top,bottom):
+    def set_interval(self,top,bottom,fileID=None):
+
+        if fileID is None:
+            fileIDs = range(len(self.files))
+        else:
+            fileIDs = range(fileID,fileID+1)
 
         self.top = top
         self.bottom = bottom
 
         self.gross_thickness = self.bottom-self.top
 
-        for fileID,las in enumerate(self.files):
+        for indexI in fileIDs:
+
+            las = self.files[indexI]
 
             try:
                 depth = las["MD"]
@@ -676,7 +683,7 @@ class LogASCII():
             depth_cond = np.logical_and(depth>self.top,depth<self.bottom)
 
             for curveID,curve in enumerate(las.curves):
-                self.files[fileID].curves[curveID].data = curve.data[depth_cond]
+                self.files[indexI].curves[curveID].data = curve.data[depth_cond]
 
     def get_interval(self,top,bottom,fileID=None,curveID=None):
 
@@ -720,6 +727,7 @@ class LogASCII():
         
         curveID:    The index of curve in the las file to resample;
                     If None, all curves in the file will be resampled;
+                    Else if fileID is not None, resampled data will be returned;
 
         """
 
@@ -762,8 +770,10 @@ class LogASCII():
             grads = (depths_interior-depths_original[indices_lower])/(depths_original[indices_upper]-depths_original[indices_lower])
 
             if curveID is None:
+                las.curves[0].data = depths
+
+            if curveID is None:
                 curveIDs = range(1,len(las.curves))
-                self.files[indexI].curves[0].data = depths
             else:
                 curveIDs = range(curveID,curveID+1)
 
@@ -777,7 +787,10 @@ class LogASCII():
                 data_resampled[interior] = curve.data[indices_lower]+grads*(curve.data[indices_upper]-curve.data[indices_lower])
                 data_resampled[upperend] = curve.data[-1]
 
-                self.files[indexI].curves[indexJ].data = data_resampled
+                if curveID is None:
+                    self.files[indexI].curves[indexJ].data = data_resampled
+                elif fileID is not None:
+                    return data_resampled
 
     def write(self,filepath,mnemonics,data,fileID=None,units=None,descriptions=None,values=None):
 
