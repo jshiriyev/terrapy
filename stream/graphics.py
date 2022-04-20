@@ -870,6 +870,28 @@ class LogView(LogASCII):
 
         super().__init__(filepaths)
 
+    def set_histogram(self,fileID,curveID=None,curveName=None,logscale=False):
+
+        self.fig_hist,self.axis_hist = plt.subplots()
+
+        las = self.files[fileID]
+
+        if curveID is None:
+            curveID = las.curves.keys().index(curveName)
+
+        curve = las.curves[curveID]
+
+        if logscale:
+            xlabel = "log10({}) [{}]".format(curve.descr,curve.unit)
+            yaxis = np.log10(curve.data[np.nonzero(curve.data)[0]])
+        else:
+            xlabel = "{} [{}]".format(curve.descr,curve.unit)
+            yaxis = curve.data
+
+        self.axis_hist.hist(yaxis,density=True,bins=30)  # density=False would make counts
+        self.axis_hist.set_ylabel("Probability")
+        self.axis_hist.set_xlabel(xlabel)
+
     def set_DepthView(self,plot_dictionary):
 
         self.plot = plot_dictionary
@@ -1273,64 +1295,77 @@ class LogView(LogASCII):
         self,
         resLine,
         phiLine,
-        showSaturationFlag=True,
-        returnSaturationFlag=False,
+        returnSwFlag=False,
+        showDiffSwFlag=True,
         m=2,
         n=2,
         a=0.62,
         Rw=0.1
         ):
 
-        self.fig_pcp,self.axis_pcp = plt.subplots()
+        if returnSwFlag:
 
-        try:
-            depthR = self.files[resLine[0]]["MD"]
-        except KeyError:
-            depthR = self.files[resLine[0]]["DEPT"]
+            xvalsR = self.files[resLine[0]][resLine[1]]
+            xvalsP = self.files[phiLine[0]][phiLine[1]]
 
-        try:
-            depthP = self.files[phiLine[0]]["MD"]
-        except KeyError:
-            depthP = self.files[phiLine[0]]["DEPT"]
+            return ((a*Rw)/(xvalsR*xvalsP**m))**(1/n)
 
-        xvalsR = self.files[resLine[0]][resLine[1]]
-        xvalsP = self.files[phiLine[0]][phiLine[1]]
+        else:
 
-        indexR = self.files[resLine[0]].curves.keys().index(resLine[1])
-        indexP = self.files[phiLine[0]].curves.keys().index(phiLine[1])
+            self.fig_pcp,self.axis_pcp = plt.subplots()
 
-        mnemR = self.files[resLine[0]].curves[indexR].mnemonic
-        unitR = self.files[resLine[0]].curves[indexR].unit
+            xaxis_min = 1
+            xaxis_max = 100
 
-        mnemP = self.files[phiLine[0]].curves[indexP].mnemonic
-        unitP = self.files[phiLine[0]].curves[indexP].unit
+            yaxis_min = 0.01
+            yaxis_max = 1
 
-        resexpmin = np.floor(np.log10(xvalsR.min()))
-        resexpmax = np.ceil(np.log10(xvalsR.max()))
+            for depth in self.depths:
 
-        resSw = np.logspace(resexpmin,resexpmax,100)
+                xaxis = self.get_interval(*depth[1:],fileID=resLine[0],curveID=resLine[1])[0]
+                yaxis = self.get_interval(*depth[1:],fileID=phiLine[0],curveID=phiLine[1])[0]
 
-        if not returnSaturationFlag:
-            self.axis_pcp.scatter(xvalsR,xvalsP,s=1,color="#BF5700")
+                xaxis_min = max((xaxis_min,xaxis.min()))
+                xaxis_max = max((xaxis_max,xaxis.max()))
 
-        if showSaturationFlag:
+                yaxis_min = max((yaxis_min,yaxis.min()))
+                yaxis_max = max((yaxis_max,yaxis.max()))
 
-            Sw75,Sw50,Sw25 = 0.75,0.50,0.25
+                self.axis_pcp.scatter(xaxis,yaxis,s=1,label=depth[0])
 
-            philine_atSw100 = (a*Rw/resSw)**(1/m)
+            self.axis_pcp.legend(scatterpoints=10)
 
-            philine_atSw075 = philine_atSw100*Sw75**(-n/m)
-            philine_atSw050 = philine_atSw100*Sw50**(-n/m)
-            philine_atSw025 = philine_atSw100*Sw25**(-n/m)
+            indexR = self.files[resLine[0]].curves.keys().index(resLine[1])
+            indexP = self.files[phiLine[0]].curves.keys().index(phiLine[1])
 
-            self.axis_pcp.plot(resSw,philine_atSw100,c="black",linewidth=1)#,label="100% Sw")
-            self.axis_pcp.plot(resSw,philine_atSw075,c="blue",linewidth=1)#,label="75% Sw")
-            self.axis_pcp.plot(resSw,philine_atSw050,c="blue",linewidth=1)#,label="50% Sw")
-            self.axis_pcp.plot(resSw,philine_atSw025,c="blue",linewidth=1)#,label="25% Sw")
+            mnemR = self.files[resLine[0]].curves[indexR].mnemonic
+            unitR = self.files[resLine[0]].curves[indexR].unit
 
-        if not returnSaturationFlag:
-            phiexpmin = np.floor(np.log10(xvalsP.min()))
-            phiexpmax = np.ceil(np.log10(xvalsP.max()))
+            mnemP = self.files[phiLine[0]].curves[indexP].mnemonic
+            unitP = self.files[phiLine[0]].curves[indexP].unit
+
+            resexpmin = np.floor(np.log10(xaxis_min))
+            resexpmax = np.ceil(np.log10(xaxis_max))
+
+            if showDiffSwFlag:
+
+                resSw = np.logspace(resexpmin,resexpmax,100)
+
+                Sw75,Sw50,Sw25 = 0.75,0.50,0.25
+
+                philine_atSw100 = (a*Rw/resSw)**(1/m)
+
+                philine_atSw075 = philine_atSw100*Sw75**(-n/m)
+                philine_atSw050 = philine_atSw100*Sw50**(-n/m)
+                philine_atSw025 = philine_atSw100*Sw25**(-n/m)
+
+                self.axis_pcp.plot(resSw,philine_atSw100,c="black",linewidth=1)#,label="100% Sw")
+                self.axis_pcp.plot(resSw,philine_atSw075,c="blue",linewidth=1)#,label="75% Sw")
+                self.axis_pcp.plot(resSw,philine_atSw050,c="blue",linewidth=1)#,label="50% Sw")
+                self.axis_pcp.plot(resSw,philine_atSw025,c="blue",linewidth=1)#,label="25% Sw")
+
+            phiexpmin = np.floor(np.log10(yaxis_min))
+            phiexpmax = np.ceil(np.log10(yaxis_max))
 
             xticks = 10**np.arange(resexpmin,resexpmax+1/2)
             yticks = 10**np.arange(phiexpmin,phiexpmax+1/2)
@@ -1359,9 +1394,6 @@ class LogView(LogASCII):
             self.axis_pcp.set_ylabel("{} {}".format(mnemP,unitP))
 
             self.axis_pcp.grid(True,which="both",axis='both')
-
-        if returnSaturationFlag:
-            return ((a*Rw)/(xvalsR*xvalsP**m))**(1/n)
 
     def set_HingleCP(self):
 
