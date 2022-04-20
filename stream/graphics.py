@@ -196,7 +196,9 @@ def TimeView(data=None):
             template0,template1,template2,template3,
             )
 
-        def __init__(self,window):
+        def __init__(self,window,**kwargs):
+
+            super().__init__(**kwargs)
 
             self.dirname = os.path.dirname(__file__)
 

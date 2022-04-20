@@ -15,11 +15,30 @@ import lasio
 if __name__ == "__main__":
     import setup
 
-class Frame():
+class Files():
+
+    def __init__(self):
+
+        pass
+
+    def set_homepath(self,homepath):
+
+        self.homepath = homepath
+
+    def get_filename(self,path,prefix,extension,homeFlag=False):
+
+        if homeFlag and hasattr(self,"homepath"):
+            path = os.path.join(self.homepath,path)
+
+        filenames = os.listdir(path)
+
+        return [filename for filename in filenames if filename.startswith(prefix) and filename.endswith(extension)]
+
+class Frame(Files):
 
     # MAIN DATA FRAME
 
-    def __init__(self,headers=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
+    def __init__(self,headers=None,homepath=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
         # There are two uses of dataset, case 1 or case 2:
         #   case 1: headers
@@ -186,7 +205,7 @@ class Frame():
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
 
-    def astype(self,header_index=None,header=None,dtype=None,datestring=False,shiftmonths=0):
+    def astype(self,header_index=None,header=None,dtype=None,nonetozero=False,datestring=False,shiftmonths=0):
 
         if header_index is None:
             header_index = self._headers.index(header)
@@ -210,7 +229,11 @@ class Frame():
                     vdate = np.vectorize(lambda x: dtype(parser.parse(x)))
             
         else:
-            vdate = np.vectorize(lambda x: dtype(x))
+
+            if nonetozero:
+                vdate = np.vectorize(lambda x: dtype(x) if x is not None else dtype(0))
+            else:
+                vdate = np.vectorize(lambda x: dtype(x))
             
         self._running[header_index] = vdate(self._running[header_index])
 
@@ -380,22 +403,29 @@ class Frame():
 
 class Excel(Frame):
 
-    def __init__(self,filepath=None):
+    def __init__(self,filepaths=None,headers=None):
 
         self.files = []
 
-        if filepath is not None:
-            self.add_file(filepath)
+        if filepaths is not None:
+            for filepath in filepaths:
+                self.add_file(filepath)
 
-    def add_home(self,homepath):
+        if headers is not None:
+            self._headers = headers
+            self._running = [np.array([])]*len(self._headers)
+        else:
+            self._headers = []
+            self._running = []
 
-        self.home = homepath
+        self.headers = self._headers
+        self.running = [np.asarray(column) for column in self._running]
 
     def add_file(self,filepath,homeFlag=False):
 
-        if homeFlag and hasattr(self,"home"):
+        if homeFlag and hasattr(self,"homepath"):
 
-            filepath = os.path.join(self.home,filepath)
+            filepath = os.path.join(self.homepath,filepath)
 
         self.files.append(opxl.load_workbook(filepath,read_only=True,data_only=True))
 
@@ -409,27 +439,34 @@ class Excel(Frame):
             else:
                 return keyword
 
-    def read(self,sheetname=None,min_row=1,min_col=1,max_row=None,max_col=None):
+    def read_headers(self,sheetname,row_index):
 
-        self._headers = []
+        row = self.files[0][sheetname].iter_rows(min_row=row_index,min_col=1,
+            max_row=row_index,max_col=None,values_only=True)
+
+        headers = list(row)[0]
+
+        [self._headers.append(re.sub(r"[^\w]","",header)) for header in headers]
+
+        self.headers = self._headers
+
+    def read(self,sheetname,min_row=1,min_col=1,max_row=None,max_col=None):
 
         rows = self.files[0][sheetname].iter_rows(min_row=min_row,min_col=min_col,
             max_row=max_row,max_col=max_col,values_only=True)
 
-        nparray = np.array(list(rows)).T
+        rows = list(rows)
 
-        self._running = [np.asarray(column) for column in nparray]
+        if len(self._headers)==0:
 
-        default_header = "Col {}"
+            [self._headers.append("Col {}".format(i)) for i in range(len(rows[0]))]
 
-        for index,header_lower in enumerate(self.get_rows(0)[0]):
-            if header_lower is not None:
-                self._headers.append(re.sub(r"[^\w]","",header_lower))
-            else:
-                self._headers.append(default_header.format(index))
+            self.headers = self._headers
 
-        self.headers = self._headers
-        self.running = [np.asarray(column) for column in self._running]
+        if len(self._running)==0:
+            self._running = [np.array([])]*len(rows[0])
+
+        self.set_rows(rows)
 
     def write(self):
 
@@ -452,7 +489,7 @@ class Excel(Frame):
         else:
             self.files[index]._archive.close()
 
-class VTKit():
+class VTKit(Files):
 
     def __init__(self):
 
@@ -609,7 +646,7 @@ class History(Frame):
                         wfile.write("\n")
                     wfile.write("/\n\n")
 
-class LogASCII():
+class LogASCII(Files):
 
     def __init__(self,filepaths=None):
 
