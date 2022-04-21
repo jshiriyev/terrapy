@@ -1065,8 +1065,12 @@ class LogView(LogASCII):
                 xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
                 xunits_size = xunits_size_temp/10**(zeroCountAfterDot+1)
 
-            xmin = (np.floor(xvals_min/xunits_size)-1).astype(float)*xunits_size
-            xmax = (np.ceil(xvals_max/xunits_size)+1).astype(float)*xunits_size
+            if self.plot[indexI]["ptype"][indexJ] is None:
+                xmin = (np.floor(xvals_min/xunits_size)-1).astype(float)*xunits_size
+                xmax = (np.ceil(xvals_max/xunits_size)+1).astype(float)*xunits_size
+            elif self.plot[indexI]["ptype"][indexJ]=="log":
+                xmin,xmax = xvals_min,xvals_max
+
             
         if self.plot[indexI]["ptype"][indexJ] is None:
             xticks = np.arange(xmin,xmax+xunits_size/2,xunits_size)
