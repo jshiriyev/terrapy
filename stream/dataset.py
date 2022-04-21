@@ -239,6 +239,17 @@ class Frame(Files):
 
         self.running[header_index] = np.asarray(self._running[header_index])
 
+    def edit_strcolumn(self,fstring,header_index=None,header=None):
+
+        if header_index is None:
+            header_index = self._headers.index(header)
+
+        editor = np.vectorize(lambda x: fstring.format(x))
+
+        self._running[header_index] = editor(self._running[header_index])
+
+        self.running[header_index] = np.asarray(self._running[header_index])
+
     def upper(self,header_index=None,header=None):
 
         if header_index is None:
@@ -246,17 +257,19 @@ class Frame(Files):
 
         self._running[header_index] = np.char.upper(self._running[header_index])
 
-    def set_column(self,column,header_index=None,header_new=None):
+    def set_columns(self,columns,header_indices=None,headers=None):
 
-        if header_new is None:
-            header_new = "Col ##"+str(len(self._headers))
+        if headers is None:
+            if header_indices is None:
+                headers = ["Col ##{}".format(i) for i in range(len(columns))]
         
-        if header_index is None or header_index==-1:
-            
-            self._headers.append(header_new)
-            self._running.append(column)
+        if header_indices is None:
+            for header,column in zip(headers,columns):
+                self._headers.append(header)
+                self._running.append(column)
         else:
-            self._running[header_index] = column
+            for index,column in zip(header_indices,columns):
+                self._running[index] = column
 
         self.headers = self._headers
         self.running = [np.asarray(column) for column in self._running]
@@ -274,10 +287,16 @@ class Frame(Files):
 
             self.running = [np.asarray(column) for column in self._running]
 
-    def get_rows(self,row_indices=None):
+    def get_rows(self,row_indices=None,match=None):
 
         if row_indices is None:
-            row_indices = range(self._running[0].size)
+            if match is None:
+                row_indices = range(self._running[0].size)
+            else:
+                column_index,phrase = match
+                conditional = self._running[column_index]==phrase
+                row_indices = np.arange(self._running[0].size)[conditional]
+
         elif type(row_indices)==int:
             row_indices = [row_indices]
 
@@ -285,21 +304,29 @@ class Frame(Files):
         
         return rows
 
-    def get_columns(self,header_indices=None,headers=None,inplace=False):
+    def get_columns(self,header_indices=None,headers=None,match=None,inplace=False,returnFlag=False):
 
         if header_indices is None:
             header_indices = [self._headers.index(header) for header in headers]
 
+        if match is None:
+            conditional = np.full(self._running[0].shape,True)
+        else:
+            conditional = self._running[match[0]]==match[1]
+
         if inplace:
             self._headers = [self._headers[index] for index in header_indices]
-            self._running = [self._running[index] for index in header_indices]
+            self._running = [self._running[index][conditional] for index in header_indices]
 
             self.headers = self._headers
             self.running = [np.asarray(column) for column in self._running]
 
         else:
-            self.headers = [self._headers[index] for index in header_indices]
-            self.running = [np.asarray(self._running[index]) for index in header_indices]
+            if not returnFlag:
+                self.headers = [self._headers[index] for index in header_indices]
+                self.running = [np.asarray(self._running[index][conditional]) for index in header_indices]
+            else:
+                return [self._running[index][conditional] for index in header_indices]
 
     def del_rows(self,row_indices=None,noneColIndex=None,inplace=False):
 
