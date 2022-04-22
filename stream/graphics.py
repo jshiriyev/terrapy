@@ -892,6 +892,60 @@ class LogView(LogASCII):
         self.axis_hist.set_ylabel("Probability")
         self.axis_hist.set_xlabel(xlabel)
 
+    def set_nangraph(self,fileID):
+
+        self.fig_nan,self.axis_nan = plt.subplots()
+
+        las = self.files[fileID]
+
+        yvals = []
+        zvals = []
+
+        try:
+            depth = las["MD"]
+        except KeyError:
+            depth = las["DEPT"]
+
+        for index,curve in enumerate(las.curves):
+
+            isnan = np.isnan(curve.data)
+
+            L_shift = np.ones(curve.data.shape,dtype=bool)
+            R_shift = np.ones(curve.data.shape,dtype=bool)
+
+            L_shift[:-1] = isnan[1:]
+            R_shift[1:] = isnan[:-1]
+
+            lower = np.where(np.logical_and(~isnan,R_shift))[0]
+            upper = np.where(np.logical_and(~isnan,L_shift))[0]
+
+            zval = np.concatenate((lower,upper),dtype=int).reshape((2,-1)).T.flatten()
+
+            yval = np.full(zval.size,index,dtype=float)
+            
+            yval[::2] = np.nan
+
+            yvals.append(yval)
+            zvals.append(zval)
+
+        qvals = np.unique(np.concatenate(zvals))
+
+        for (yval,zval) in zip(yvals,zvals):
+            self.axis_nan.step(np.where(qvals==zval.reshape((-1,1)))[1],yval)
+
+        self.axis_nan.set_xlim((-1,qvals.size))
+        self.axis_nan.set_ylim((-1,len(las.curves)))
+
+        self.axis_nan.set_xticks(np.arange(qvals.size))
+        self.axis_nan.set_xticklabels(depth[qvals],rotation=90)
+
+        self.axis_nan.set_yticks(np.arange(len(las.curves)))
+        self.axis_nan.set_yticklabels([curve.mnemonic for curve in las.curves])
+
+        self.axis_nan.grid(True,which="both",axis='x')
+
+        self.fig_nan.tight_layout()
+
     def set_DepthView(self,plot_dictionary):
 
         self.plot = plot_dictionary
