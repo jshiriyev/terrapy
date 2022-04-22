@@ -707,21 +707,32 @@ class LogASCII(Files):
 
     def print_curve_info(self,index=None,mnemonic_space=33,tab_space=8):
 
-        def print_func(index):
-            las = self.files[index]
-            print("\n\tLOG NUMBER {}".format(index))
-            for count,curve in enumerate(las.curves):
-                minXval = np.nanmin(curve.data)
-                maxXval = np.nanmax(curve.data)
-                tab_num = math.ceil((mnemonic_space-len(curve.mnemonic))/tab_space)
-                tab_spc = "\t"*tab_num if tab_num>0 else "\t"
-                print("Curve: {}{}Units: {}\tMin: {}\tMax: {}\tDescription: {}".format(
-                    curve.mnemonic,tab_spc,curve.unit,minXval,maxXval,curve.descr))
+        with open('terrapy_LogASCII.out','w') as file:
 
-        if index is not None:
-            print_func(index)
-        else:
-            [print_func(index) for index in range(len(self.files))]
+            def print_func(index):
+                las = self.files[index]
+                file.write("\n\tLOG NUMBER {}\n".format(index))
+                # print("\n\tLOG NUMBER {}".format(index))
+                for count,curve in enumerate(las.curves):
+                    minXval = np.nanmin(curve.data)
+                    maxXval = np.nanmax(curve.data)
+                    tab_num = math.ceil((mnemonic_space-len(curve.mnemonic))/tab_space)
+                    tab_spc = "\t"*tab_num if tab_num>0 else "\t"
+                    file.write("Curve: {}{}Units: {}\tMin: {}\tMax: {}\tDescription: {}\n".format(
+                        curve.mnemonic,tab_spc,curve.unit,minXval,maxXval,curve.descr))
+                    # print("Curve: {}{}Units: {}\tMin: {}\tMax: {}\tDescription: {}".format(
+                    #     curve.mnemonic,tab_spc,curve.unit,minXval,maxXval,curve.descr))
+
+            if index is not None:
+                print_func(index)
+            else:
+                [print_func(index) for index in range(len(self.files))]
+
+    def flip(self,fileID):
+
+        for index,curve in enumerate(self.files[fileID].curves):
+
+            self.files[fileID].curves[index].data = np.flip(curve.data)
             
     def set_interval(self,top,bottom,fileID=None):
 
@@ -845,16 +856,62 @@ class LogASCII(Files):
 
                 curve = las.curves[indexJ]
 
-                data_resampled = np.empty(depths.shape)
+                data_resampled = np.empty(depths.shape,dtype=float)
 
-                data_resampled[lowerend] = curve.data[0]
+                data_resampled[lowerend] = np.nan
                 data_resampled[interior] = curve.data[indices_lower]+grads*(curve.data[indices_upper]-curve.data[indices_lower])
-                data_resampled[upperend] = curve.data[-1]
+                data_resampled[upperend] = np.nan
 
                 if curveID is None:
                     self.files[indexI].curves[indexJ].data = data_resampled
                 elif fileID is not None:
                     return data_resampled
+
+    def merge(self,fileIDs,curveNames):
+
+        if type(fileIDs)==int:
+
+            try:
+                depth = self.files[fileIDs]["MD"]
+            except KeyError:
+                depth = self.files[fileIDs]["DEPT"]
+
+            xvals1 = self.files[fileIDs][curveNames[0]]
+
+            for curveName in curveNames[1:]:
+
+                xvals2 = self.files[fileIDs][curveName]
+
+                xvals1[np.isnan(xvals1)] = xvals2[np.isnan(xvals1)]
+
+            return depth,xvals1
+
+        elif np.unique(np.array(fileIDs)).size==len(fileIDs):
+
+            if type(curveNames)==str:
+                curveNames = (curveNames,)*len(fileIDs)
+
+            depth = np.array([])
+            xvals = np.array([])
+
+            for (fileID,curveName) in zip(fileIDs,curveNames):
+
+                try:
+                    depth_loc = self.files[fileID]["MD"]
+                except KeyError:
+                    depth_loc = self.files[fileID]["DEPT"]
+
+                xvals_loc = self.files[fileID][curveName]
+
+                depth_loc = depth_loc[~np.isnan(xvals_loc)]
+                xvals_loc = xvals_loc[~np.isnan(xvals_loc)]
+
+                depth_max = 0 if depth.size==0 else depth.max()
+
+                depth = np.append(depth,depth_loc[depth_loc>depth_max])
+                xvals = np.append(xvals,xvals_loc[depth_loc>depth_max])
+
+            return depth,xvals
 
     def write(self,filepath,mnemonics,data,fileID=None,units=None,descriptions=None,values=None):
 
@@ -917,6 +974,30 @@ class LogASCII(Files):
 
         with open(filepath, mode='w') as filePathToWrite:
             lasfile.write(filePathToWrite)
+
+def resample(depth,data,depthR):
+
+    lowerend = depthR<depth.min()
+    upperend = depthR>depth.max()
+
+    interior = np.logical_and(~lowerend,~upperend)
+
+    depth_interior = depthR[interior]
+
+    diff = depth-depth_interior.reshape((-1,1))
+
+    indices_lower = np.where(diff<0,diff,-np.inf).argmax(axis=1)
+    indices_upper = np.where(diff>0,diff,np.inf).argmin(axis=1)
+
+    grads = (depth_interior-depth[indices_lower])/(depth[indices_upper]-depth[indices_lower])
+
+    dataR = np.empty(depthR.shape,dtype=float)
+
+    dataR[lowerend] = np.nan
+    dataR[interior] = data[indices_lower]+grads*(data[indices_upper]-data[indices_lower])
+    dataR[upperend] = np.nan
+
+    return dataR
 
 def cyrilictolatin(string):
 
