@@ -975,23 +975,28 @@ class LogASCII(Files):
         with open(filepath, mode='w') as filePathToWrite:
             lasfile.write(filePathToWrite)
 
-def resample(depth,data,depthR):
+def resample(depths,data,depthsR):
 
-    lowerend = depthR<depth.min()
-    upperend = depthR>depth.max()
+    lowerend = depthsR<depths.min()
+    upperend = depthsR>depths.max()
 
     interior = np.logical_and(~lowerend,~upperend)
 
-    depth_interior = depthR[interior]
+    depths_interior = depthsR[interior]
 
-    diff = depth-depth_interior.reshape((-1,1))
+    indices_lower = np.empty(depths_interior.shape,dtype=int)
+    indices_upper = np.empty(depths_interior.shape,dtype=int)
 
-    indices_lower = np.where(diff<0,diff,-np.inf).argmax(axis=1)
-    indices_upper = np.where(diff>0,diff,np.inf).argmin(axis=1)
+    for index,depth in enumerate(depths_interior):
 
-    grads = (depth_interior-depth[indices_lower])/(depth[indices_upper]-depth[indices_lower])
+        diff = depths-depth
 
-    dataR = np.empty(depthR.shape,dtype=float)
+        indices_lower[index] = np.where(diff<0,diff,-np.inf).argmax()
+        indices_upper[index] = np.where(diff>0,diff,np.inf).argmin()
+
+    grads = (depths_interior-depths[indices_lower])/(depths[indices_upper]-depths[indices_lower])
+
+    dataR = np.empty(depthsR.shape,dtype=float)
 
     dataR[lowerend] = np.nan
     dataR[interior] = data[indices_lower]+grads*(data[indices_upper]-data[indices_lower])
