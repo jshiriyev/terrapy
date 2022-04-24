@@ -15,28 +15,49 @@ import lasio
 if __name__ == "__main__":
     import setup
 
-class Files():
+class BaseDir():
 
-    def __init__(self):
+    def __init__(self,homepath=None):
 
-        pass
+        if homepath is not None:
+            self.set_homepath(homepath)
 
     def set_homepath(self,homepath):
 
         self.homepath = homepath
 
-    def get_filename(self,path,prefix,extension,homeFlag=False):
+    def set_abspath(self,path,relPathFlag=False):
 
-        if homeFlag and hasattr(self,"homepath"):
+        if relPathFlag and hasattr(self,"homepath"):
             path = os.path.join(self.homepath,path)
 
-        filenames = os.listdir(path)
+        self.abspath = os.path.join(self.homepath,path)
 
-        return [filename for filename in filenames if filename.startswith(prefix) and filename.endswith(extension)]
+    def get_filenames(self,dirabspath=None,dirrelpath=None,prefix=None,extension=None):
 
-class Frame(Files):
+        if dirabspath is not None:
+            self.set_abspath(path,relPathFlag=False)
+            filenames = os.listdir(self.abspath)
+        elif dirrelpath is not None:
+            self.set_abspath(path,relPathFlag=True)
+            filenames = os.listdir(self.abspath)
+        elif hasattr(self,"abspath"):
+            filenames = os.listdir(self.abspath)
+        elif hasattr(self,"homepath"):
+            filenames = os.listdir(self.homepath)
 
-    # MAIN DATA FRAME
+        if prefix is None and extension is None:
+            return filenames
+        elif prefix is None and extension is not None:
+            return = [filename for filename in filenames if filename.endswith(extension)]
+        elif prefix is not None and extension is None:
+            return = [filename for filename in filenames if filename.startswith(prefix)]
+        else:
+            return = [filename for filename in filenames if filename.startswith(prefix) and filename.endswith(extension)]
+
+class BaseFrame():
+
+    # Main Data Structure BaseFrame
 
     def __init__(self,headers=None,homepath=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
@@ -428,7 +449,7 @@ class Frame(Files):
             for line in vprint(*self._running):
                 wfile.write(line)
 
-class Excel(Frame):
+class Excel(BaseFrame):
 
     def __init__(self,filepaths=None,headers=None):
 
@@ -530,7 +551,7 @@ class VTKit(Files):
 
         pass
 
-class History(Frame):
+class History(BaseFrame):
 
     # KEYWORDS: DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN 
 
@@ -1004,51 +1025,57 @@ def resample(depths,data,depthsR):
 
     return dataR
 
-def cyrilictolatin(string):
+class alphabet_aze():
 
-    aze_cyril_lower = [
-        "а","б","ж","ч","д",
-        "е","я","ф","э","ь",
-        "щ","х","ы","и","ъ",
-        "к","г","л","м","н",
-        "о","ю","п","р","с",
-        "ш","т","у","ц","в",
+    cyril_lower = [
+        "а","б","ҹ","ч","д","е","я","ф","ҝ","ғ",
+        "һ","х","ы","и","ж","к","г","л","м","н",
+        "о","ю","п","р","с","ш","т","у","ц","в",
         "й","з"]
 
-    aze_latin_lower = [
-        "a","b","c","ç","d",
-        "e","ə","f","g","ğ",
-        "h","x","ı","i","j",
-        "k","q","l","m","n",
-        "o","ö","p","r","s",
-        "ş","t","u","ü","v",
+    latin_lower = [
+        "a","b","c","ç","d","e","ə","f","g","ğ",
+        "h","x","ı","i","j","k","q","l","m","n",
+        "o","ö","p","r","s","ş","t","u","ü","v",
         "y","z"]
 
-    aze_cyril_upper = [
-        "А","Б","Ҹ","Ч","Д",
-        "Е","Я","Ф","Ҝ","Ғ",
-        "Щ","Х","Ы","И","Ъ",
-        "К","Г","Л","М","Н",
-        "О","Ю","П","Р","С",
-        "Ш","Т","У","Ц","В",
+    cyril_upper = [
+        "А","Б","Ҹ","Ч","Д","Е","Я","Ф","Ҝ","Ғ",
+        "Һ","Х","Ы","И","Ж","К","Г","Л","М","Н",
+        "О","Ю","П","Р","С","Ш","Т","У","Ц","В",
         "Й","З"]
 
-    aze_latin_upper = [
-        "A","B","C","Ç","D",
-        "E","Ə","F","G","Ğ",
-        "H","X","I","İ","J",
-        "K","Q","L","M","N",
-        "O","Ö","P","R","S",
-        "Ş","T","U","Ü","V",
+    latin_upper = [
+        "A","B","C","Ç","D","E","Ə","F","G","Ğ",
+        "H","X","I","İ","J","K","Q","L","M","N",
+        "O","Ö","P","R","S","Ş","T","U","Ü","V",
         "Y","Z"]
 
-    for cyril,latin in zip(aze_cyril_lower,aze_latin_lower):
-        string.replace(cyril,latin)
+    def __init__(self,string):
 
-    for cyril,latin in zip(aze_cyril_upper,aze_latin_upper):
-        string.replace(cyril,latin)
+        self.string = string
 
-    return string
+    def convert(self,string=None,from_="cyril",to="latin"):
+
+        flower = getattr(self,from_+"_lower")
+        tlower = getattr(self,to+"_lower")
+
+        fupper = getattr(self,from_+"_upper")
+        tupper = getattr(self,to+"_upper")
+
+        if string is None:
+            string = self.string
+
+        for from_letter,to_letter in zip(flower,tlower):
+            string.replace(from_letter,to_letter)
+
+        for from_letter,to_letter in zip(fupper,tupper):
+            string.replace(from_letter,to_letter)
+
+        if string is None:
+            self.string = string
+        else:
+            return string
 
 if __name__ == "__main__":
 
