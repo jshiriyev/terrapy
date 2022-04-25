@@ -15,7 +15,7 @@ import lasio
 if __name__ == "__main__":
     import setup
 
-class BaseDir():
+class DirBase():
 
     def __init__(self,homepath=None):
 
@@ -29,17 +29,17 @@ class BaseDir():
     def set_abspath(self,path,relPathFlag=False):
 
         if relPathFlag and hasattr(self,"homepath"):
-            path = os.path.join(self.homepath,path)
-
-        self.abspath = os.path.join(self.homepath,path)
+            self.abspath = os.path.join(self.homepath,path)
+        else:
+            self.abspath = path
 
     def get_filenames(self,dirabspath=None,dirrelpath=None,prefix=None,extension=None):
 
         if dirabspath is not None:
-            self.set_abspath(path,relPathFlag=False)
+            self.set_abspath(dirabspath,relPathFlag=False)
             filenames = os.listdir(self.abspath)
         elif dirrelpath is not None:
-            self.set_abspath(path,relPathFlag=True)
+            self.set_abspath(dirrelpath,relPathFlag=True)
             filenames = os.listdir(self.abspath)
         elif hasattr(self,"abspath"):
             filenames = os.listdir(self.abspath)
@@ -49,15 +49,15 @@ class BaseDir():
         if prefix is None and extension is None:
             return filenames
         elif prefix is None and extension is not None:
-            return = [filename for filename in filenames if filename.endswith(extension)]
+            return [filename for filename in filenames if filename.endswith(extension)]
         elif prefix is not None and extension is None:
-            return = [filename for filename in filenames if filename.startswith(prefix)]
+            return [filename for filename in filenames if filename.startswith(prefix)]
         else:
-            return = [filename for filename in filenames if filename.startswith(prefix) and filename.endswith(extension)]
+            return [filename for filename in filenames if filename.startswith(prefix) and filename.endswith(extension)]
 
-class BaseFrame():
+class DataFrame(DirBase):
 
-    # Main Data Structure BaseFrame
+    # Main Data Structure DataFrame
 
     def __init__(self,headers=None,homepath=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
 
@@ -449,7 +449,7 @@ class BaseFrame():
             for line in vprint(*self._running):
                 wfile.write(line)
 
-class Excel(BaseFrame):
+class Excel(DataFrame):
 
     def __init__(self,filepaths=None,headers=None):
 
@@ -537,7 +537,7 @@ class Excel(BaseFrame):
         else:
             self.files[index]._archive.close()
 
-class VTKit(Files):
+class VTKit(DirBase):
 
     def __init__(self):
 
@@ -551,7 +551,7 @@ class VTKit(Files):
 
         pass
 
-class History(BaseFrame):
+class History(DataFrame):
 
     # KEYWORDS: DATES,COMPDATMD,COMPORD,WCONHIST,WCONINJH,WEFAC,WELOPEN 
 
@@ -694,7 +694,7 @@ class History(BaseFrame):
                         wfile.write("\n")
                     wfile.write("/\n\n")
 
-class LogASCII(Files):
+class LogASCII(DirBase):
 
     def __init__(self,filepaths=None):
 
@@ -1057,19 +1057,19 @@ class alphabet_aze():
 
     def convert(self,string=None,from_="cyril",to="latin"):
 
-        flower = getattr(self,from_+"_lower")
-        tlower = getattr(self,to+"_lower")
+        from_lower = getattr(self,from_+"_lower")
+        from_upper = getattr(self,from_+"_upper")
 
-        fupper = getattr(self,from_+"_upper")
-        tupper = getattr(self,to+"_upper")
+        to_lower = getattr(self,to+"_lower")
+        to_upper = getattr(self,to+"_upper")
 
         if string is None:
             string = self.string
 
-        for from_letter,to_letter in zip(flower,tlower):
+        for from_letter,to_letter in zip(from_lower,to_lower):
             string.replace(from_letter,to_letter)
 
-        for from_letter,to_letter in zip(fupper,tupper):
+        for from_letter,to_letter in zip(from_upper,to_upper):
             string.replace(from_letter,to_letter)
 
         if string is None:

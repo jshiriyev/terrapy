@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     import setup
 
-from stream.dataset import Frame
+from stream.dataset import DataFrame
 from stream.dataset import Excel
 from stream.dataset import VTKit
 from stream.dataset import History
@@ -38,7 +38,7 @@ def TimeView(data=None):
     if data is None:
         base = object
     elif data=="frame":
-        base = Frame
+        base = DataFrame
     elif data=="excel":
         base = Excel
     elif data=="history":
@@ -1462,7 +1462,7 @@ def PerfView(data=None):
     if data is None:
         base = object
     elif data=="frame":
-        base = Frame
+        base = DataFrame
     elif data=="excel":
         base = Excel
     elif data=="history":
@@ -1530,7 +1530,7 @@ def TableView(data=None):
     if data is None:
         base = object
     elif data=="frame":
-        base = Frame
+        base = DataFrame
     elif data=="excel":
         base = Excel
     elif data=="history":

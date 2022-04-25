@@ -14,7 +14,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.dataset import Frame
+from stream.dataset import DataFrame
 from stream.dataset import Excel
 from stream.dataset import VTKit
 from stream.dataset import History
@@ -1264,7 +1264,7 @@ def Production(graphic=None,dataset=None):
 
     if dataset is None or dataset=="frame":
         dataset = "frame"
-        database = Frame
+        database = DataFrame
     elif dataset == "excel":
         database = Excel
     elif dataset == "history":
