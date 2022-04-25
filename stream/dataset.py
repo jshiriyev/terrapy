@@ -17,33 +17,36 @@ if __name__ == "__main__":
 
 class DirBase():
 
-    def __init__(self,homepath=None):
+    def __init__(self,filepath=None,homepath=None):
 
-        if homepath is not None:
+        if filepath is not None:
+            self.set_homepath(filepath)
+        elif homepath is not None:
             self.set_homepath(homepath)
-
-    def set_homepath(self,homepath):
-
-        self.homepath = homepath
-
-    def set_abspath(self,path,relPathFlag=False):
-
-        if relPathFlag and hasattr(self,"homepath"):
-            self.abspath = os.path.join(self.homepath,path)
         else:
-            self.abspath = path
+            self.set_homepath()
 
-    def get_filenames(self,dirabspath=None,dirrelpath=None,prefix=None,extension=None):
+    def set_homepath(self,homepath=None):
 
-        if dirabspath is not None:
-            self.set_abspath(dirabspath,relPathFlag=False)
-            filenames = os.listdir(self.abspath)
-        elif dirrelpath is not None:
-            self.set_abspath(dirrelpath,relPathFlag=True)
-            filenames = os.listdir(self.abspath)
-        elif hasattr(self,"abspath"):
-            filenames = os.listdir(self.abspath)
-        elif hasattr(self,"homepath"):
+        if homepath is None:
+            self.homepath = os.getcwd()
+        elif os.path.isdir(homepath):
+            self.homepath = homepath
+        elif os.path.isdir(os.path.dirname(homepath)):
+            self.filepath = homepath
+            self.filename = os.path.split(self.filepath)[1]
+            self.extension = os.path.splitext(self.filepath)[1]
+            self.homepath = os.path.dirname(homepath)
+        else:
+            self.homepath = os.getcwd()
+
+    def get_filenames(self,absdirpath=None,reldirpath=None,prefix=None,extension=None):
+
+        if absdirpath is not None:
+            filenames = os.listdir(self.absdirpath)
+        elif reldirpath is not None:
+            filenames = os.listdir(os.path.join(self.homepath,reldirpath))
+        else:
             filenames = os.listdir(self.homepath)
 
         if prefix is None and extension is None:
@@ -59,57 +62,59 @@ class DataFrame(DirBase):
 
     # Main Data Structure DataFrame
 
-    def __init__(self,headers=None,homepath=None,filepath=None,skiplines=0,headerline=None,comment=None,endline=None,endfile=None,**kwargs):
+    def __init__(self,filepath=None,homepath=None,headers=None):
 
-        # There are two uses of dataset, case 1 or case 2:
-        #   case 1: headers
-        #   case 2: filepath,skiplines,headerline
-        #    - reading plain text: comment,endline,endfile
-        #    - reading scpecial extensions: **kwargs
-        #   case 3: no input
+        super().__init__(filepath,homepath)
         
-        if headers is not None:
+        self.set_headers(headers,initRunningFlag=True)
+
+    def set_headers(self,headers=None,header_indices=None,num_cols=None,initRunningFlag=False):
+
+        if headers is None and header_indices is None:
+            num_cols = num_cols if num_cols is not None else 0
+            self._headers = ["Col #{}".format(index) for index in range(num_cols)]
+        elif headers is None and header_indices is not None:
+            num_cols = max(header_indices)+1
+            self._headers = ["Col #{}".format(index) for index in range(num_cols)]
+        elif headers is not None and header_indices is None:
+            num_cols = len(headers)
             self._headers = headers
-            self._running = [np.array([])]*len(self._headers)
-
-        elif filepath is not None:
-            self.filepath = filepath
-            self.skiplines = skiplines
-
-            if headerline is None:
-                self.headerline = skiplines-1
-            elif headerline<skiplines:
-                self.headerline = headerline
+        elif headers is not None and header_indices is not None:
+            if hasattr(self,"_headers"):
+                if max(header_indices)>len(self._headers):
+                    num_cols = max(header_indices)+1
+                    num_cols_initial = len(self._headers)
+                    num_cols_to_add = num_cols-num_cols_initial
+                    [self._headers.append("Col #{}".format(num_cols_initial+index)) for index in range(num_cols_to_add)]
+                else:
+                    num_cols = len(self._headers)
             else:
-                self.headerline = skiplines-1
-
-            self.comment = comment
-            self.endline = endline
-            self.endfile = endfile
-
-            self.filename = os.path.split(self.filepath)[1]
-            self.extension = os.path.splitext(self.filepath)[1]
-
-            if any([self.extension==extension for extension in self.special_extensions]):
-                self.read_special(**kwargs)
-            else:
-                self.read()
-
-        else:
-            self._headers = []
-            self._running = []
+                num_cols = max(header_indices)+1
+                self._headers = ["Col #{}".format(index) for index in range(num_cols)]
+            for (header,header_index) in zip(headers,header_indices):
+                self._headers[header_index] = header
 
         self.headers = self._headers
-        self.running = [np.asarray(column) for column in self._running]
 
-    def read(self):
+        if initRunningFlag:
+            self._running = [np.array([])]*len(num_cols)
+            self.running = [np.asarray(column) for column in self._running]
+
+    def read(self,skiplines=0,headerline=None,comment="--",endline="/",endfile="END"):
 
         # While looping inside the file it does not read lines:
         # - starting with comment phrase, e.g., comment = "--"
         # - after the end of line phrase, e.g., endline = "/"
         # - after the end of file keyword e.g., endfile = "END"
 
-        self._running = []
+        if headerline is None:
+            headerline = skiplines-1
+        elif headerline<skiplines:
+            headerline = headerline
+        else:
+            headerline = skiplines-1
+
+        _running = []
 
         with open(self.filepath,"r") as text:
 
@@ -117,8 +122,7 @@ class DataFrame(DirBase):
 
                 line = line.split('\n')[0].strip()
 
-                if self.endline is not None:
-                    line = line.strip(self.endline)
+                line = line.strip(endline)
 
                 line = line.strip()
                 line = line.strip("\t")
@@ -127,37 +131,33 @@ class DataFrame(DirBase):
                 if line=="":
                     continue
 
-                if self.comment is not None:
-                    if line[:len(self.comment)] == self.comment:
+                if comment is not None:
+                    if line[:len(comment)] == comment:
                         continue
 
-                if self.endfile is not None:
-                    if line[:len(self.endfile)] == self.endfile:
+                if endfile is not None:
+                    if line[:len(endfile)] == endfile:
                         break
 
-                self._running.append([line])
+                _running.append([line])
 
         self.title = []
 
-        for _ in range(self.skiplines):
-            self.title.append(self._running.pop(0))
+        for _ in range(skiplines):
+            self.title.append(_running.pop(0))
 
-        num_cols = len(self._running[0])
+        num_cols = len(_running[0])
 
-        if self.skiplines==0:
-            self._headers = ["Column #"+str(index) for index in range(num_cols)]
-        elif self.skiplines!=0:
-            self._headers = self.title[self.headerline]
+        if skiplines==0:
+            self.set_headers(num_cols=num_cols,initRunningFlag=False)
+        elif skiplines!=0:
+            self.set_headers(headers=self.title[self.headerline],initRunningFlag=False)
 
-        nparray = np.array(self._running).T
+        nparray = np.array(_running).T
 
         self._running = [np.asarray(column) for column in nparray]
 
-    def set_header(self,header_index,header):
-
-        self._headers[header_index] = header
-
-        self.headers = self._headers
+        self.running = [np.asarray(column) for column in self._running]
 
     def texttocolumn(self,header_index=None,header=None,deliminator=None,maxsplit=None):
 
