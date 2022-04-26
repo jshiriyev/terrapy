@@ -17,14 +17,13 @@ if __name__ == "__main__":
 
 class DirBase():
 
-    def __init__(self,filepath=None,homepath=None):
+    def __init__(self,homepath=None,filepath=None):
 
-        if filepath is not None:
-            self.set_homepath(filepath)
-        elif homepath is not None:
-            self.set_homepath(homepath)
-        else:
-            self.set_homepath()
+        # homepath is the directory to put outputs
+        # filepath is the directory to get inputs
+
+        self.set_homepath(homepath)
+        self.set_filepath(filepath)
 
     def set_homepath(self,path=None):
 
@@ -32,14 +31,30 @@ class DirBase():
             path = os.getcwd()
         elif not os.path.isdir(path):
             path = os.path.dirname(path)
-            
-            self.filename = os.path.split(path)[1]
-            self.extension = os.path.splitext(path)[1]
 
         if os.path.isabs(path):
             self.homepath = path
         else:
             self.homepath = os.path.normpath(os.path.join(os.getcwd(),path))
+
+    def set_filepath(self,path=None):
+
+        if path is None:
+            path = self.homepath
+        elif not os.path.isdir(path):
+            path = os.path.dirname(path)
+
+        if os.path.isabs(path):
+            self.filepath = path
+        else:
+            self.filepath = os.path.normpath(os.path.join(self.homepath,path))
+
+    def get_filepathabs(self,path):
+
+        if os.path.isabs(path):
+            return path
+        else:
+            return os.path.normpath(os.path.join(self.homepath,path))
 
     def get_filenames(self,dirpath=None,prefix=None,extension=None):
 
@@ -47,12 +62,12 @@ class DirBase():
             dirpath = os.path.dirname(dirpath)
 
         if dirpath is not None and not os.path.isabs(dirpath):
-            dirpath = os.path.join(self.homepath,dirpath)
+            dirpath = os.path.normpath(os.path.join(self.homepath,dirpath))
 
         if dirpath is not None:
             filenames = os.listdir(dirpath)
         else:
-            filenames = os.listdir(self.homepath)
+            filenames = os.listdir(self.filepath)
 
         if prefix is None and extension is None:
             return filenames
@@ -67,9 +82,9 @@ class DataFrame(DirBase):
 
     # Main Data Structure DataFrame
 
-    def __init__(self,filepath=None,homepath=None,headers=None):
+    def __init__(self,homepath=None,filepath=None,headers=None):
 
-        super().__init__(filepath,homepath)
+        super().__init__(homepath,filepath)
         
         self.set_headers(headers,initRunningFlag=True)
 
@@ -456,91 +471,89 @@ class DataFrame(DirBase):
 
 class Excel(DataFrame):
 
-    def __init__(self,filepaths=None,headers=None):
+    def __init__(self,homepath=None,filepaths=None,headers=None):
+
+        super().__init__(homepath=homepath,headers=headers)
 
         self.files = []
 
         if filepaths is not None:
-            for filepath in filepaths:
-                self.add_file(filepath)
+            [self.add_file(filepath) for filepath in filepaths]
 
-        if headers is not None:
-            self._headers = headers
-            self._running = [np.array([])]*len(self._headers)
-        else:
-            self._headers = []
-            self._running = []
+    def add_file(self,filepath):
 
-        self.headers = self._headers
-        self.running = [np.asarray(column) for column in self._running]
-
-    def add_file(self,filepath,homeFlag=False):
-
-        if homeFlag and hasattr(self,"homepath"):
-
-            filepath = os.path.join(self.homepath,filepath)
+        filepath = self.get_filepathabs(filepath)
 
         self.files.append(opxl.load_workbook(filepath,read_only=True,data_only=True))
 
-    def get_sheetname(self,keyword):
+    def get_sheetname(self,keyword,fileID=0):
 
         # This method returns sheetname similar to the keyword
 
-        for sheetname in self.files[0].sheetnames:
+        for sheetname in self.files[fileID].sheetnames:
             if sheetname[:len(keyword)]==keyword:
                 return sheetname
             else:
                 return keyword
 
-    def read_headers(self,sheetname,row_index):
+    def set_headers(self,sheetname,row_index,fileID=0):
 
-        row = self.files[0][sheetname].iter_rows(min_row=row_index,min_col=1,
-            max_row=row_index,max_col=None,values_only=True)
+        headers = list(self.files[fileID][sheetname].iter_rows(
+            min_row=row_index,min_col=1,
+            max_row=row_index,max_col=None,
+            values_only=True))[0]
 
-        headers = list(row)[0]
+        for index,header in enumerate(headers):
+            headers[index] = re.sub(r"[^\w]","",header)
 
-        [self._headers.append(re.sub(r"[^\w]","",header)) for header in headers]
+        super().set_headers(headers=headers,initRunningFlag=False)
 
-        self.headers = self._headers
+    def read(self,sheetname,min_row=1,min_col=1,max_row=None,max_col=None,fileID=None):
 
-    def read(self,sheetname,min_row=1,min_col=1,max_row=None,max_col=None):
+        if fileID is None:
+            fileIDs = range(len(self.files))
+        else:
+            fileIDs = range(fileID,fileID+1)
 
-        rows = self.files[0][sheetname].iter_rows(min_row=min_row,min_col=min_col,
-            max_row=max_row,max_col=max_col,values_only=True)
+        for fileID in fileIDs:
 
-        rows = list(rows)
+            rows = list(self.files[fileID][sheetname].iter_rows(
+                min_row=min_row,min_col=min_col,
+                max_row=max_row,max_col=max_col,
+                values_only=True))
+
+            self.set_rows(rows)
 
         if len(self._headers)==0:
 
-            [self._headers.append("Col {}".format(i)) for i in range(len(rows[0]))]
+            if len(self._running)==0: 
+                self.set_headers(num_cols=len(rows[0]),initRunningFlag=True)
+            else:
+                self.set_headers(num_cols=len(rows[0]),initRunningFlag=False)
 
-            self.headers = self._headers
-
-        if len(self._running)==0:
-            self._running = [np.array([])]*len(rows[0])
-
-        self.set_rows(rows)
-
-    def write(self):
+    def write(self,filepath,title):
 
         wb = opxl.Workbook()
 
         sheet = wb.active
 
-        if sheet_title is not None:
-            sheet.title = sheet_title
+        if title is not None:
+            sheet.title = title
 
         for line in running:
             sheet.append(line)
 
         wb.save(filepath)
 
-    def close(self,index=None):
+    def close(self,fileID=None):
 
-        if index is None:
-            [file._archive.close() for file in self.files]
+        if fileID is None:
+            fileIDs = range(len(self.files))
         else:
-            self.files[index]._archive.close()
+            fileIDs = range(fileID,fileID+1)
+
+        for fileID in fileIDs:
+            self.files[fileID]._archive.close()
 
 class VTKit(DirBase):
 
@@ -713,6 +726,8 @@ class LogASCII(DirBase):
 
     def add_file(self,filepath):
 
+        filepath = self.get_filepathabs(filepath)
+
         las = lasio.read(filepath)
 
         self.files.append(las)
@@ -772,9 +787,9 @@ class LogASCII(DirBase):
 
         self.gross_thickness = self.bottom-self.top
 
-        for indexI in fileIDs:
+        for fileID in fileIDs:
 
-            las = self.files[indexI]
+            las = self.files[fileID]
 
             try:
                 depth = las["MD"]
@@ -784,7 +799,7 @@ class LogASCII(DirBase):
             depth_cond = np.logical_and(depth>self.top,depth<self.bottom)
 
             for curveID,curve in enumerate(las.curves):
-                self.files[indexI].curves[curveID].data = curve.data[depth_cond]
+                self.files[fileID].curves[curveID].data = curve.data[depth_cond]
 
     def get_interval(self,top,bottom,fileID=None,curveID=None):
 
@@ -813,14 +828,43 @@ class LogASCII(DirBase):
 
         return returningList
 
-    def resample(self,depthsFID=None,depths=None,fileID=None,curveID=None):
+    def get_resampled(self,depthsR,depthsO,dataO):
+
+        lowerend = depthsR<depthsO.min()
+        upperend = depthsR>depthsO.max()
+
+        interior = np.logical_and(~lowerend,~upperend)
+
+        depths_interior = depthsR[interior]
+
+        indices_lower = np.empty(depths_interior.shape,dtype=int)
+        indices_upper = np.empty(depths_interior.shape,dtype=int)
+
+        for index,depth in enumerate(depths_interior):
+
+            diff = depthsO-depth
+
+            indices_lower[index] = np.where(diff<0,diff,-np.inf).argmax()
+            indices_upper[index] = np.where(diff>0,diff,np.inf).argmin()
+
+        grads = (depths_interior-depthsO[indices_lower])/(depthsO[indices_upper]-depthsO[indices_lower])
+
+        dataR = np.empty(depthsR.shape,dtype=float)
+
+        dataR[lowerend] = np.nan
+        dataR[interior] = dataO[indices_lower]+grads*(dataO[indices_upper]-dataO[indices_lower])
+        dataR[upperend] = np.nan
+
+        return dataR
+
+    def resample(self,depthsFID=None,depthsR=None,fileID=None,curveID=None):
 
         """
 
-        depthsFID:  The index of file id from which to take new depths
+        depthsFID:  The index of file id from which to take new depthsR
                     where new curve data will be calculated;
 
-        depths:     The numpy array of new depths
+        depthsR:     The numpy array of new depthsR
                     where new curve data will be calculated;
         
         fileID:     The index of file to resample;
@@ -834,9 +878,9 @@ class LogASCII(DirBase):
 
         if depthsFID is not None:
             try:
-                depths = self.files[depthsFID]["MD"]
+                depthsR = self.files[depthsFID]["MD"]
             except KeyError:
-                depths = self.files[depthsFID]["DEPT"]
+                depthsR = self.files[depthsFID]["DEPT"]
 
         if fileID is None:
             fileIDs = range(len(self.files))
@@ -852,26 +896,26 @@ class LogASCII(DirBase):
             las = self.files[indexI]
 
             try:
-                depths_original = las["MD"]
+                depthsO = las["MD"]
             except KeyError:
-                depths_original = las["DEPT"]
+                depthsO = las["DEPT"]
 
-            lowerend = depths<depths_original.min()
-            upperend = depths>depths_original.max()
+            lowerend = depthsR<depthsO.min()
+            upperend = depthsR>depthsO.max()
 
             interior = np.logical_and(~lowerend,~upperend)
 
-            depths_interior = depths[interior]
+            depths_interior = depthsR[interior]
 
-            diff = depths_original-depths_interior.reshape((-1,1))
+            diff = depthsO-depths_interior.reshape((-1,1))
 
             indices_lower = np.where(diff<0,diff,-np.inf).argmax(axis=1)
             indices_upper = np.where(diff>0,diff,np.inf).argmin(axis=1)
 
-            grads = (depths_interior-depths_original[indices_lower])/(depths_original[indices_upper]-depths_original[indices_lower])
+            grads = (depths_interior-depthsO[indices_lower])/(depthsO[indices_upper]-depthsO[indices_lower])
 
             if curveID is None:
-                las.curves[0].data = depths
+                las.curves[0].data = depthsR
 
             if curveID is None:
                 curveIDs = range(1,len(las.curves))
@@ -882,16 +926,16 @@ class LogASCII(DirBase):
 
                 curve = las.curves[indexJ]
 
-                data_resampled = np.empty(depths.shape,dtype=float)
+                dataR = np.empty(depthsR.shape,dtype=float)
 
-                data_resampled[lowerend] = np.nan
-                data_resampled[interior] = curve.data[indices_lower]+grads*(curve.data[indices_upper]-curve.data[indices_lower])
-                data_resampled[upperend] = np.nan
+                dataR[lowerend] = np.nan
+                dataR[interior] = curve.data[indices_lower]+grads*(curve.data[indices_upper]-curve.data[indices_lower])
+                dataR[upperend] = np.nan
 
                 if curveID is None:
-                    self.files[indexI].curves[indexJ].data = data_resampled
+                    self.files[indexI].curves[indexJ].data = dataR
                 elif fileID is not None:
-                    return data_resampled
+                    return dataR
 
     def merge(self,fileIDs,curveNames):
 
@@ -942,13 +986,11 @@ class LogASCII(DirBase):
     def write(self,filepath,mnemonics,data,fileID=None,units=None,descriptions=None,values=None):
 
         """
-        
         filepath:       It will write a lasio.LASFile to the given filepath
         fileID:         The file index which to write to the given filepath
                         If fileID is None, new lasio.LASFile will be created
 
         kwargs:         These are mnemonics, data, units, descriptions, values
-
         """
 
         if fileID is not None:
@@ -1001,36 +1043,7 @@ class LogASCII(DirBase):
         with open(filepath, mode='w') as filePathToWrite:
             lasfile.write(filePathToWrite)
 
-def resample(depths,data,depthsR):
-
-    lowerend = depthsR<depths.min()
-    upperend = depthsR>depths.max()
-
-    interior = np.logical_and(~lowerend,~upperend)
-
-    depths_interior = depthsR[interior]
-
-    indices_lower = np.empty(depths_interior.shape,dtype=int)
-    indices_upper = np.empty(depths_interior.shape,dtype=int)
-
-    for index,depth in enumerate(depths_interior):
-
-        diff = depths-depth
-
-        indices_lower[index] = np.where(diff<0,diff,-np.inf).argmax()
-        indices_upper[index] = np.where(diff>0,diff,np.inf).argmin()
-
-    grads = (depths_interior-depths[indices_lower])/(depths[indices_upper]-depths[indices_lower])
-
-    dataR = np.empty(depthsR.shape,dtype=float)
-
-    dataR[lowerend] = np.nan
-    dataR[interior] = data[indices_lower]+grads*(data[indices_upper]-data[indices_lower])
-    dataR[upperend] = np.nan
-
-    return dataR
-
-class alphabet_aze():
+class AlphabetAze():
 
     cyril_lower = [
         "а","б","ҹ","ч","д","е","я","ф","ҝ","ғ",
