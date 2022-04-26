@@ -26,26 +26,31 @@ class DirBase():
         else:
             self.set_homepath()
 
-    def set_homepath(self,homepath=None):
+    def set_homepath(self,path=None):
 
-        if homepath is None:
-            self.homepath = os.getcwd()
-        elif os.path.isdir(homepath):
-            self.homepath = homepath
-        elif os.path.isdir(os.path.dirname(homepath)):
-            self.filepath = homepath
-            self.filename = os.path.split(self.filepath)[1]
-            self.extension = os.path.splitext(self.filepath)[1]
-            self.homepath = os.path.dirname(homepath)
+        if path is None:
+            path = os.getcwd()
+        elif not os.path.isdir(path):
+            path = os.path.dirname(path)
+            
+            self.filename = os.path.split(path)[1]
+            self.extension = os.path.splitext(path)[1]
+
+        if os.path.isabs(path):
+            self.homepath = path
         else:
-            self.homepath = os.getcwd()
+            self.homepath = os.path.normpath(os.path.join(os.getcwd(),path))
 
-    def get_filenames(self,absdirpath=None,reldirpath=None,prefix=None,extension=None):
+    def get_filenames(self,dirpath=None,prefix=None,extension=None):
 
-        if absdirpath is not None:
-            filenames = os.listdir(self.absdirpath)
-        elif reldirpath is not None:
-            filenames = os.listdir(os.path.join(self.homepath,reldirpath))
+        if dirpath is not None and not os.path.isdir(dirpath):
+            dirpath = os.path.dirname(dirpath)
+
+        if dirpath is not None and not os.path.isabs(dirpath):
+            dirpath = os.path.join(self.homepath,dirpath)
+
+        if dirpath is not None:
+            filenames = os.listdir(dirpath)
         else:
             filenames = os.listdir(self.homepath)
 
