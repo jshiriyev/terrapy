@@ -86,7 +86,7 @@ class DataFrame(DirBase):
 
         super().__init__(homepath,filepath)
         
-        self.set_headers(headers,initRunningFlag=True)
+        DataFrame.set_headers(self,headers=headers,initRunningFlag=True)
 
     def set_headers(self,headers=None,header_indices=None,num_cols=None,initRunningFlag=False):
 
@@ -117,7 +117,7 @@ class DataFrame(DirBase):
         self.headers = self._headers
 
         if initRunningFlag:
-            self._running = [np.array([])]*len(num_cols)
+            self._running = [np.array([])]*num_cols
             self.running = [np.asarray(column) for column in self._running]
 
     def read(self,skiplines=0,headerline=None,comment="--",endline="/",endfile="END"):
@@ -488,25 +488,27 @@ class Excel(DataFrame):
 
     def get_sheetname(self,keyword,fileID=0):
 
-        # This method returns sheetname similar to the keyword
+        # This method supposed to return sheetname similar to the keyword
 
         for sheetname in self.files[fileID].sheetnames:
             if sheetname[:len(keyword)]==keyword:
                 return sheetname
-            else:
-                return keyword
 
-    def set_headers(self,sheetname,row_index,fileID=0):
+        print("No good match for sheetname was found!")
 
-        headers = list(self.files[fileID][sheetname].iter_rows(
-            min_row=row_index,min_col=1,
-            max_row=row_index,max_col=None,
-            values_only=True))[0]
+    def set_headers(self,sheetname,row_index,min_col=None,max_col=None,fileID=0):
+
+        headers = self.files[fileID][sheetname].iter_rows(
+            min_row=row_index,min_col=min_col,
+            max_row=row_index,max_col=max_col,
+            values_only=True)
+
+        headers = list(list(headers)[0])
 
         for index,header in enumerate(headers):
             headers[index] = re.sub(r"[^\w]","",header)
 
-        super().set_headers(headers=headers,initRunningFlag=False)
+        super().set_headers(headers=headers,initRunningFlag=True)
 
     def read(self,sheetname,min_row=1,min_col=1,max_row=None,max_col=None,fileID=None):
 
@@ -514,6 +516,13 @@ class Excel(DataFrame):
             fileIDs = range(len(self.files))
         else:
             fileIDs = range(fileID,fileID+1)
+
+        if len(self._headers)==0:
+
+            if len(self._running)==0: 
+                super().set_headers(num_cols=max_col-min_col+1,initRunningFlag=True)
+            else:
+                super().set_headers(num_cols=max_col-min_col+1,initRunningFlag=False)
 
         for fileID in fileIDs:
 
@@ -523,13 +532,6 @@ class Excel(DataFrame):
                 values_only=True))
 
             self.set_rows(rows)
-
-        if len(self._headers)==0:
-
-            if len(self._running)==0: 
-                self.set_headers(num_cols=len(rows[0]),initRunningFlag=True)
-            else:
-                self.set_headers(num_cols=len(rows[0]),initRunningFlag=False)
 
     def write(self,filepath,title):
 

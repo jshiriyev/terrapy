@@ -1,6 +1,7 @@
 import calendar
 
 from datetime import datetime
+from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta
 
@@ -1290,6 +1291,24 @@ def Production(graphic=None,dataset=None):
         def get_wellnames(self):
 
             pass
+
+        def fill_missing_daily_production(timeO,rateO,timeStart=None,timeEnd=None):
+
+            timeStart = datetime(datetime.today().year,1,1) if timeStart is None else timeStart
+
+            timeEnd = datetime.today() if timeEnd is None else timeEnd
+
+            delta = timeEnd-timeStart
+
+            timeaxis = np.array([timeStart+timedelta(days=i) for i in range(delta.days)],dtype=np.datetime64)
+
+            nonzeroproduction = np.where(timeaxis==timeO.reshape((-1,1)))[1]
+
+            rateEdited = np.zeros(delta.days)
+
+            rateEdited[nonzeroproduction] = rateO
+
+            return rateEdited
 
         def op_process(self):
 
