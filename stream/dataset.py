@@ -720,7 +720,9 @@ class History(DataFrame):
 
 class LogASCII(DirBase):
 
-    def __init__(self,filepaths=None):
+    def __init__(self,filepaths=None,**kwargs):
+
+        super().__init__(**kwargs)
 
         self.files = []
 

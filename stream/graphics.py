@@ -876,9 +876,9 @@ def LogView(data=None):
 
         spinerelpos = (0,0.1,0.2,0.3)
 
-        def __init__(self,filepaths):
+        def __init__(self,**kwargs):
 
-            super().__init__(filepaths)
+            super().__init__(**kwargs)
 
         def set_histogram(self,fileID,curveID=None,curveName=None,logscale=False):
 
@@ -1274,7 +1274,12 @@ def LogView(data=None):
             DT_FLUID=189,
             DT_SND=55.6,
             DT_LMS=47.5,
-            DT_DOL=43.5):
+            DT_DOL=43.5,
+            xmin=None,
+            ymin=None,
+            xmax=None,
+            ymax=None,
+            rotate=0):
 
             self.fig_sncp,self.axis_sncp = plt.subplots()
 
@@ -1324,15 +1329,21 @@ def LogView(data=None):
             self.axis_sncp.scatter(porLMS_LMS[::5],sonicLMS[::5],marker=(2,0,45),color="blue")
             self.axis_sncp.scatter(porLMS_DOL[::5],sonicDOL[::5],marker=(2,0,45),color="blue")
 
-            self.axis_sncp.text(porLMS_SND[27],sonicSND[26],'Sandstone',rotation=50.)
-            self.axis_sncp.text(porLMS_LMS[18],sonicLMS[17],'Calcite (limestone)',rotation=50.)
-            self.axis_sncp.text(porLMS_DOL[19],sonicDOL[18],'Dolomite',rotation=50.)
+            self.axis_sncp.text(porLMS_SND[27],sonicSND[26],'Sandstone',rotation=rotate)
+            self.axis_sncp.text(porLMS_LMS[18],sonicLMS[17],'Calcite (limestone)',rotation=rotate)
+            self.axis_sncp.text(porLMS_DOL[19],sonicDOL[18],'Dolomite',rotation=rotate)
 
             self.axis_sncp.set_xlabel("Apparent Limestone Neutron Porosity")
             self.axis_sncp.set_ylabel("Sonic Transit Time $\\Delta$t [$\\mu$s/ft]")
 
-            self.axis_sncp.set_xlim([-0.05,xaxis_max])
-            self.axis_sncp.set_ylim([+40.0,yaxis_max])
+            xaxis_min = -0.05 if xmin is None else xmin
+            yaxis_min = +40.0 if ymin is None else ymin
+
+            xaxis_max = xaxis_max if xmax is None else xmax
+            yaxis_max = yaxis_max if ymax is None else ymax
+
+            self.axis_sncp.set_xlim([xaxis_min,xaxis_max])
+            self.axis_sncp.set_ylim([yaxis_min,yaxis_max])
 
             self.axis_sncp.xaxis.set_minor_locator(AutoMinorLocator(10))
             self.axis_sncp.yaxis.set_minor_locator(AutoMinorLocator(10))
@@ -1368,7 +1379,11 @@ def LogView(data=None):
             m=2,
             n=2,
             a=0.62,
-            Rw=0.1
+            Rw=0.1,
+            xmin=None,
+            xmax=None,
+            ymin=None,
+            ymax=None,
             ):
 
             if returnSwFlag:
@@ -1385,7 +1400,7 @@ def LogView(data=None):
                 xaxis_min = 1
                 xaxis_max = 100
 
-                yaxis_min = 0.01
+                yaxis_min = 0.1
                 yaxis_max = 1
 
                 for depth in self.depths:
@@ -1393,10 +1408,10 @@ def LogView(data=None):
                     xaxis = self.get_interval(*depth[1:],fileID=resLine[0],curveID=resLine[1])[0]
                     yaxis = self.get_interval(*depth[1:],fileID=phiLine[0],curveID=phiLine[1])[0]
 
-                    xaxis_min = max((xaxis_min,xaxis.min()))
+                    xaxis_min = min((xaxis_min,xaxis.min()))
                     xaxis_max = max((xaxis_max,xaxis.max()))
 
-                    yaxis_min = max((yaxis_min,yaxis.min()))
+                    yaxis_min = min((yaxis_min,yaxis.min()))
                     yaxis_max = max((yaxis_max,yaxis.max()))
 
                     self.axis_pcp.scatter(xaxis,yaxis,s=1,label=depth[0])
@@ -1411,6 +1426,12 @@ def LogView(data=None):
 
                 mnemP = self.files[phiLine[0]].curves[indexP].mnemonic
                 unitP = self.files[phiLine[0]].curves[indexP].unit
+
+                xaxis_min = xmin if xmin is not None else xaxis_min
+                xaxis_max = xmax if xmax is not None else xaxis_max
+
+                yaxis_min = ymin if ymin is not None else yaxis_min
+                yaxis_max = ymax if ymax is not None else yaxis_max
 
                 resexpmin = np.floor(np.log10(xaxis_min))
                 resexpmax = np.ceil(np.log10(xaxis_max))
