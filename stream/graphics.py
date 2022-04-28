@@ -32,6 +32,9 @@ from stream.dataset import Excel
 from stream.dataset import VTKit
 from stream.dataset import History
 from stream.dataset import LogASCII
+from stream.dataset import NpText
+
+# Main Visualizers
 
 def TimeView(data=None):
 
@@ -840,622 +843,631 @@ def TimeView(data=None):
 
     return TimeViewClass
 
-class LogView(LogASCII):
+def LogView(data=None):
 
-    lineColors = (
-        "black",
-        "crimson",
-        "blue",
-        "sienna",
-        )
+    if data is None:
+        base = object
+    elif data=="logascii":
+        base = LogASCII
 
-    color_sandstone = "gold"
-    color_limestone = "navajowhite"
-    color_dolomite  = "darkkhaki"
-    color_clean     = "tan"
-    color_shale     = "gray"
-    color_waterclay = "lightskyblue"
-    color_watercapi = "lightsteelblue"
-    color_waterirre = "lightblue"
-    color_watermove = "steelblue"
-    color_water     = "aqua"
-    color_HC        = "green"
-    color_oil       = "limegreen"
-    color_gas       = "lightgreen"
-    color_fluidmove = "seagreen"
+    class LogViewClass(base):
 
-    spinerelpos = (0,0.1,0.2,0.3)
+        lineColors = (
+            "black",
+            "crimson",
+            "blue",
+            "sienna",
+            )
 
-    def __init__(self,filepaths):
+        color_sandstone = "gold"
+        color_limestone = "navajowhite"
+        color_dolomite  = "darkkhaki"
+        color_clean     = "tan"
+        color_shale     = "gray"
+        color_waterclay = "lightskyblue"
+        color_watercapi = "lightsteelblue"
+        color_waterirre = "lightblue"
+        color_watermove = "steelblue"
+        color_water     = "aqua"
+        color_HC        = "green"
+        color_oil       = "limegreen"
+        color_gas       = "lightgreen"
+        color_fluidmove = "seagreen"
 
-        super().__init__(filepaths)
+        spinerelpos = (0,0.1,0.2,0.3)
 
-    def set_histogram(self,fileID,curveID=None,curveName=None,logscale=False):
+        def __init__(self,filepaths):
 
-        self.fig_hist,self.axis_hist = plt.subplots()
+            super().__init__(filepaths)
 
-        las = self.files[fileID]
+        def set_histogram(self,fileID,curveID=None,curveName=None,logscale=False):
 
-        if curveID is None:
-            curveID = las.curves.keys().index(curveName)
+            self.fig_hist,self.axis_hist = plt.subplots()
 
-        curve = las.curves[curveID]
+            las = self.files[fileID]
 
-        if logscale:
-            xlabel = "log10({}) [{}]".format(curve.descr,curve.unit)
-            yaxis = np.log10(curve.data[np.nonzero(curve.data)[0]])
-        else:
-            xlabel = "{} [{}]".format(curve.descr,curve.unit)
-            yaxis = curve.data
+            if curveID is None:
+                curveID = las.curves.keys().index(curveName)
 
-        self.axis_hist.hist(yaxis,density=True,bins=30)  # density=False would make counts
-        self.axis_hist.set_ylabel("Probability")
-        self.axis_hist.set_xlabel(xlabel)
+            curve = las.curves[curveID]
 
-    def set_nangraph(self,fileID):
-
-        self.fig_nan,self.axis_nan = plt.subplots()
-
-        las = self.files[fileID]
-
-        yvals = []
-        zvals = []
-
-        try:
-            depth = las["MD"]
-        except KeyError:
-            depth = las["DEPT"]
-
-        for index,curve in enumerate(las.curves):
-
-            isnan = np.isnan(curve.data)
-
-            L_shift = np.ones(curve.data.shape,dtype=bool)
-            R_shift = np.ones(curve.data.shape,dtype=bool)
-
-            L_shift[:-1] = isnan[1:]
-            R_shift[1:] = isnan[:-1]
-
-            lower = np.where(np.logical_and(~isnan,R_shift))[0]
-            upper = np.where(np.logical_and(~isnan,L_shift))[0]
-
-            zval = np.concatenate((lower,upper),dtype=int).reshape((2,-1)).T.flatten()
-
-            yval = np.full(zval.size,index,dtype=float)
-            
-            yval[::2] = np.nan
-
-            yvals.append(yval)
-            zvals.append(zval)
-
-        qvals = np.unique(np.concatenate(zvals))
-
-        for (yval,zval) in zip(yvals,zvals):
-            self.axis_nan.step(np.where(qvals==zval.reshape((-1,1)))[1],yval)
-
-        self.axis_nan.set_xlim((-1,qvals.size))
-        self.axis_nan.set_ylim((-1,len(las.curves)))
-
-        self.axis_nan.set_xticks(np.arange(qvals.size))
-        self.axis_nan.set_xticklabels(depth[qvals],rotation=90)
-
-        self.axis_nan.set_yticks(np.arange(len(las.curves)))
-        self.axis_nan.set_yticklabels([curve.mnemonic for curve in las.curves])
-
-        self.axis_nan.grid(True,which="both",axis='x')
-
-        self.fig_nan.tight_layout()
-
-    def set_DepthView(self,plot_dictionary):
-
-        self.plot = plot_dictionary
-
-        self.DV_num_axes = len(plot_dictionary)
-
-        zmult = int((self.bottom-self.top)/20.)
-        
-        self.spinepos = [1+x/zmult for x in self.spinerelpos]
-
-        self.fig = plt.figure()
-
-        self.fig.set_figwidth(2*self.DV_num_axes)
-        self.fig.set_figheight(8*zmult)
-
-        self.grids = gridspec.GridSpec(1,self.DV_num_axes)
-        self.grids.update(wspace=0)
-
-        self.set_DepthViewAxes()
-        self.set_DepthViewLines()
-
-    def set_DepthViewAxes(self):
-
-        self.axes = []
-
-        for index in range(self.DV_num_axes):
-
-            axis = plt.subplot(self.grids[index])
-            
-            axis.set_xticks([])
-            
-            axis.grid(True,which="both",axis='y')
-
-            for tic in axis.yaxis.get_major_ticks():
-                if index>0:
-                    tic.label1.set_visible(False)
-                tic.tick1line.set_visible(False)
-
-            axis.subax = []
-
-            for _ in range(len(self.plot[index]["lines"])):
-                axis.subax.append(axis.twiny())
-
-            self.axes.append(axis)
-
-    def set_DepthViewLines(self):
-
-        yticks = self.get_yticks()
-
-        for indexI,axdict in enumerate(self.plot):
-
-            for indexJ,line in enumerate(axdict["lines"]):
-            
-                try:
-                    depth = self.files[line[0]]["MD"]
-                except KeyError:
-                    depth = self.files[line[0]]["DEPT"]
-                    
-                xvals = self.files[line[0]][line[1]]
-
-                indexK = self.files[line[0]].curves.keys().index(line[1])
-
-                mnem = self.files[line[0]].curves[indexK].mnemonic
-                unit = self.files[line[0]].curves[indexK].unit
-
-                linestyle = "-" if indexJ==0 else "--"
-
-                if axdict["ptype"][indexJ] is None:
-                    self.axes[indexI].subax[indexJ].plot(
-                        xvals,depth,color=self.lineColors[indexJ],linestyle=linestyle)
-                elif axdict["ptype"][indexJ]=="log":
-                    self.axes[indexI].subax[indexJ].semilogx(
-                        xvals,depth,color=self.lineColors[indexJ],linestyle=linestyle)
-
-                xticks = self.get_xticks(xvals,indexI,indexJ)
-
-                self.axes[indexI].subax[indexJ].set_xlim([xticks.min(),xticks.max()])
-                self.axes[indexI].subax[indexJ].set_xticks(xticks)
-
-                self.axes[indexI].subax[indexJ].set_ylim([yticks.max(),yticks.min()])
-                self.axes[indexI].subax[indexJ].set_yticks(yticks)
-
-                self.axes[indexI].subax[indexJ].grid(True,which="both",axis='y')
-
-                self.axes[indexI].subax[indexJ].yaxis.set_minor_locator(AutoMinorLocator(10))
-
-                for tic in self.axes[indexI].yaxis.get_minor_ticks():
-                    if indexI>0:
-                        tic.tick1line.set_visible(False)
-
-                if indexJ==0:
-
-                    self.axes[indexI].subax[indexJ].grid(True,which="major",axis='x')
-
-                    if axdict["ptype"][indexJ]=="log":
-
-                        self.axes[indexI].subax[indexJ].grid(True,which="minor",axis='x')
-
-                        minorTicks = self.axes[indexI].subax[indexJ].xaxis.get_minor_ticks()
-
-                        for tic in minorTicks:
-                            tic.label2.set_visible(False)
-                            tic.tick2line.set_visible(False)
-
-                else:
-                    self.axes[indexI].subax[indexJ].spines["top"].set_position(("axes",self.spinepos[indexJ]))
-                    self.axes[indexI].subax[indexJ].spines["top"].set_color(self.lineColors[indexJ])
-                    self.axes[indexI].subax[indexJ].tick_params(axis='x',color=self.lineColors[indexJ],labelcolor=self.lineColors[indexJ])
-
-                # box = self.axes[indexI].subax[indexJ].xaxis.set_clip_box(dict(facecolor='none', edgecolor='black'))
-                # box.set_bbox(dict(facecolor='none', edgecolor='black'))
-
-                if axdict["ptype"][indexJ] is None:
-                    self.axes[indexI].subax[indexJ].xaxis.set_major_formatter(ScalarFormatter())
-                elif axdict["ptype"][indexJ]=="log":
-                    self.axes[indexI].subax[indexJ].xaxis.set_major_formatter(LogFormatter())
-
-                self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.lineColors[indexJ])
-
-                majorTicksX = self.axes[indexI].subax[indexJ].xaxis.get_major_ticks()
-
-                for tic in majorTicksX:
-                    tic.label2.set_visible(False)
-                    tic.tick2line.set_visible(False)
-
-                majorTicksX[0].label2.set_visible(True)
-                majorTicksX[0].tick2line.set_visible(True)
-
-                majorTicksX[-1].label2.set_visible(True)
-                majorTicksX[-1].tick2line.set_visible(True)
-
-                plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_majorticklabels()[0],ha="left")
-                plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_majorticklabels()[-1],ha="right")
-
-    def get_yticks(self):
-
-        ymin = np.floor(self.top/20)*20
-
-        ymax = np.ceil(self.bottom/20)*20
-
-        yticks = np.arange(ymin,ymax+5,10)
-
-        return yticks
-                
-    def get_xticks(self,xvals,indexI,indexJ,xunits_count_default=11):
-
-        if self.plot[indexI]["xlims"][indexJ] is not None:
-            if self.plot[indexI]["ptype"][indexJ] is None:
-                xmin,xmax,xunits_size = self.plot[indexI]["xlims"][indexJ]
-            elif self.plot[indexI]["ptype"][indexJ]=="log":
-                xmin,xmax = self.plot[indexI]["xlims"][indexJ]
-        else:
-            xvals_min = np.nanmin(xvals)
-            xvals_max = np.nanmax(xvals)
-
-            xrange_given = xvals_max-xvals_min
-            
-            xunits_size = xrange_given/(xunits_count_default-1)
-
-            beforeDot,afterDot = format(xunits_size,'f').split('.')
-
-            nondim_xunit_sizes = np.array([1,2,4,5,10])
-
-            if xunits_size>1:
-                xunits_size_temp = xunits_size/10**(len(beforeDot)-1)
-                xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
-                xunits_size = xunits_size_temp*10**(len(beforeDot)-1)
+            if logscale:
+                xlabel = "log10({}) [{}]".format(curve.descr,curve.unit)
+                yaxis = np.log10(curve.data[np.nonzero(curve.data)[0]])
             else:
-                zeroCountAfterDot = len(afterDot)-len(afterDot.lstrip('0'))
-                xunits_size_temp = xunits_size*10**(zeroCountAfterDot+1)
-                xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
-                xunits_size = xunits_size_temp/10**(zeroCountAfterDot+1)
+                xlabel = "{} [{}]".format(curve.descr,curve.unit)
+                yaxis = curve.data
 
-            if self.plot[indexI]["ptype"][indexJ] is None:
-                xmin = (np.floor(xvals_min/xunits_size)-1).astype(float)*xunits_size
-                xmax = (np.ceil(xvals_max/xunits_size)+1).astype(float)*xunits_size
-            elif self.plot[indexI]["ptype"][indexJ]=="log":
-                xmin,xmax = xvals_min,xvals_max
+            self.axis_hist.hist(yaxis,density=True,bins=30)  # density=False would make counts
+            self.axis_hist.set_ylabel("Probability")
+            self.axis_hist.set_xlabel(xlabel)
 
-            
-        if self.plot[indexI]["ptype"][indexJ] is None:
-            xticks = np.arange(xmin,xmax+xunits_size/2,xunits_size)
-        elif self.plot[indexI]["ptype"][indexJ]=="log":
-            xmin_power = np.floor(np.log10(xmin))
-            xmax_power = np.ceil(np.log10(xmax))
-            xticks = 10**np.arange(xmin_power,xmax_power+1/2)
+        def set_nangraph(self,fileID):
 
-        return xticks
+            self.fig_nan,self.axis_nan = plt.subplots()
 
-    def set_DepthViewGRcut(self,GRline,indexI,indexJ,perc_cut=40):
+            las = self.files[fileID]
 
-        # indexI index of GR containing axis in the plot
-        # indexJ index of GR containing line in the axis
+            yvals = []
+            zvals = []
 
-        try:
-            depth = self.files[GRline[0]]["MD"]
-        except KeyError:
-            depth = self.files[GRline[0]]["DEPT"]
-
-        xvals = self.files[GRline[0]][GRline[1]]
-
-        GRmin = np.nanmin(xvals)
-        GRmax = np.nanmax(xvals)
-
-        GRcut = (GRmin+(GRmax-GRmin)*perc_cut/100)
-
-        cut_line = GRcut*np.ones(depth.shape)
-
-        cond_clean = cut_line>=xvals
-
-        indexTop = []
-        indexBtm = []
-
-        for i,cond in enumerate(cond_clean):
-            
-            if i>0:
-                old_cond = cond_clean[i-1]
-            else:
-                old_cond = False
-                
             try:
-                new_cond = cond_clean[i+1]
-            except IndexError:
-                new_cond = False
+                depth = las["MD"]
+            except KeyError:
+                depth = las["DEPT"]
+
+            for index,curve in enumerate(las.curves):
+
+                isnan = np.isnan(curve.data)
+
+                L_shift = np.ones(curve.data.shape,dtype=bool)
+                R_shift = np.ones(curve.data.shape,dtype=bool)
+
+                L_shift[:-1] = isnan[1:]
+                R_shift[1:] = isnan[:-1]
+
+                lower = np.where(np.logical_and(~isnan,R_shift))[0]
+                upper = np.where(np.logical_and(~isnan,L_shift))[0]
+
+                zval = np.concatenate((lower,upper),dtype=int).reshape((2,-1)).T.flatten()
+
+                yval = np.full(zval.size,index,dtype=float)
                 
-            if cond and not old_cond:
-                indexTop.append(i)
+                yval[::2] = np.nan
 
-            if cond and not new_cond:
-                indexBtm.append(i)
+                yvals.append(yval)
+                zvals.append(zval)
 
-        net_pay = 0
+            qvals = np.unique(np.concatenate(zvals))
 
-        for i,j in zip(indexTop,indexBtm):
+            for (yval,zval) in zip(yvals,zvals):
+                self.axis_nan.step(np.where(qvals==zval.reshape((-1,1)))[1],yval)
 
-            net_pay += depth[j]-depth[i]
+            self.axis_nan.set_xlim((-1,qvals.size))
+            self.axis_nan.set_ylim((-1,len(las.curves)))
 
-        self.axes[indexI].subax[indexJ].fill_betweenx(
-            depth,xvals,x2=cut_line,where=cond_clean,color=self.color_clean)
+            self.axis_nan.set_xticks(np.arange(qvals.size))
+            self.axis_nan.set_xticklabels(depth[qvals],rotation=90)
 
-        self.netPayThickness = net_pay
-        self.netToGrossRatio = net_pay/self.gross_thickness*100
+            self.axis_nan.set_yticks(np.arange(len(las.curves)))
+            self.axis_nan.set_yticklabels([curve.mnemonic for curve in las.curves])
 
-        return GRcut
+            self.axis_nan.grid(True,which="both",axis='x')
 
-    def set_DepthViewResistivityCut(self,ResLine,indexI,indexJ,ohmm_cut=10):
+            self.fig_nan.tight_layout()
 
-        # indexI index of Resistivity containing axis in the plot
-        # indexJ index of Resistivity containing line in the axis
+        def set_DepthView(self,plot_dictionary):
 
-        try:
-            depth = self.files[ResLine[0]]["MD"]
-        except KeyError:
-            depth = self.files[ResLine[0]]["DEPT"]
+            self.plot = plot_dictionary
 
-        xvals = self.files[ResLine[0]][ResLine[1]]
+            self.DV_num_axes = len(plot_dictionary)
 
-        cut_line = ohmm_cut*np.ones(depth.shape)
+            zmult = int((self.bottom-self.top)/20.)
+            
+            self.spinepos = [1+x/zmult for x in self.spinerelpos]
 
-        self.axes[indexI].subax[indexJ].fill_betweenx(
-            depth,xvals,x2=cut_line,where=ohmm_cut<=xvals,color=self.color_HC)
+            self.fig = plt.figure()
 
-    def set_DepthViewNMRfluid(self,NMRline,indexI,water_clay,water_capi,water_move,HC):
+            self.fig.set_figwidth(2*self.DV_num_axes)
+            self.fig.set_figheight(8*zmult)
 
-        # indexL index of NMR containing lasio in the pack
-        # indexI index of NMR containing axis in the plot
+            self.grids = gridspec.GridSpec(1,self.DV_num_axes)
+            self.grids.update(wspace=0)
 
-        try:
-            depth = self.files[NMRline]["MD"]
-        except KeyError:
-            depth = self.files[NMRline]["DEPT"]
+            self.set_DepthViewAxes()
+            self.set_DepthViewLines()
 
-        xvals0 = np.zeros(water_clay.shape)
-        xvals1 = water_clay
-        xvals2 = water_clay+water_capi
-        xvals3 = water_clay+water_capi+water_move
-        xvals4 = water_clay+water_capi+water_move+HC
+        def set_DepthViewAxes(self):
 
-        self.axes[indexI].subax[0].fill_betweenx(
-            depth,xvals1,x2=xvals0,where=xvals0<=xvals1,color=self.color_waterclay)
+            self.axes = []
 
-        self.axes[indexI].subax[0].fill_betweenx(
-            depth,xvals2,x2=xvals1,where=xvals1<=xvals2,color=self.color_watercapi)
+            for index in range(self.DV_num_axes):
 
-        self.axes[indexI].subax[0].fill_betweenx(
-            depth,xvals3,x2=xvals2,where=xvals2<=xvals3,color=self.color_watermove)
+                axis = plt.subplot(self.grids[index])
+                
+                axis.set_xticks([])
+                
+                axis.grid(True,which="both",axis='y')
 
-        self.axes[indexI].subax[0].fill_betweenx(
-            depth,xvals4,x2=xvals3,where=xvals3<=xvals4,color=self.color_HC)
+                for tic in axis.yaxis.get_major_ticks():
+                    if index>0:
+                        tic.label1.set_visible(False)
+                    tic.tick1line.set_visible(False)
 
-    def set_GammaSpectralCP(self):
+                axis.subax = []
 
-        self.fig_gscp,self.axis_gscp = plt.subplots()
+                for _ in range(len(self.plot[index]["lines"])):
+                    axis.subax.append(axis.twiny())
 
-    def set_DenNeuCP(self):
+                self.axes.append(axis)
 
-        self.fig_dncp,self.axis_dncp = plt.subplots()
+        def set_DepthViewLines(self):
 
-    def set_SonDenCP(self):
+            yticks = self.get_yticks()
 
-        self.fig_sdcp,self.axis_sdcp = plt.subplots()
+            for indexI,axdict in enumerate(self.plot):
 
-    def set_SonNeuCP(
-        self,
-        porLine,
-        sonLine,
-        a_SND=+0.00,
-        a_LMS=+0.00,
-        a_DOL=-0.06,
-        b_SND=+0.90,
-        b_LMS=+0.80,
-        b_DOL=+0.84,
-        p_SND=+0.02,
-        p_LMS=+0.00,
-        p_DOL=-0.01,
-        DT_FLUID=189,
-        DT_SND=55.6,
-        DT_LMS=47.5,
-        DT_DOL=43.5):
+                for indexJ,line in enumerate(axdict["lines"]):
+                
+                    try:
+                        depth = self.files[line[0]]["MD"]
+                    except KeyError:
+                        depth = self.files[line[0]]["DEPT"]
+                        
+                    xvals = self.files[line[0]][line[1]]
 
-        self.fig_sncp,self.axis_sncp = plt.subplots()
+                    indexK = self.files[line[0]].curves.keys().index(line[1])
 
-        self.fig_sncp.set_figwidth(5)
-        self.fig_sncp.set_figheight(6)
+                    mnem = self.files[line[0]].curves[indexK].mnemonic
+                    unit = self.files[line[0]].curves[indexK].unit
 
-        c1_SND = 10**((a_LMS-a_SND)/b_LMS)
-        c1_LMS = 10**((a_LMS-a_LMS)/b_LMS)
-        c1_DOL = 10**((a_LMS-a_DOL)/b_LMS)
+                    linestyle = "-" if indexJ==0 else "--"
 
-        c2_SND = b_SND/b_LMS
-        c2_LMS = b_LMS/b_LMS
-        c2_DOL = b_DOL/b_LMS
+                    if axdict["ptype"][indexJ] is None:
+                        self.axes[indexI].subax[indexJ].plot(
+                            xvals,depth,color=self.lineColors[indexJ],linestyle=linestyle)
+                    elif axdict["ptype"][indexJ]=="log":
+                        self.axes[indexI].subax[indexJ].semilogx(
+                            xvals,depth,color=self.lineColors[indexJ],linestyle=linestyle)
 
-        porSND = np.linspace(0,0.45,46)
-        porLMS = np.linspace(0,0.45,46)
-        porDOL = np.linspace(0,0.45,46)
+                    xticks = self.get_xticks(xvals,indexI,indexJ)
 
-        sonicSND = porSND*(DT_FLUID-DT_SND)+DT_SND
-        sonicLMS = porLMS*(DT_FLUID-DT_LMS)+DT_LMS
-        sonicDOL = porDOL*(DT_FLUID-DT_DOL)+DT_DOL
+                    self.axes[indexI].subax[indexJ].set_xlim([xticks.min(),xticks.max()])
+                    self.axes[indexI].subax[indexJ].set_xticks(xticks)
 
-        porLMS_SND = c1_SND*(porSND)**c2_SND-p_SND
-        porLMS_LMS = c1_LMS*(porLMS)**c2_LMS-p_LMS
-        porLMS_DOL = c1_DOL*(porDOL)**c2_DOL-p_DOL
+                    self.axes[indexI].subax[indexJ].set_ylim([yticks.max(),yticks.min()])
+                    self.axes[indexI].subax[indexJ].set_yticks(yticks)
 
-        xaxis_max = 0.5
-        yaxis_max = 110
+                    self.axes[indexI].subax[indexJ].grid(True,which="both",axis='y')
 
-        for depth in self.depths:
+                    self.axes[indexI].subax[indexJ].yaxis.set_minor_locator(AutoMinorLocator(10))
 
-            xaxis = self.get_interval(*depth[1:],fileID=porLine[0],curveID=porLine[1])
-            yaxis = self.get_interval(*depth[1:],fileID=sonLine[0],curveID=sonLine[1])
+                    for tic in self.axes[indexI].yaxis.get_minor_ticks():
+                        if indexI>0:
+                            tic.tick1line.set_visible(False)
 
-            xaxis_max = max((xaxis_max,xaxis[0].max()))
-            yaxis_max = max((yaxis_max,yaxis[0].max()))
+                    if indexJ==0:
 
-            self.axis_sncp.scatter(xaxis,yaxis,s=1,label=depth[0])
+                        self.axes[indexI].subax[indexJ].grid(True,which="major",axis='x')
 
-        self.axis_sncp.legend(scatterpoints=10)
+                        if axdict["ptype"][indexJ]=="log":
 
-        self.axis_sncp.plot(porLMS_SND,sonicSND,color='blue',linewidth=0.3)
-        self.axis_sncp.plot(porLMS_LMS,sonicLMS,color='blue',linewidth=0.3)
-        self.axis_sncp.plot(porLMS_DOL,sonicDOL,color='blue',linewidth=0.3)
+                            self.axes[indexI].subax[indexJ].grid(True,which="minor",axis='x')
 
-        self.axis_sncp.scatter(porLMS_SND[::5],sonicSND[::5],marker=(2,0,45),color="blue")
-        self.axis_sncp.scatter(porLMS_LMS[::5],sonicLMS[::5],marker=(2,0,45),color="blue")
-        self.axis_sncp.scatter(porLMS_DOL[::5],sonicDOL[::5],marker=(2,0,45),color="blue")
+                            minorTicks = self.axes[indexI].subax[indexJ].xaxis.get_minor_ticks()
 
-        self.axis_sncp.text(porLMS_SND[27],sonicSND[26],'Sandstone',rotation=50.)
-        self.axis_sncp.text(porLMS_LMS[18],sonicLMS[17],'Calcite (limestone)',rotation=50.)
-        self.axis_sncp.text(porLMS_DOL[19],sonicDOL[18],'Dolomite',rotation=50.)
+                            for tic in minorTicks:
+                                tic.label2.set_visible(False)
+                                tic.tick2line.set_visible(False)
 
-        self.axis_sncp.set_xlabel("Apparent Limestone Neutron Porosity")
-        self.axis_sncp.set_ylabel("Sonic Transit Time $\\Delta$t [$\\mu$s/ft]")
+                    else:
+                        self.axes[indexI].subax[indexJ].spines["top"].set_position(("axes",self.spinepos[indexJ]))
+                        self.axes[indexI].subax[indexJ].spines["top"].set_color(self.lineColors[indexJ])
+                        self.axes[indexI].subax[indexJ].tick_params(axis='x',color=self.lineColors[indexJ],labelcolor=self.lineColors[indexJ])
 
-        self.axis_sncp.set_xlim([-0.05,xaxis_max])
-        self.axis_sncp.set_ylim([+40.0,yaxis_max])
+                    # box = self.axes[indexI].subax[indexJ].xaxis.set_clip_box(dict(facecolor='none', edgecolor='black'))
+                    # box.set_bbox(dict(facecolor='none', edgecolor='black'))
 
-        self.axis_sncp.xaxis.set_minor_locator(AutoMinorLocator(10))
-        self.axis_sncp.yaxis.set_minor_locator(AutoMinorLocator(10))
+                    if axdict["ptype"][indexJ] is None:
+                        self.axes[indexI].subax[indexJ].xaxis.set_major_formatter(ScalarFormatter())
+                    elif axdict["ptype"][indexJ]=="log":
+                        self.axes[indexI].subax[indexJ].xaxis.set_major_formatter(LogFormatter())
 
-        self.axis_sncp.grid(True,which="both",axis='both')
+                    self.axes[indexI].subax[indexJ].set_xlabel("{} {}".format(mnem,unit),color=self.lineColors[indexJ])
 
-        self.fig_sncp.tight_layout()
+                    majorTicksX = self.axes[indexI].subax[indexJ].xaxis.get_major_ticks()
 
-    def set_DenPheCP(self):
+                    for tic in majorTicksX:
+                        tic.label2.set_visible(False)
+                        tic.tick2line.set_visible(False)
 
-        # density photoelectric cross section cross plot
+                    majorTicksX[0].label2.set_visible(True)
+                    majorTicksX[0].tick2line.set_visible(True)
 
-        self.fig_dpcp,self.axis_dpcp = plt.subplots()
+                    majorTicksX[-1].label2.set_visible(True)
+                    majorTicksX[-1].tick2line.set_visible(True)
 
-    def set_MNplot(self):
+                    plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_majorticklabels()[0],ha="left")
+                    plt.setp(self.axes[indexI].subax[indexJ].xaxis.get_majorticklabels()[-1],ha="right")
 
-        self.fig_mncp,self.axis_mncp = plt.subplots()
+        def get_yticks(self):
 
-    def set_MIDplot(self):
+            ymin = np.floor(self.top/20)*20
 
-        self.fig_midp,self.axis_midp = plt.subplots()
+            ymax = np.ceil(self.bottom/20)*20
 
-    def set_rhomaaUmaa(self):
+            yticks = np.arange(ymin,ymax+5,10)
 
-        self.fig_rhoU,self.axis_rhoU = plt.subplots()
+            return yticks
+                    
+        def get_xticks(self,xvals,indexI,indexJ,xunits_count_default=11):
 
-    def set_PickettCP(
-        self,
-        resLine,
-        phiLine,
-        returnSwFlag=False,
-        showDiffSwFlag=True,
-        m=2,
-        n=2,
-        a=0.62,
-        Rw=0.1
-        ):
+            if self.plot[indexI]["xlims"][indexJ] is not None:
+                if self.plot[indexI]["ptype"][indexJ] is None:
+                    xmin,xmax,xunits_size = self.plot[indexI]["xlims"][indexJ]
+                elif self.plot[indexI]["ptype"][indexJ]=="log":
+                    xmin,xmax = self.plot[indexI]["xlims"][indexJ]
+            else:
+                xvals_min = np.nanmin(xvals)
+                xvals_max = np.nanmax(xvals)
 
-        if returnSwFlag:
+                xrange_given = xvals_max-xvals_min
+                
+                xunits_size = xrange_given/(xunits_count_default-1)
 
-            xvalsR = self.files[resLine[0]][resLine[1]]
-            xvalsP = self.files[phiLine[0]][phiLine[1]]
+                beforeDot,afterDot = format(xunits_size,'f').split('.')
 
-            return ((a*Rw)/(xvalsR*xvalsP**m))**(1/n)
+                nondim_xunit_sizes = np.array([1,2,4,5,10])
 
-        else:
+                if xunits_size>1:
+                    xunits_size_temp = xunits_size/10**(len(beforeDot)-1)
+                    xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
+                    xunits_size = xunits_size_temp*10**(len(beforeDot)-1)
+                else:
+                    zeroCountAfterDot = len(afterDot)-len(afterDot.lstrip('0'))
+                    xunits_size_temp = xunits_size*10**(zeroCountAfterDot+1)
+                    xunits_size_temp = nondim_xunit_sizes[(np.abs(nondim_xunit_sizes-xunits_size_temp)).argmin()]
+                    xunits_size = xunits_size_temp/10**(zeroCountAfterDot+1)
 
-            self.fig_pcp,self.axis_pcp = plt.subplots()
+                if self.plot[indexI]["ptype"][indexJ] is None:
+                    xmin = (np.floor(xvals_min/xunits_size)-1).astype(float)*xunits_size
+                    xmax = (np.ceil(xvals_max/xunits_size)+1).astype(float)*xunits_size
+                elif self.plot[indexI]["ptype"][indexJ]=="log":
+                    xmin,xmax = xvals_min,xvals_max
 
-            xaxis_min = 1
-            xaxis_max = 100
+                
+            if self.plot[indexI]["ptype"][indexJ] is None:
+                xticks = np.arange(xmin,xmax+xunits_size/2,xunits_size)
+            elif self.plot[indexI]["ptype"][indexJ]=="log":
+                xmin_power = np.floor(np.log10(xmin))
+                xmax_power = np.ceil(np.log10(xmax))
+                xticks = 10**np.arange(xmin_power,xmax_power+1/2)
 
-            yaxis_min = 0.01
-            yaxis_max = 1
+            return xticks
+
+        def set_DepthViewGRcut(self,GRline,indexI,indexJ,perc_cut=40):
+
+            # indexI index of GR containing axis in the plot
+            # indexJ index of GR containing line in the axis
+
+            try:
+                depth = self.files[GRline[0]]["MD"]
+            except KeyError:
+                depth = self.files[GRline[0]]["DEPT"]
+
+            xvals = self.files[GRline[0]][GRline[1]]
+
+            GRmin = np.nanmin(xvals)
+            GRmax = np.nanmax(xvals)
+
+            GRcut = (GRmin+(GRmax-GRmin)*perc_cut/100)
+
+            cut_line = GRcut*np.ones(depth.shape)
+
+            cond_clean = cut_line>=xvals
+
+            indexTop = []
+            indexBtm = []
+
+            for i,cond in enumerate(cond_clean):
+                
+                if i>0:
+                    old_cond = cond_clean[i-1]
+                else:
+                    old_cond = False
+                    
+                try:
+                    new_cond = cond_clean[i+1]
+                except IndexError:
+                    new_cond = False
+                    
+                if cond and not old_cond:
+                    indexTop.append(i)
+
+                if cond and not new_cond:
+                    indexBtm.append(i)
+
+            net_pay = 0
+
+            for i,j in zip(indexTop,indexBtm):
+
+                net_pay += depth[j]-depth[i]
+
+            self.axes[indexI].subax[indexJ].fill_betweenx(
+                depth,xvals,x2=cut_line,where=cond_clean,color=self.color_clean)
+
+            self.netPayThickness = net_pay
+            self.netToGrossRatio = net_pay/self.gross_thickness*100
+
+            return GRcut
+
+        def set_DepthViewResistivityCut(self,ResLine,indexI,indexJ,ohmm_cut=10):
+
+            # indexI index of Resistivity containing axis in the plot
+            # indexJ index of Resistivity containing line in the axis
+
+            try:
+                depth = self.files[ResLine[0]]["MD"]
+            except KeyError:
+                depth = self.files[ResLine[0]]["DEPT"]
+
+            xvals = self.files[ResLine[0]][ResLine[1]]
+
+            cut_line = ohmm_cut*np.ones(depth.shape)
+
+            self.axes[indexI].subax[indexJ].fill_betweenx(
+                depth,xvals,x2=cut_line,where=ohmm_cut<=xvals,color=self.color_HC)
+
+        def set_DepthViewNMRfluid(self,NMRline,indexI,water_clay,water_capi,water_move,HC):
+
+            # indexL index of NMR containing lasio in the pack
+            # indexI index of NMR containing axis in the plot
+
+            try:
+                depth = self.files[NMRline]["MD"]
+            except KeyError:
+                depth = self.files[NMRline]["DEPT"]
+
+            xvals0 = np.zeros(water_clay.shape)
+            xvals1 = water_clay
+            xvals2 = water_clay+water_capi
+            xvals3 = water_clay+water_capi+water_move
+            xvals4 = water_clay+water_capi+water_move+HC
+
+            self.axes[indexI].subax[0].fill_betweenx(
+                depth,xvals1,x2=xvals0,where=xvals0<=xvals1,color=self.color_waterclay)
+
+            self.axes[indexI].subax[0].fill_betweenx(
+                depth,xvals2,x2=xvals1,where=xvals1<=xvals2,color=self.color_watercapi)
+
+            self.axes[indexI].subax[0].fill_betweenx(
+                depth,xvals3,x2=xvals2,where=xvals2<=xvals3,color=self.color_watermove)
+
+            self.axes[indexI].subax[0].fill_betweenx(
+                depth,xvals4,x2=xvals3,where=xvals3<=xvals4,color=self.color_HC)
+
+        def set_GammaSpectralCP(self):
+
+            self.fig_gscp,self.axis_gscp = plt.subplots()
+
+        def set_DenNeuCP(self):
+
+            self.fig_dncp,self.axis_dncp = plt.subplots()
+
+        def set_SonDenCP(self):
+
+            self.fig_sdcp,self.axis_sdcp = plt.subplots()
+
+        def set_SonNeuCP(
+            self,
+            porLine,
+            sonLine,
+            a_SND=+0.00,
+            a_LMS=+0.00,
+            a_DOL=-0.06,
+            b_SND=+0.90,
+            b_LMS=+0.80,
+            b_DOL=+0.84,
+            p_SND=+0.02,
+            p_LMS=+0.00,
+            p_DOL=-0.01,
+            DT_FLUID=189,
+            DT_SND=55.6,
+            DT_LMS=47.5,
+            DT_DOL=43.5):
+
+            self.fig_sncp,self.axis_sncp = plt.subplots()
+
+            self.fig_sncp.set_figwidth(5)
+            self.fig_sncp.set_figheight(6)
+
+            c1_SND = 10**((a_LMS-a_SND)/b_LMS)
+            c1_LMS = 10**((a_LMS-a_LMS)/b_LMS)
+            c1_DOL = 10**((a_LMS-a_DOL)/b_LMS)
+
+            c2_SND = b_SND/b_LMS
+            c2_LMS = b_LMS/b_LMS
+            c2_DOL = b_DOL/b_LMS
+
+            porSND = np.linspace(0,0.45,46)
+            porLMS = np.linspace(0,0.45,46)
+            porDOL = np.linspace(0,0.45,46)
+
+            sonicSND = porSND*(DT_FLUID-DT_SND)+DT_SND
+            sonicLMS = porLMS*(DT_FLUID-DT_LMS)+DT_LMS
+            sonicDOL = porDOL*(DT_FLUID-DT_DOL)+DT_DOL
+
+            porLMS_SND = c1_SND*(porSND)**c2_SND-p_SND
+            porLMS_LMS = c1_LMS*(porLMS)**c2_LMS-p_LMS
+            porLMS_DOL = c1_DOL*(porDOL)**c2_DOL-p_DOL
+
+            xaxis_max = 0.5
+            yaxis_max = 110
 
             for depth in self.depths:
 
-                xaxis = self.get_interval(*depth[1:],fileID=resLine[0],curveID=resLine[1])[0]
-                yaxis = self.get_interval(*depth[1:],fileID=phiLine[0],curveID=phiLine[1])[0]
+                xaxis = self.get_interval(*depth[1:],fileID=porLine[0],curveID=porLine[1])
+                yaxis = self.get_interval(*depth[1:],fileID=sonLine[0],curveID=sonLine[1])
 
-                xaxis_min = max((xaxis_min,xaxis.min()))
-                xaxis_max = max((xaxis_max,xaxis.max()))
+                xaxis_max = max((xaxis_max,xaxis[0].max()))
+                yaxis_max = max((yaxis_max,yaxis[0].max()))
 
-                yaxis_min = max((yaxis_min,yaxis.min()))
-                yaxis_max = max((yaxis_max,yaxis.max()))
+                self.axis_sncp.scatter(xaxis,yaxis,s=1,label=depth[0])
 
-                self.axis_pcp.scatter(xaxis,yaxis,s=1,label=depth[0])
+            self.axis_sncp.legend(scatterpoints=10)
 
-            self.axis_pcp.legend(scatterpoints=10)
+            self.axis_sncp.plot(porLMS_SND,sonicSND,color='blue',linewidth=0.3)
+            self.axis_sncp.plot(porLMS_LMS,sonicLMS,color='blue',linewidth=0.3)
+            self.axis_sncp.plot(porLMS_DOL,sonicDOL,color='blue',linewidth=0.3)
 
-            indexR = self.files[resLine[0]].curves.keys().index(resLine[1])
-            indexP = self.files[phiLine[0]].curves.keys().index(phiLine[1])
+            self.axis_sncp.scatter(porLMS_SND[::5],sonicSND[::5],marker=(2,0,45),color="blue")
+            self.axis_sncp.scatter(porLMS_LMS[::5],sonicLMS[::5],marker=(2,0,45),color="blue")
+            self.axis_sncp.scatter(porLMS_DOL[::5],sonicDOL[::5],marker=(2,0,45),color="blue")
 
-            mnemR = self.files[resLine[0]].curves[indexR].mnemonic
-            unitR = self.files[resLine[0]].curves[indexR].unit
+            self.axis_sncp.text(porLMS_SND[27],sonicSND[26],'Sandstone',rotation=50.)
+            self.axis_sncp.text(porLMS_LMS[18],sonicLMS[17],'Calcite (limestone)',rotation=50.)
+            self.axis_sncp.text(porLMS_DOL[19],sonicDOL[18],'Dolomite',rotation=50.)
 
-            mnemP = self.files[phiLine[0]].curves[indexP].mnemonic
-            unitP = self.files[phiLine[0]].curves[indexP].unit
+            self.axis_sncp.set_xlabel("Apparent Limestone Neutron Porosity")
+            self.axis_sncp.set_ylabel("Sonic Transit Time $\\Delta$t [$\\mu$s/ft]")
 
-            resexpmin = np.floor(np.log10(xaxis_min))
-            resexpmax = np.ceil(np.log10(xaxis_max))
+            self.axis_sncp.set_xlim([-0.05,xaxis_max])
+            self.axis_sncp.set_ylim([+40.0,yaxis_max])
 
-            if showDiffSwFlag:
+            self.axis_sncp.xaxis.set_minor_locator(AutoMinorLocator(10))
+            self.axis_sncp.yaxis.set_minor_locator(AutoMinorLocator(10))
 
-                resSw = np.logspace(resexpmin,resexpmax,100)
+            self.axis_sncp.grid(True,which="both",axis='both')
 
-                Sw75,Sw50,Sw25 = 0.75,0.50,0.25
+            self.fig_sncp.tight_layout()
 
-                philine_atSw100 = (a*Rw/resSw)**(1/m)
+        def set_DenPheCP(self):
 
-                philine_atSw075 = philine_atSw100*Sw75**(-n/m)
-                philine_atSw050 = philine_atSw100*Sw50**(-n/m)
-                philine_atSw025 = philine_atSw100*Sw25**(-n/m)
+            # density photoelectric cross section cross plot
 
-                self.axis_pcp.plot(resSw,philine_atSw100,c="black",linewidth=1)#,label="100% Sw")
-                self.axis_pcp.plot(resSw,philine_atSw075,c="blue",linewidth=1)#,label="75% Sw")
-                self.axis_pcp.plot(resSw,philine_atSw050,c="blue",linewidth=1)#,label="50% Sw")
-                self.axis_pcp.plot(resSw,philine_atSw025,c="blue",linewidth=1)#,label="25% Sw")
+            self.fig_dpcp,self.axis_dpcp = plt.subplots()
 
-            phiexpmin = np.floor(np.log10(yaxis_min))
-            phiexpmax = np.ceil(np.log10(yaxis_max))
+        def set_MNplot(self):
 
-            xticks = 10**np.arange(resexpmin,resexpmax+1/2)
-            yticks = 10**np.arange(phiexpmin,phiexpmax+1/2)
+            self.fig_mncp,self.axis_mncp = plt.subplots()
 
-            self.axis_pcp.set_xscale('log')
-            self.axis_pcp.set_yscale('log')
+        def set_MIDplot(self):
 
-            self.axis_pcp.set_xlim([xticks.min(),xticks.max()])
-            self.axis_pcp.set_xticks(xticks)
+            self.fig_midp,self.axis_midp = plt.subplots()
 
-            self.axis_pcp.set_ylim([yticks.min(),yticks.max()])
-            self.axis_pcp.set_yticks(yticks)
+        def set_rhomaaUmaa(self):
 
-            self.axis_pcp.xaxis.set_major_formatter(LogFormatter())
-            self.axis_pcp.yaxis.set_major_formatter(LogFormatter())
+            self.fig_rhoU,self.axis_rhoU = plt.subplots()
 
-            for tic in self.axis_pcp.xaxis.get_minor_ticks():
-                tic.label1.set_visible(False)
-                tic.tick1line.set_visible(False)
+        def set_PickettCP(
+            self,
+            resLine,
+            phiLine,
+            returnSwFlag=False,
+            showDiffSwFlag=True,
+            m=2,
+            n=2,
+            a=0.62,
+            Rw=0.1
+            ):
 
-            for tic in self.axis_pcp.yaxis.get_minor_ticks():
-                tic.label1.set_visible(False)
-                tic.tick1line.set_visible(False)
+            if returnSwFlag:
 
-            self.axis_pcp.set_xlabel("{} {}".format(mnemR,unitR))
-            self.axis_pcp.set_ylabel("{} {}".format(mnemP,unitP))
+                xvalsR = self.files[resLine[0]][resLine[1]]
+                xvalsP = self.files[phiLine[0]][phiLine[1]]
 
-            self.axis_pcp.grid(True,which="both",axis='both')
+                return ((a*Rw)/(xvalsR*xvalsP**m))**(1/n)
 
-    def set_HingleCP(self):
+            else:
 
-        self.fig_hcp,self.axis_hcp = plt.subplots()
+                self.fig_pcp,self.axis_pcp = plt.subplots()
+
+                xaxis_min = 1
+                xaxis_max = 100
+
+                yaxis_min = 0.01
+                yaxis_max = 1
+
+                for depth in self.depths:
+
+                    xaxis = self.get_interval(*depth[1:],fileID=resLine[0],curveID=resLine[1])[0]
+                    yaxis = self.get_interval(*depth[1:],fileID=phiLine[0],curveID=phiLine[1])[0]
+
+                    xaxis_min = max((xaxis_min,xaxis.min()))
+                    xaxis_max = max((xaxis_max,xaxis.max()))
+
+                    yaxis_min = max((yaxis_min,yaxis.min()))
+                    yaxis_max = max((yaxis_max,yaxis.max()))
+
+                    self.axis_pcp.scatter(xaxis,yaxis,s=1,label=depth[0])
+
+                self.axis_pcp.legend(scatterpoints=10)
+
+                indexR = self.files[resLine[0]].curves.keys().index(resLine[1])
+                indexP = self.files[phiLine[0]].curves.keys().index(phiLine[1])
+
+                mnemR = self.files[resLine[0]].curves[indexR].mnemonic
+                unitR = self.files[resLine[0]].curves[indexR].unit
+
+                mnemP = self.files[phiLine[0]].curves[indexP].mnemonic
+                unitP = self.files[phiLine[0]].curves[indexP].unit
+
+                resexpmin = np.floor(np.log10(xaxis_min))
+                resexpmax = np.ceil(np.log10(xaxis_max))
+
+                if showDiffSwFlag:
+
+                    resSw = np.logspace(resexpmin,resexpmax,100)
+
+                    Sw75,Sw50,Sw25 = 0.75,0.50,0.25
+
+                    philine_atSw100 = (a*Rw/resSw)**(1/m)
+
+                    philine_atSw075 = philine_atSw100*Sw75**(-n/m)
+                    philine_atSw050 = philine_atSw100*Sw50**(-n/m)
+                    philine_atSw025 = philine_atSw100*Sw25**(-n/m)
+
+                    self.axis_pcp.plot(resSw,philine_atSw100,c="black",linewidth=1)#,label="100% Sw")
+                    self.axis_pcp.plot(resSw,philine_atSw075,c="blue",linewidth=1)#,label="75% Sw")
+                    self.axis_pcp.plot(resSw,philine_atSw050,c="blue",linewidth=1)#,label="50% Sw")
+                    self.axis_pcp.plot(resSw,philine_atSw025,c="blue",linewidth=1)#,label="25% Sw")
+
+                phiexpmin = np.floor(np.log10(yaxis_min))
+                phiexpmax = np.ceil(np.log10(yaxis_max))
+
+                xticks = 10**np.arange(resexpmin,resexpmax+1/2)
+                yticks = 10**np.arange(phiexpmin,phiexpmax+1/2)
+
+                self.axis_pcp.set_xscale('log')
+                self.axis_pcp.set_yscale('log')
+
+                self.axis_pcp.set_xlim([xticks.min(),xticks.max()])
+                self.axis_pcp.set_xticks(xticks)
+
+                self.axis_pcp.set_ylim([yticks.min(),yticks.max()])
+                self.axis_pcp.set_yticks(yticks)
+
+                self.axis_pcp.xaxis.set_major_formatter(LogFormatter())
+                self.axis_pcp.yaxis.set_major_formatter(LogFormatter())
+
+                for tic in self.axis_pcp.xaxis.get_minor_ticks():
+                    tic.label1.set_visible(False)
+                    tic.tick1line.set_visible(False)
+
+                for tic in self.axis_pcp.yaxis.get_minor_ticks():
+                    tic.label1.set_visible(False)
+                    tic.tick1line.set_visible(False)
+
+                self.axis_pcp.set_xlabel("{} {}".format(mnemR,unitR))
+                self.axis_pcp.set_ylabel("{} {}".format(mnemP,unitP))
+
+                self.axis_pcp.grid(True,which="both",axis='both')
+
+        def set_HingleCP(self):
+
+            self.fig_hcp,self.axis_hcp = plt.subplots()
+
+    return LogViewClass
 
 def PerfView(data=None):
 
@@ -1474,56 +1486,67 @@ def PerfView(data=None):
 
     return PerfViewClass
 
-class View3D(VTKit):
+def View3D(data=None):
 
-    def __init__(self,window):
+    if data is None:
+        base = object
+    if data=="vtkit":
+        base = VTKit
+    elif data=="nptext":
+        base = NpText
 
-        self.dirname = os.path.dirname(__file__)
+    class View3DClass(base):
 
-        self.root = window
+        def __init__(self,window):
 
-    def set_plot(self):
+            self.dirname = os.path.dirname(__file__)
 
-        self.pane_EW = ttk.PanedWindow(self.root,orient=tk.HORIZONTAL)
+            self.root = window
 
-        self.frame_side = ttk.Frame(self.root)
+        def set_plot(self):
 
-        self.pane_EW.add(self.frame_side,weight=1)
+            self.pane_EW = ttk.PanedWindow(self.root,orient=tk.HORIZONTAL)
 
-        self.frame_plot = ttk.Frame(self.root)
+            self.frame_side = ttk.Frame(self.root)
 
-        self.pane_EW.add(self.frame_plot,weight=1)
+            self.pane_EW.add(self.frame_side,weight=1)
 
-        self.pane_EW.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+            self.frame_plot = ttk.Frame(self.root)
 
-        self.frame_plot.columnconfigure(0,weight=1)
-        self.frame_plot.columnconfigure(1,weight=0)
+            self.pane_EW.add(self.frame_plot,weight=1)
 
-        self.frame_plot.rowconfigure(0,weight=1)
-        self.frame_plot.rowconfigure(1,weight=0)
+            self.pane_EW.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
-        self.figure = plt.Figure()
-        self.canvas = FigureCanvasTkAgg(self.figure,self.frame_plot)
+            self.frame_plot.columnconfigure(0,weight=1)
+            self.frame_plot.columnconfigure(1,weight=0)
 
-        self.plotbox = self.canvas.get_tk_widget()
-        self.plotbox.grid(row=0,column=0,sticky=tk.NSEW)        
+            self.frame_plot.rowconfigure(0,weight=1)
+            self.frame_plot.rowconfigure(1,weight=0)
 
-        self.plotbar = VerticalNavigationToolbar2Tk(self.canvas,self.frame_plot)
-        self.plotbar.update()
-        self.plotbar.grid(row=0,column=1,sticky=tk.N)
+            self.figure = plt.Figure()
+            self.canvas = FigureCanvasTkAgg(self.figure,self.frame_plot)
 
-        self.itembox = AutocompleteEntryListbox(self.frame_side,height=250,padding=0)
+            self.plotbox = self.canvas.get_tk_widget()
+            self.plotbox.grid(row=0,column=0,sticky=tk.NSEW)        
 
-        self.itembox.content = self.itemnames.tolist()
-        self.itembox.config(completevalues=self.itembox.content,allow_other_values=True)
+            self.plotbar = VerticalNavigationToolbar2Tk(self.canvas,self.frame_plot)
+            self.plotbar.update()
+            self.plotbar.grid(row=0,column=1,sticky=tk.N)
 
-        self.itembox.listbox.bind('<<ListboxSelect>>',lambda event: self.set_object(event))
+            self.itembox = AutocompleteEntryListbox(self.frame_side,height=250,padding=0)
 
-        self.itembox.pack(expand=1,fill=tk.BOTH)
+            self.itembox.content = self.itemnames.tolist()
+            self.itembox.config(completevalues=self.itembox.content,allow_other_values=True)
 
-    def set_object(self,event):
+            self.itembox.listbox.bind('<<ListboxSelect>>',lambda event: self.set_object(event))
 
-        pass
+            self.itembox.pack(expand=1,fill=tk.BOTH)
+
+        def set_object(self,event):
+
+            pass
+
+    return View3DClass
 
 def TableView(data=None):
 
@@ -1870,119 +1893,106 @@ def TableView(data=None):
 
     return TableViewClass
 
-class TreeView(object):
+def TreeView(data=None):
 
-    def __init__(self,dirpath):
+    if data is None:
+        base = object
 
-        self.dirpath = dirpath
+    class TreeViewClass(base):
 
-    def draw(self,window,func=None):
+        def __init__(self,dirpath):
 
-        self.root = window
+            self.dirpath = dirpath
 
-        self.scrollbar = ttk.Scrollbar(self.root)
+        def draw(self,window,func=None):
 
-        self.tree = ttk.Treeview(self.root,show="headings tree",selectmode="browse",yscrollcommand=self.scrollbar.set)
+            self.root = window
 
-        self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
+            self.scrollbar = ttk.Scrollbar(self.root)
 
-        self.scrollbar.pack(side=tk.LEFT,fill=tk.Y)
+            self.tree = ttk.Treeview(self.root,show="headings tree",selectmode="browse",yscrollcommand=self.scrollbar.set)
 
-        self.scrollbar.config(command=self.tree.yview)
+            self.tree.pack(side=tk.LEFT,expand=1,fill=tk.BOTH)
 
-        self.tree.bind("<Button-1>",lambda event: self.set_path(func,event))
+            self.scrollbar.pack(side=tk.LEFT,fill=tk.Y)
 
-        self.refill()
+            self.scrollbar.config(command=self.tree.yview)
 
-    def refill(self):
+            self.tree.bind("<Button-1>",lambda event: self.set_path(func,event))
 
-        self.tree.heading("#0",text="")
+            self.refill()
 
-        self.tree.delete(*self.tree.get_children())
+        def refill(self):
 
-        iterator = os.walk(self.dirpath)
+            self.tree.heading("#0",text="")
 
-        parents_name = []
-        parents_link = []
+            self.tree.delete(*self.tree.get_children())
 
-        counter  = 0
+            iterator = os.walk(self.dirpath)
 
-        while True:
+            parents_name = []
+            parents_link = []
 
-            try:
-                root,dirs,files = next(iterator)
-            except StopIteration:
-                break
+            counter  = 0
 
-            if counter==0:
-                dirname = os.path.split(root)[1]
-                self.tree.heading("#0",text=dirname,anchor=tk.W)
-                parents_name.append(root)
-                parents_link.append("")
-            
-            parent = parents_link[parents_name.index(root)]
+            while True:
 
-            for directory in dirs:
-                link = self.tree.insert(parent,'end',iid=counter,text=directory)
-                counter += 1
+                try:
+                    root,dirs,files = next(iterator)
+                except StopIteration:
+                    break
 
-                parents_name.append(os.path.join(root,directory))
-                parents_link.append(link)
+                if counter==0:
+                    dirname = os.path.split(root)[1]
+                    self.tree.heading("#0",text=dirname,anchor=tk.W)
+                    parents_name.append(root)
+                    parents_link.append("")
+                
+                parent = parents_link[parents_name.index(root)]
 
-            for file in files:            
-                self.tree.insert(parent,'end',iid=counter,text=file)
-                counter += 1
+                for directory in dirs:
+                    link = self.tree.insert(parent,'end',iid=counter,text=directory)
+                    counter += 1
 
-    def set_path(self,func=None,event=None):
+                    parents_name.append(os.path.join(root,directory))
+                    parents_link.append(link)
 
-        if event is not None:
-            region = self.tree.identify("region",event.x,event.y)
-        else:
-            return
+                for file in files:            
+                    self.tree.insert(parent,'end',iid=counter,text=file)
+                    counter += 1
 
-        if region!="tree":
-            return
+        def set_path(self,func=None,event=None):
 
-        item = self.tree.identify("row",event.x,event.y)
-
-        path = self.tree.item(item)['text']
-
-        while True:
-
-            item = self.tree.parent(item)
-
-            if item:
-                path = os.path.join(self.tree.item(item)['text'],path)
+            if event is not None:
+                region = self.tree.identify("region",event.x,event.y)
             else:
-                path = os.path.join(self.dirpath,path)
-                break
+                return
 
-        if func is not None:
-            func(path)
-        else:
-            print(path)
+            if region!="tree":
+                return
 
-class VerticalNavigationToolbar2Tk(NavigationToolbar2Tk):
+            item = self.tree.identify("row",event.x,event.y)
 
-    def __init__(self,canvas,window):
+            path = self.tree.item(item)['text']
 
-        super().__init__(canvas,window,pack_toolbar=False)
+            while True:
 
-        self.message = tk.StringVar(master=window)
-        self._message_label = tk.Label(master=window,textvariable=self.message)
-        self._message_label.grid(row=1,column=0,columnspan=2,sticky=tk.W)
+                item = self.tree.parent(item)
 
-    # override _Button() to re-pack the toolbar button in vertical direction
-    def _Button(self,text,image_file,toggle,command):
-        b = super()._Button(text,image_file,toggle,command)
-        b.pack(side=tk.TOP) # re-pack button in vertical direction
-        return b
+                if item:
+                    path = os.path.join(self.tree.item(item)['text'],path)
+                else:
+                    path = os.path.join(self.dirpath,path)
+                    break
 
-    # override _Spacer() to create vertical separator
-    def _Spacer(self):
-        s = tk.Frame(self,width=26,relief=tk.RIDGE,bg="DarkGray",padx=2)
-        s.pack(side=tk.TOP,pady=5) # pack in vertical direction
-        return s
+            if func is not None:
+                func(path)
+            else:
+                print(path)
+
+    return TreeView
+
+# Supporting Plot Functions
 
 def ternary(axis,p1,p2,p3,number):
 
@@ -2006,6 +2016,30 @@ def ternary(axis,p1,p2,p3,number):
         axis.plot([xs3[i-1],xs1[number-1-i]],[ys3[i-1],ys1[number-1-i]],'k',linewidth=0.5)
 
     return axis
+
+# Supporting Tkinter Widgets
+
+class VerticalNavigationToolbar2Tk(NavigationToolbar2Tk):
+
+    def __init__(self,canvas,window):
+
+        super().__init__(canvas,window,pack_toolbar=False)
+
+        self.message = tk.StringVar(master=window)
+        self._message_label = tk.Label(master=window,textvariable=self.message)
+        self._message_label.grid(row=1,column=0,columnspan=2,sticky=tk.W)
+
+    # override _Button() to re-pack the toolbar button in vertical direction
+    def _Button(self,text,image_file,toggle,command):
+        b = super()._Button(text,image_file,toggle,command)
+        b.pack(side=tk.TOP) # re-pack button in vertical direction
+        return b
+
+    # override _Spacer() to create vertical separator
+    def _Spacer(self):
+        s = tk.Frame(self,width=26,relief=tk.RIDGE,bg="DarkGray",padx=2)
+        s.pack(side=tk.TOP,pady=5) # pack in vertical direction
+        return s
 
 if __name__ == "__main__":
 

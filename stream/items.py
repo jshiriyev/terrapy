@@ -20,11 +20,14 @@ from stream.dataset import Excel
 from stream.dataset import VTKit
 from stream.dataset import History
 from stream.dataset import LogASCII
+from stream.dataset import NpText
 
-from stream.graphics import TableView
-from stream.graphics import PerfView
-from stream.graphics import LogView
 from stream.graphics import TimeView
+from stream.graphics import LogView
+from stream.graphics import PerfView
+from stream.graphics import View3D
+from stream.graphics import TableView
+from stream.graphics import TreeView
 
 from stream.geometries import Line 
 from stream.geometries import Rectangle 
@@ -32,139 +35,201 @@ from stream.geometries import Ellipse
 from stream.geometries import Cuboid 
 from stream.geometries import Cylinder
 
-class Fluids(object):
+# AUXILIARY FUNCTIONS TO CHOOSE INHERITANCE PATH
 
-    def __init__(self,number):
+def getbase_data(data=None):
 
-        self.number = number
+    if data is None:
+        dbase = object
+    elif data=="frame":
+        dbase = DataFrame
+    elif data=="excel":
+        dbase = Excel
+    elif data=="vtkit":
+        dbase = VTKit
+    elif data=="history":
+        dbase = History
+    elif data=="logascii":
+        dbase = LogASCII
+    elif data=="nptext":
+        dbase = NpText
 
-        self.itemnames = []
-        self.molarweight = []
-        self.density = []
-        self.compressibility = []
-        self.viscosity = []
-        self.fvf = []
+    return dbase
 
-    def set_names(self,*args):
+def getbase_graph(graph=None,data=None):
 
-        for arg in args:
-            self.itemnames.append(arg)
+    if graph is None:
+        pbase = getbase_data(data)
+    elif graph =="time":
+        pbase = TimeView(data)
+    elif graph =="log":
+        pbase = LogView(data)
+    elif graph =="perf":
+        pbase = PerfView(data)
+    elif graph =="3d":
+        pbase = View3D(data)
+    elif graph =="table":
+        pbase = TableView(data)
+    elif graph =="tree":
+        pbase = TreeView(data)
 
-    def set_molarweight(self,*args):
+    return pbase
 
-        for arg in args:
-            self.molarweight.append(arg)
+def getbase(geo=None,graph=None,data=None):
 
-    def set_density(self,density1,*args):
+    if geo is None:
+        base = getbase_graph(graph,data)
+    elif geo=="line":
+        base = Line(getbase_graph(graph,data))
+    elif geo=="rectangle":
+        base = Rectangle(getbase_graph(graph,data))
+    elif geo=="ellipse":
+        base = Ellipse(getbase_graph(graph,data))
+    elif geo=="cuboid":
+        base = Cuboid(getbase_graph(graph,data))
+    elif geo=="cylinder":
+        base = Cylinder(getbase_graph(graph,data))
 
-        self.density = [density1,]
+    return base
 
-        for arg in args:
-            self.density.append(arg)
+# MAIN PETROLEUM RESERVOIR RELATED ITEMS
 
-    def set_compressibility(self,*args):
+def Fluids(graph=None,data=None):
 
-        for arg in args:
-            self.compressibility.append(arg)
+    base = getbase(None,graph,data)
 
-    def set_viscosity(self,*args):
+    class FluidsClass(base):
 
-        for arg in args:
-            self.viscosity.append(arg)
+        def __init__(self,number):
 
-    def set_fvf(self,*args):
+            self.number = number
 
-        for arg in args:
-            self.fvf.append(arg)
-    
-class Pipes(Cylinder):
+            self.itemnames = []
+            self.molarweight = []
+            self.density = []
+            self.compressibility = []
+            self.viscosity = []
+            self.fvf = []
 
-    itemnames   = []
-    length      = []
-    diameter    = []
-    csa         = []
-    indiameter  = []
-    H_radius    = []
-    roughness   = []
-    roughness_R = []
+        def set_names(self,*args):
 
-    def __init__(self,number=0):
+            for arg in args:
+                self.itemnames.append(arg)
 
-        self.number = number
+        def set_molarweight(self,*args):
 
-    def set_names(self,*args):
+            for arg in args:
+                self.molarweight.append(arg)
 
-        [self.itemnames.append(str(name)) for name in args]
+        def set_density(self,density1,*args):
 
-    def set_length(self,*args):
+            self.density = [density1,]
 
-        [self.length.append(length) for length in args]
+            for arg in args:
+                self.density.append(arg)
 
-    def set_diameter(self,*args,csaFlag=False):
+        def set_compressibility(self,*args):
 
-        # by default it is outer diameter
+            for arg in args:
+                self.compressibility.append(arg)
 
-        [self.diameter.append(diameter) for diameter in args]
+        def set_viscosity(self,*args):
 
-        if csaFlag:
-            [self.csa.append(np.pi*diameter**2/4) for diameter in args]
+            for arg in args:
+                self.viscosity.append(arg)
 
-    def set_indiameter(self,*args,csaFlag=True):
+        def set_fvf(self,*args):
 
-        """
-        indiameter  : Inner Diameter
-        csa         : Cross Sectional Are
-        H_diameter  : Hydraulic Diameter; 4*Hydraulic_Radius
-        H_radius    : Hydraulic Radius; the ratio of the cross-sectional area of
-                      a channel or pipe in which a fluid is flowing to the 
-                      wetted perimeter of the conduit.
-        """
-        
-        [self.indiameter.append(indiameter) for indiameter in args]
+            for arg in args:
+                self.fvf.append(arg)
 
-        if csaFlag:
-            [self.csa.append(np.pi*indiameter**2/4) for indiameter in args]
+    return FluidsClass
 
-        [self.H_diameter.append(indiameter) for indiameter in args]
-        [self.H_radius.append(indiameter/4) for indiameter in args]
+def Pipes(geo=None,graph=None,data=None):
 
-    def set_roughness(self,*args):
+    base = getbase(geo,graph,data)
 
-        [self.roughness.append(roughness) for roughness in args]
+    class PipesClass(base):
 
-        [self.roughness_R.append(arg/indiameter) for (arg,indiameter) in zip(args,self.indiameter)]
+        itemnames   = []
+        length      = []
+        diameter    = []
+        csa         = []
+        indiameter  = []
+        H_radius    = []
+        roughness   = []
+        roughness_R = []
 
-    def set_nodes(self,zloc=None,elevation=[0,0]):
+        def __init__(self,number=0):
 
-        """
-        Nodes are the locations where the measurements are available, and
-        coordinates are selected in such a way that:
-        - r-axis shows radial direction
-        - \\theta-axis shows angular direction 
-        - z-axis shows lengthwise direction
-        """
+            self.number = number
 
-        if zloc is None:
-            self.zloc = [0,self.length]
+        def set_names(self,*args):
 
-        self.elevation = elevation
+            [self.itemnames.append(str(name)) for name in args]
 
-    def plot(self):
+        def set_length(self,*args):
 
-        pass
+            [self.length.append(length) for length in args]
 
-def PorRock(geometry=None):
+        def set_diameter(self,*args,csaFlag=False):
 
-    if geometry is None:
-        base = object
-    elif geometry=="rectangle" or geometry=="square":
-        base = Rectangle
-    elif geometry=="ellipse" or geometry=="circle":
-        base = Ellipse
-    elif geometry=="cuboid":
-        base = Cuboid
-    elif geometry=="cylinder":
-        base = Cylinder
+            # by default it is outer diameter
+
+            [self.diameter.append(diameter) for diameter in args]
+
+            if csaFlag:
+                [self.csa.append(np.pi*diameter**2/4) for diameter in args]
+
+        def set_indiameter(self,*args,csaFlag=True):
+
+            """
+            indiameter  : Inner Diameter
+            csa         : Cross Sectional Are
+            H_diameter  : Hydraulic Diameter; 4*Hydraulic_Radius
+            H_radius    : Hydraulic Radius; the ratio of the cross-sectional area of
+                          a channel or pipe in which a fluid is flowing to the 
+                          wetted perimeter of the conduit.
+            """
+            
+            [self.indiameter.append(indiameter) for indiameter in args]
+
+            if csaFlag:
+                [self.csa.append(np.pi*indiameter**2/4) for indiameter in args]
+
+            [self.H_diameter.append(indiameter) for indiameter in args]
+            [self.H_radius.append(indiameter/4) for indiameter in args]
+
+        def set_roughness(self,*args):
+
+            [self.roughness.append(roughness) for roughness in args]
+
+            [self.roughness_R.append(arg/indiameter) for (arg,indiameter) in zip(args,self.indiameter)]
+
+        def set_nodes(self,zloc=None,elevation=[0,0]):
+
+            """
+            Nodes are the locations where the measurements are available, and
+            coordinates are selected in such a way that:
+            - r-axis shows radial direction
+            - theta-axis shows angular direction 
+            - z-axis shows lengthwise direction
+            """
+
+            if zloc is None:
+                self.zloc = [0,self.length]
+
+            self.elevation = elevation
+
+        def plot(self):
+
+            pass
+
+    return PipesClass
+
+def PorRock(geo=None,graph=None,data=None):
+
+    base = getbase(geo,graph,data)
 
     class PorRockClass(base):
 
@@ -479,18 +544,9 @@ def PorRock(geometry=None):
             
     return PorRockClass
 
-def Fractures(geometry=None):
+def Fractures(geo=None,graph=None,data=None):
 
-    if geometry is None:
-        base = object
-    elif geometry=="rectangle" or geometry=="square":
-        base = Rectangle
-    elif geometry=="ellipse" or geometry=="circle":
-        base = Ellipse
-    elif geometry=="cuboid":
-        base = Cuboid
-    elif geometry=="cylinder":
-        base = Cylinder
+    base = getbase(geo,graph,data)
 
     class FracturesClass(base):
 
@@ -528,14 +584,9 @@ def Fractures(geometry=None):
 
     return FracturesClass
 
-def Wells(graphic=None):
+def Wells(graph=None,data=None):
 
-    if graphic is None:
-        base = History
-    elif graphic=="table":
-        base = TableView("history")
-    elif graphic=="time":
-        base = TimeView("history")
+    base = getbase(None,graph,data)
 
     class WellsClass(base):
 
@@ -544,16 +595,13 @@ def Wells(graphic=None):
         radii = []
         flowconds = []
 
-        def __init__(self,window=None,number=0,**kwargs):
+        def __init__(self,number=0,wnamefstr=None,**kwargs):
 
-            if window is not None:
-                super().__init__(window)
-            else:
-                super().__init__()
+            super().__init__(**kwargs)
 
             self.number = number                # number of wells
 
-            self.wnamefstr = "Well-{}"
+            self.wnamefstr = "Well-{}" if wnamefstr is None else wnamefstr
 
             self.Trajectory = Trajectory()
             self.Completion = Completion()
@@ -960,323 +1008,328 @@ def Wells(graphic=None):
 
     return WellsClass
 
-class Trajectory(Line):
+def Trajectory(geo=None,graph=None,data=None):
 
-    headersRaw = ["X","Y","Z","MD",]
+    base = getbase(geo,graph,data)
 
-    headersOPT = ["WELL","X","Y","Z","MD",]
+    class TrajectoryClass(base):
 
-    def __init__(self):
+        headersRaw = ["X","Y","Z","MD",]
 
-        pass
+        headersOPT = ["WELL","X","Y","Z","MD",]
 
-    def get_wellnames(self):
+        def __init__(self):
 
-        pass
+            pass
 
-    def track_call(self,wellname=None):
+        def get_wellnames(self):
 
-        wellnumber = int(re.sub("[^0-9]","",wellname))
+            pass
 
-        folder1 = "GD-{}".format(str(wellnumber).zfill(3))
-        folder2 = "6.GD-{} Deviation".format(str(wellnumber).zfill(3))
+        def track_call(self,wellname=None):
 
-        filename = "Qum_Adasi-{}.txt".format(wellnumber)
-        
-        filepath = os.path.join(self.dirtraj,folder1,folder2,filename)
+            wellnumber = int(re.sub("[^0-9]","",wellname))
 
-        traj = frame(filepath=filepath,skiplines=1,comment="#")
+            folder1 = "GD-{}".format(str(wellnumber).zfill(3))
+            folder2 = "6.GD-{} Deviation".format(str(wellnumber).zfill(3))
 
-        traj.texttocolumn(0,deliminator=None,maxsplit=None)
-
-        traj.get_columns(headers=headers_traj)
-
-        traj.astype(header=headers_traj[0],dtype=np.float64)
-        traj.astype(header=headers_traj[1],dtype=np.float64)
-        traj.astype(header=headers_traj[2],dtype=np.float64)
-        traj.astype(header=headers_traj[3],dtype=np.float64)
-
-    def track_get(self,wellname=None):
-
-        pass
-
-class Completion(PerfView("excel")):
-
-    headersRAW = ["Wells","Horizont","Top","Bottom","start","stoped",]
-
-    headersOPT = ["WELL","DATE","EVENT","TOP","BOTTOM","DIAM",]
-
-    headersUNI = ["WELL","DATE","COUNT",]
-    
-    def __init__(self):
-
-        pass
-
-    def get_wellnames(self):
-
-        pass
-
-    def comp_call(self,wellname=None):
-
-        warnWELLNAME = "{} has name conflict in completion directory."
-        warnFORMNAME = "{} does not have proper layer name in completion directory."
-        warnUPPDEPTH = "{} top level depths must be positive in completion directory."
-        warnBTMDEPTH = "{} bottom level depths must be positive in completion directory."
-        warnUPBOTTOM = "{} top level must be smaller than bottom levels in completion directory."
-        warnSTRTDATE = "{} start date is not set properly in completion directory."
-        warnSTOPDATE = "{} stop date is not set properly in completion directory."
-        warnSTARTEND = "{} start date is after or equal to stop date in completion directory."
-
-        compraw = frame(headers=self.headers_compraw)
-
-        for wname in self.itemnames:
-
-            print("{} gathering completion data ...".format(wname))
-
-            wellindex = int(re.sub("[^0-9]","",wname))
-
-            folder1 = "GD-{}".format(str(wellindex).zfill(3))
-
-            filename = "GD-{}.xlsx".format(str(wellindex).zfill(3))
-
-            filepath = os.path.join(self.comprawdir,folder1,filename)
+            filename = "Qum_Adasi-{}.txt".format(wellnumber)
             
-            comp = frame(filepath=filepath,sheetname=folder1,headerline=1,skiplines=2,min_row=2,min_col=2)
+            filepath = os.path.join(self.dirtraj,folder1,folder2,filename)
 
-            comp.get_columns(headers=self.headers_compraw,inplace=True)
+            traj = frame(filepath=filepath,skiplines=1,comment="#")
 
-            comp.astype(header=self.headers_compraw[2],dtype=np.float64)
-            comp.astype(header=self.headers_compraw[3],dtype=np.float64)
+            traj.texttocolumn(0,deliminator=None,maxsplit=None)
 
-            if np.any(comp.running[0]!=wname):
-                warnings.warn(warnWELLNAME.format(wname))
+            traj.get_columns(headers=headers_traj)
 
-            if np.any(comp.running[1]==None) or np.any(np.char.strip(comp.running[1].astype(str))==""):
-                warnings.warn(warnFORMNAME.format(wname))
+            traj.astype(header=headers_traj[0],dtype=np.float64)
+            traj.astype(header=headers_traj[1],dtype=np.float64)
+            traj.astype(header=headers_traj[2],dtype=np.float64)
+            traj.astype(header=headers_traj[3],dtype=np.float64)
 
-            if np.any(comp.running[2]<0):
-                warnings.warn(warnUPPDEPTH.format(wname))
+        def track_get(self,wellname=None):
 
-            if np.any(comp.running[3]<0):
-                warnings.warn(warnBTMDEPTH.format(wname))
+            pass
 
-            if np.any(comp.running[2]-comp.running[3]>0):
-                warnings.warn(warnUPBOTTOM.format(wname))
+    return TrajectoryClass
 
-            if any([not isinstance(value,datetime) for value in comp.running[4].tolist()]):
-                warnings.warn(warnSTRTDATE.format(wname))
+def Completion(graph=None,data=None):
 
-            indices = [not isinstance(value,datetime) for value in comp.running[5].tolist()]
+    base = getbase(None,graph,data)
 
-            if any(indices) and np.any(comp.running[5][indices]!="ACTIVE"):
-                warnings.warn(warnSTOPDATE.format(wname))
+    class CompletionClass(base):
 
-            comp.running[5][indices] = datetime.now()
+        headersRAW = ["Wells","Horizont","Top","Bottom","start","stoped",]
 
-            if any([(s2-s1).days<0 for s1,s2 in zip(comp.running[4].tolist(),comp.running[5].tolist())]):
-                warnings.warn(warnSTARTEND.format(wname))
+        headersOPT = ["WELL","DATE","EVENT","TOP","BOTTOM","DIAM",]
 
-            compraw.set_rows(comp.get_rows())
+        headersUNI = ["WELL","DATE","COUNT",]
+        
+        def __init__(self):
 
-        path = os.path.join(self.workdir,self.filename_comp+"0")
+            pass
 
-        fstring = "{:6s}\t{}\t{:.1f}\t{:.1f}\t{:%Y-%m-%d}\t{:%Y-%m-%d}\n"
+        def get_wellnames(self):
 
-        compraw.write(filepath=path,fstring=fstring)
+            pass
 
-    def comp_process(self):
+        def comp_call(self,wellname=None):
 
-        path = os.path.join(self.workdir,self.filename_comp+"0")
+            warnWELLNAME = "{} has name conflict in completion directory."
+            warnFORMNAME = "{} does not have proper layer name in completion directory."
+            warnUPPDEPTH = "{} top level depths must be positive in completion directory."
+            warnBTMDEPTH = "{} bottom level depths must be positive in completion directory."
+            warnUPBOTTOM = "{} top level must be smaller than bottom levels in completion directory."
+            warnSTRTDATE = "{} start date is not set properly in completion directory."
+            warnSTOPDATE = "{} stop date is not set properly in completion directory."
+            warnSTARTEND = "{} start date is after or equal to stop date in completion directory."
 
-        comp1 = frame(filepath=path,skiplines=1)
-        comp2 = frame(filepath=path,skiplines=1)
+            compraw = frame(headers=self.headers_compraw)
 
-        comp1.texttocolumn(0,deliminator="\t")
-        comp2.texttocolumn(0,deliminator="\t")
+            for wname in self.itemnames:
 
-        headers_compraw1 = self.headers_compraw[:4]+(self.headers_compraw[4],)
-        headers_compraw2 = self.headers_compraw[:4]+(self.headers_compraw[5],)
+                print("{} gathering completion data ...".format(wname))
 
-        comp1.get_columns(headers=headers_compraw1,inplace=True)
-        comp2.get_columns(headers=headers_compraw2,inplace=True)
+                wellindex = int(re.sub("[^0-9]","",wname))
 
-        comp1.astype(header=headers_compraw1[2],dtype=np.float64)
-        comp1.astype(header=headers_compraw1[3],dtype=np.float64)
-        comp1.astype(header=headers_compraw1[4],datestring=True)
+                folder1 = "GD-{}".format(str(wellindex).zfill(3))
 
-        comp2.astype(header=headers_compraw2[2],dtype=np.float64)
-        comp2.astype(header=headers_compraw2[3],dtype=np.float64)
-        comp2.astype(header=headers_compraw2[4],datestring=True)
+                filename = "GD-{}.xlsx".format(str(wellindex).zfill(3))
 
-        col_perf = np.empty(comp1.running[0].size,dtype=object)
-        col_perf[:] = "PERF"
+                filepath = os.path.join(self.comprawdir,folder1,filename)
+                
+                comp = frame(filepath=filepath,sheetname=folder1,headerline=1,skiplines=2,min_row=2,min_col=2)
 
-        col_diam = np.empty(comp1.running[0].size,dtype=object)
-        col_diam[:] = "0.14"
+                comp.get_columns(headers=self.headers_compraw,inplace=True)
 
-        comp1.set_column(col_perf,header_new="EVENT")
-        comp1.set_column(col_diam,header_new="DIAM")
+                comp.astype(header=self.headers_compraw[2],dtype=np.float64)
+                comp.astype(header=self.headers_compraw[3],dtype=np.float64)
 
-        col_plug = np.empty(comp2.running[0].size,dtype=object)
-        col_plug[:] = "PLUG"
+                if np.any(comp.running[0]!=wname):
+                    warnings.warn(warnWELLNAME.format(wname))
 
-        col_none = np.empty(comp2.running[0].size,dtype=object)
-        col_none[:] = ""
+                if np.any(comp.running[1]==None) or np.any(np.char.strip(comp.running[1].astype(str))==""):
+                    warnings.warn(warnFORMNAME.format(wname))
 
-        comp2.set_column(col_plug,header_new="EVENT")
-        comp2.set_column(col_none,header_new="DIAM")
+                if np.any(comp.running[2]<0):
+                    warnings.warn(warnUPPDEPTH.format(wname))
 
-        comp1.set_rows(comp2.get_rows())
+                if np.any(comp.running[3]<0):
+                    warnings.warn(warnBTMDEPTH.format(wname))
 
-        comp1.set_header(0,self.headers_comp[0])
-        comp1.set_header(2,self.headers_comp[3])
-        comp1.set_header(3,self.headers_comp[4])
-        comp1.set_header(4,self.headers_comp[1])
+                if np.any(comp.running[2]-comp.running[3]>0):
+                    warnings.warn(warnUPBOTTOM.format(wname))
 
-        comp1.get_columns(headers=self.headers_comp,inplace=True)
+                if any([not isinstance(value,datetime) for value in comp.running[4].tolist()]):
+                    warnings.warn(warnSTRTDATE.format(wname))
 
-        comp1.sort(header_indices=[1],inplace=True)
+                indices = [not isinstance(value,datetime) for value in comp.running[5].tolist()]
 
-        path = os.path.join(self.workdir,self.filename_comp+"1")
+                if any(indices) and np.any(comp.running[5][indices]!="ACTIVE"):
+                    warnings.warn(warnSTOPDATE.format(wname))
 
-        fstring = "{:6s}\t{:%Y-%m-%d}\t{:4s}\t{:.1f}\t{:.1f}\t{:4s}\n"
+                comp.running[5][indices] = datetime.now()
 
-        comp1.write(filepath=path,fstring=fstring)
+                if any([(s2-s1).days<0 for s1,s2 in zip(comp.running[4].tolist(),comp.running[5].tolist())]):
+                    warnings.warn(warnSTARTEND.format(wname))
 
-        compuni = frame(headers=self.headers_compuni)
+                compraw.set_rows(comp.get_rows())
 
-        for wname in self.itemnames:
+            path = os.path.join(self.workdir,self.filename_comp+"0")
 
-            comp1.filter(0,keywords=[wname],inplace=False)
+            fstring = "{:6s}\t{}\t{:.1f}\t{:.1f}\t{:%Y-%m-%d}\t{:%Y-%m-%d}\n"
 
-            update_dates = np.unique(comp1.running[1])
-            update_wells = np.empty(update_dates.size,dtype=object)
-            update_counts = np.zeros(update_dates.size,dtype=int)
+            compraw.write(filepath=path,fstring=fstring)
 
-            update_wells[:] = wname
+        def comp_process(self):
 
-            update_indices = np.insert(
-                np.cumsum(np.sum(comp1.running[1]==update_dates.reshape((-1,1)),axis=1)),0,0)
+            path = os.path.join(self.workdir,self.filename_comp+"0")
 
-            open_intervals = np.empty((0,2))
+            comp1 = frame(filepath=path,skiplines=1)
+            comp2 = frame(filepath=path,skiplines=1)
 
-            for index,date in enumerate(update_dates):
+            comp1.texttocolumn(0,deliminator="\t")
+            comp2.texttocolumn(0,deliminator="\t")
 
-                compevents = comp1.running[2][update_indices[index]:update_indices[index+1]]
-                compuppers = comp1.running[3][update_indices[index]:update_indices[index+1]]
-                complowers = comp1.running[4][update_indices[index]:update_indices[index+1]]
+            headers_compraw1 = self.headers_compraw[:4]+(self.headers_compraw[4],)
+            headers_compraw2 = self.headers_compraw[:4]+(self.headers_compraw[5],)
 
-                perfevents = compevents=="PERF"
+            comp1.get_columns(headers=headers_compraw1,inplace=True)
+            comp2.get_columns(headers=headers_compraw2,inplace=True)
 
-                perfintervals = np.array([compuppers[perfevents],complowers[perfevents]]).T
+            comp1.astype(header=headers_compraw1[2],dtype=np.float64)
+            comp1.astype(header=headers_compraw1[3],dtype=np.float64)
+            comp1.astype(header=headers_compraw1[4],datestring=True)
 
-                open_intervals = np.concatenate((open_intervals,perfintervals),axis=0)
+            comp2.astype(header=headers_compraw2[2],dtype=np.float64)
+            comp2.astype(header=headers_compraw2[3],dtype=np.float64)
+            comp2.astype(header=headers_compraw2[4],datestring=True)
 
-                plugevents = compevents=="PLUG"
+            col_perf = np.empty(comp1.running[0].size,dtype=object)
+            col_perf[:] = "PERF"
 
-                pluguppermatch = np.any(open_intervals[:,0]==compuppers[plugevents].reshape((-1,1)),axis=0)
-                pluglowermatch = np.any(open_intervals[:,1]==complowers[plugevents].reshape((-1,1)),axis=0)
+            col_diam = np.empty(comp1.running[0].size,dtype=object)
+            col_diam[:] = "0.14"
 
-                plugmatch = np.where(np.logical_and(pluguppermatch,pluglowermatch))[0]
+            comp1.set_column(col_perf,header_new="EVENT")
+            comp1.set_column(col_diam,header_new="DIAM")
 
-                open_intervals = np.delete(open_intervals,plugmatch,0)
+            col_plug = np.empty(comp2.running[0].size,dtype=object)
+            col_plug[:] = "PLUG"
 
-                update_counts[index] = open_intervals.shape[0]
+            col_none = np.empty(comp2.running[0].size,dtype=object)
+            col_none[:] = ""
 
-            rows = np.array([update_wells,update_dates,update_counts]).T.tolist()
+            comp2.set_column(col_plug,header_new="EVENT")
+            comp2.set_column(col_none,header_new="DIAM")
 
-            compuni.set_rows(rows)
+            comp1.set_rows(comp2.get_rows())
 
-        compuni.astype(header_index=2,dtype=int)
+            comp1.set_header(0,self.headers_comp[0])
+            comp1.set_header(2,self.headers_comp[3])
+            comp1.set_header(3,self.headers_comp[4])
+            comp1.set_header(4,self.headers_comp[1])
 
-        compuni.sort(header_indices=[1],inplace=True)
+            comp1.get_columns(headers=self.headers_comp,inplace=True)
 
-        path = os.path.join(self.workdir,self.filename_comp+"uni")
+            comp1.sort(header_indices=[1],inplace=True)
 
-        fstring = "{:6s}\t{:%Y-%m-%d}\t{:d}\n"
+            path = os.path.join(self.workdir,self.filename_comp+"1")
 
-        compuni.write(filepath=path,fstring=fstring)
+            fstring = "{:6s}\t{:%Y-%m-%d}\t{:4s}\t{:.1f}\t{:.1f}\t{:4s}\n"
 
-    def comp_get(self,filending=None,wellname=None):
+            comp1.write(filepath=path,fstring=fstring)
 
-        for filename in os.listdir(self.workdir):
+            compuni = frame(headers=self.headers_compuni)
 
-            if filename[:len("completion")]=="completion":
+            for wname in self.itemnames:
 
-                path = os.path.join(self.workdir,filename)
+                comp1.filter(0,keywords=[wname],inplace=False)
 
-                ending = filename[len("completion"):]
+                update_dates = np.unique(comp1.running[1])
+                update_wells = np.empty(update_dates.size,dtype=object)
+                update_counts = np.zeros(update_dates.size,dtype=int)
 
-                if filename[:4]+ending in self.attrnames:
-                    continue
+                update_wells[:] = wname
 
-                if filending is not None:
-                    if filending!=ending:
+                update_indices = np.insert(
+                    np.cumsum(np.sum(comp1.running[1]==update_dates.reshape((-1,1)),axis=1)),0,0)
+
+                open_intervals = np.empty((0,2))
+
+                for index,date in enumerate(update_dates):
+
+                    compevents = comp1.running[2][update_indices[index]:update_indices[index+1]]
+                    compuppers = comp1.running[3][update_indices[index]:update_indices[index+1]]
+                    complowers = comp1.running[4][update_indices[index]:update_indices[index+1]]
+
+                    perfevents = compevents=="PERF"
+
+                    perfintervals = np.array([compuppers[perfevents],complowers[perfevents]]).T
+
+                    open_intervals = np.concatenate((open_intervals,perfintervals),axis=0)
+
+                    plugevents = compevents=="PLUG"
+
+                    pluguppermatch = np.any(open_intervals[:,0]==compuppers[plugevents].reshape((-1,1)),axis=0)
+                    pluglowermatch = np.any(open_intervals[:,1]==complowers[plugevents].reshape((-1,1)),axis=0)
+
+                    plugmatch = np.where(np.logical_and(pluguppermatch,pluglowermatch))[0]
+
+                    open_intervals = np.delete(open_intervals,plugmatch,0)
+
+                    update_counts[index] = open_intervals.shape[0]
+
+                rows = np.array([update_wells,update_dates,update_counts]).T.tolist()
+
+                compuni.set_rows(rows)
+
+            compuni.astype(header_index=2,dtype=int)
+
+            compuni.sort(header_indices=[1],inplace=True)
+
+            path = os.path.join(self.workdir,self.filename_comp+"uni")
+
+            fstring = "{:6s}\t{:%Y-%m-%d}\t{:d}\n"
+
+            compuni.write(filepath=path,fstring=fstring)
+
+        def comp_get(self,filending=None,wellname=None):
+
+            for filename in os.listdir(self.workdir):
+
+                if filename[:len("completion")]=="completion":
+
+                    path = os.path.join(self.workdir,filename)
+
+                    ending = filename[len("completion"):]
+
+                    if filename[:4]+ending in self.attrnames:
                         continue
 
-                try:
-                    index = int(ending)
-                except ValueError:
-                    index = None
+                    if filending is not None:
+                        if filending!=ending:
+                            continue
 
-                attrname = filename[:4]+ending
+                    try:
+                        index = int(ending)
+                    except ValueError:
+                        index = None
 
-                attrvals = frame(filepath=path,skiplines=1)
+                    attrname = filename[:4]+ending
 
-                setattr(self,attrname,attrvals)
+                    attrvals = frame(filepath=path,skiplines=1)
 
-                if index is not None:
+                    setattr(self,attrname,attrvals)
 
-                    if index==0:
-                        getattr(self,attrname).texttocolumn(0,deliminator="\t")
-                        getattr(self,attrname).astype(header=self.headers_compraw[2],dtype=np.float64)
-                        getattr(self,attrname).astype(header=self.headers_compraw[3],dtype=np.float64)
-                        getattr(self,attrname).astype(header=self.headers_compraw[4],datestring=True)
-                        getattr(self,attrname).astype(header=self.headers_compraw[5],datestring=True)
+                    if index is not None:
+
+                        if index==0:
+                            getattr(self,attrname).texttocolumn(0,deliminator="\t")
+                            getattr(self,attrname).astype(header=self.headers_compraw[2],dtype=np.float64)
+                            getattr(self,attrname).astype(header=self.headers_compraw[3],dtype=np.float64)
+                            getattr(self,attrname).astype(header=self.headers_compraw[4],datestring=True)
+                            getattr(self,attrname).astype(header=self.headers_compraw[5],datestring=True)
+                        else:
+                            getattr(self,attrname).texttocolumn(0,deliminator="\t",maxsplit=6)
+                            getattr(self,attrname).astype(header=self.headers_comp[1],datestring=True)
+                            getattr(self,attrname).astype(header=self.headers_comp[3],dtype=np.float64)
+                            getattr(self,attrname).astype(header=self.headers_comp[4],dtype=np.float64)
+
                     else:
-                        getattr(self,attrname).texttocolumn(0,deliminator="\t",maxsplit=6)
-                        getattr(self,attrname).astype(header=self.headers_comp[1],datestring=True)
-                        getattr(self,attrname).astype(header=self.headers_comp[3],dtype=np.float64)
-                        getattr(self,attrname).astype(header=self.headers_comp[4],dtype=np.float64)
 
-                else:
+                        if ending == "uni":
+                            getattr(self,attrname).texttocolumn(0,deliminator="\t")
+                            getattr(self,attrname).astype(header=self.headers_compuni[1],datestring=True)
+                            getattr(self,attrname).astype(header=self.headers_compuni[2],dtype=int)
 
-                    if ending == "uni":
-                        getattr(self,attrname).texttocolumn(0,deliminator="\t")
-                        getattr(self,attrname).astype(header=self.headers_compuni[1],datestring=True)
-                        getattr(self,attrname).astype(header=self.headers_compuni[2],dtype=int)
+                    self.attrnames.append(attrname)
 
-                self.attrnames.append(attrname)
+                    if wellname is not None:
+                        getattr(self,attrname).filter(0,keywords=[wellname],inplace=False)
 
-                if wellname is not None:
-                    getattr(self,attrname).filter(0,keywords=[wellname],inplace=False)
+    return CompletionClass
 
-class Logging(LogView):
+def Logging(graph=None,data=None):
 
-    def __init__(self,filenames=None):
+    base = getbase(None,graph,data)
 
-        super().__init__(filenames)
+    class LoggingClass(base):
 
-    def get_wellnames(self):
+        def __init__(self,**kwargs):
 
-        pass
+            super().__init__(**kwargs)
 
-def Production(graphic=None,dataset=None):
+        def get_wellnames(self):
 
-    if dataset is None or dataset=="frame":
-        dataset = "frame"
-        database = DataFrame
-    elif dataset == "excel":
-        database = Excel
-    elif dataset == "history":
-        database = History
+            pass
 
-    if graphic is None:
-        base = database
-    elif graphic=="time":
-        base = TimeView(dataset)
-    elif graphic=="table":
-        base = TableView(dataset)
+    return LoggingClass
+
+def Production(graph=None,data=None):
+
+    base = getbase(None,graph,data)
 
     class ProductionClass(base):
 
@@ -1499,16 +1552,30 @@ def Production(graphic=None,dataset=None):
 
     return ProductionClass
 
+def FormTop(data=None):
+
+    base = getbase(None,None,data)
+
+    class FormTopClass(base):
+
+        def __init__(self):
+
+            pass
+
+    return FormTopClass
+
 if __name__ == "__main__":
 
-    import unittest
+    pass
 
-    from tests import pipes
-    from tests import formations
-    from tests import fractures
-    from tests import wells
+    # import unittest
 
-    unittest.main(pipes)
-    unittest.main(formations)
-    unittest.main(fractures)
-    unittest.main(wells)
+    # from tests import pipes
+    # from tests import formations
+    # from tests import fractures
+    # from tests import wells
+
+    # unittest.main(pipes)
+    # unittest.main(formations)
+    # unittest.main(fractures)
+    # unittest.main(wells)

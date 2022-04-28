@@ -15,6 +15,8 @@ import lasio
 if __name__ == "__main__":
     import setup
 
+# Main Directory Class
+
 class DirBase():
 
     def __init__(self,homepath=None,filepath=None):
@@ -77,6 +79,8 @@ class DirBase():
             return [filename for filename in filenames if filename.startswith(prefix)]
         else:
             return [filename for filename in filenames if filename.startswith(prefix) and filename.endswith(extension)]
+
+# Collective Data Input/Output Classes
 
 class DataFrame(DirBase):
 
@@ -1044,6 +1048,20 @@ class LogASCII(DirBase):
 
         with open(filepath, mode='w') as filePathToWrite:
             lasfile.write(filePathToWrite)
+
+class NpText(DataFrame):
+
+    def __init__(self,filepaths=None):
+
+        self.files = []
+
+        self.headers = []
+
+        if filepaths is not None:
+            for filepath in filepaths:
+                self.add_file(filepath)
+
+# Supporting Language Classes
 
 class AlphabetAze():
 
