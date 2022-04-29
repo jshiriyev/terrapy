@@ -51,12 +51,14 @@ class DirBase():
         else:
             self.filepath = os.path.normpath(os.path.join(self.homepath,path))
 
-    def get_filepathabs(self,path):
+    def get_filepathabs(self,path,homeFlag=True):
 
         if os.path.isabs(path):
             return path
-        else:
+        elif homeFlag:
             return os.path.normpath(os.path.join(self.homepath,path))
+        else:
+            return os.path.normpath(os.path.join(self.filepath,path))
 
     def get_filenames(self,dirpath=None,prefix=None,extension=None):
 
@@ -444,7 +446,7 @@ class DataFrame(DirBase):
             match_array = np.array(keywords).reshape((-1,1))
             match_index = np.any(self._running[header_index]==match_array,axis=0)
         else:
-            match_vectr = np.vectorize(lambda x:bool(re.compile(regex).match(x)))
+            match_vectr = np.vectorize(lambda x: bool(re.compile(regex).match(x)))
             match_index = match_vectr(self._running[header_index])
 
         if inplace:
@@ -1053,15 +1055,67 @@ class LogASCII(DirBase):
 
 class NpText(DataFrame):
 
-    def __init__(self,filepaths=None):
+    def __init__(self,filepaths=None,**kwargs):
+
+        super().__init__(**kwargs)
+
+        self.add_filebatch(filepaths)
+
+    def add_filebatch(self,filenames,comments="#",getname=None):
 
         self.files = []
 
-        self.headers = []
+        if filenames is None:
+            return
 
-        if filepaths is not None:
-            for filepath in filepaths:
-                self.add_file(filepath)
+        if getname is not None:
+            self.itemnames = []
+
+        for filename in filenames:
+            filepath = self.get_filepathabs(filename,homeFlag=False)
+            self.add_file(filepath,comments,getname)
+            print("Loaded {}...".format(filepath))
+
+    def add_file(self,filepath,comments="#",getname=None):
+
+        skiplines = 0
+
+        with open(filepath,"r") as text:
+
+            line = next(text)
+
+            while not line.strip()[0].isdigit():
+
+                if line.strip()[0]!=comments:
+
+                    headers_read = re.sub('\\s+',' ',line.strip()).split(" ")
+
+                elif getname is not None:
+
+                    matchphrase = re.sub(r"[^\w]","",getname)
+
+                    readphrase = re.sub(r"[^\w]","",line)
+
+                    if readphrase[:len(matchphrase)]==matchphrase:
+
+                        key,name = line.split(":")
+
+                        if re.sub(r"[^\w]","",key)==matchphrase:
+                            itemname = name.strip()
+                        else:
+                            itemname = ""
+
+                        self.itemnames.append(itemname)
+
+                skiplines += 1
+
+                line = next(text)
+
+        usecols = [headers_read.index(header) for header in self._headers]
+
+        data = np.loadtxt(filepath,comments=comments,skiprows=skiplines,usecols=usecols)
+
+        self.files.append(data)
 
 # Supporting Language Classes
 
@@ -1119,4 +1173,4 @@ class AlphabetAze():
 
 if __name__ == "__main__":
 
-    import stream.tests
+    import petepy.tests

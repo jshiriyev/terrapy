@@ -27,25 +27,39 @@ if __name__ == "__main__":
 
     import setup
 
-from stream.dataset import DataFrame
-from stream.dataset import Excel
-from stream.dataset import VTKit
-from stream.dataset import History
-from stream.dataset import LogASCII
-from stream.dataset import NpText
+from petepy.dataset import DataFrame
+from petepy.dataset import Excel
+from petepy.dataset import VTKit
+from petepy.dataset import History
+from petepy.dataset import LogASCII
+from petepy.dataset import NpText
+
+# AUXILIARY FUNCTIONS TO CHOOSE INHERITANCE PATH
+
+def getdata(data=None):
+
+    if data is None:
+        dbase = object
+    elif data=="frame":
+        dbase = DataFrame
+    elif data=="excel":
+        dbase = Excel
+    elif data=="vtkit":
+        dbase = VTKit
+    elif data=="history":
+        dbase = History
+    elif data=="logascii":
+        dbase = LogASCII
+    elif data=="nptext":
+        dbase = NpText
+
+    return dbase
 
 # Main Visualizers
 
 def TimeView(data=None):
 
-    if data is None:
-        base = object
-    elif data=="frame":
-        base = DataFrame
-    elif data=="excel":
-        base = Excel
-    elif data=="history":
-        base = History
+    base = getdata(data)
 
     class TimeViewClass(base):
 
@@ -845,10 +859,7 @@ def TimeView(data=None):
 
 def LogView(data=None):
 
-    if data is None:
-        base = object
-    elif data=="logascii":
-        base = LogASCII
+    base = getdata(data)
 
     class LogViewClass(base):
 
@@ -1492,14 +1503,7 @@ def LogView(data=None):
 
 def PerfView(data=None):
 
-    if data is None:
-        base = object
-    elif data=="frame":
-        base = DataFrame
-    elif data=="excel":
-        base = Excel
-    elif data=="history":
-        base = History
+    base = getdata(data)
 
     class PerfViewClass(base):
         
@@ -1509,16 +1513,13 @@ def PerfView(data=None):
 
 def View3D(data=None):
 
-    if data is None:
-        base = object
-    if data=="vtkit":
-        base = VTKit
-    elif data=="nptext":
-        base = NpText
+    base = getdata(data)
 
     class View3DClass(base):
 
-        def __init__(self,window):
+        def __init__(self,window,**kwargs):
+
+            super().__init__(**kwargs)
 
             self.dirname = os.path.dirname(__file__)
 
@@ -1571,14 +1572,7 @@ def View3D(data=None):
 
 def TableView(data=None):
 
-    if data is None:
-        base = object
-    elif data=="frame":
-        base = DataFrame
-    elif data=="excel":
-        base = Excel
-    elif data=="history":
-        base = History
+    base = getdata(data)
 
     class TableViewClass(base):
 
@@ -1916,8 +1910,7 @@ def TableView(data=None):
 
 def TreeView(data=None):
 
-    if data is None:
-        base = object
+    base = getdata(data)
 
     class TreeViewClass(base):
 

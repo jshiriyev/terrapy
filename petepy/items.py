@@ -15,29 +15,29 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.dataset import DataFrame
-from stream.dataset import Excel
-from stream.dataset import VTKit
-from stream.dataset import History
-from stream.dataset import LogASCII
-from stream.dataset import NpText
+from petepy.dataset import DataFrame
+from petepy.dataset import Excel
+from petepy.dataset import VTKit
+from petepy.dataset import History
+from petepy.dataset import LogASCII
+from petepy.dataset import NpText
 
-from stream.graphics import TimeView
-from stream.graphics import LogView
-from stream.graphics import PerfView
-from stream.graphics import View3D
-from stream.graphics import TableView
-from stream.graphics import TreeView
+from petepy.graphics import TimeView
+from petepy.graphics import LogView
+from petepy.graphics import PerfView
+from petepy.graphics import View3D
+from petepy.graphics import TableView
+from petepy.graphics import TreeView
 
-from stream.geometries import Line 
-from stream.geometries import Rectangle 
-from stream.geometries import Ellipse 
-from stream.geometries import Cuboid 
-from stream.geometries import Cylinder
+from petepy.geometries import Line 
+from petepy.geometries import Rectangle 
+from petepy.geometries import Ellipse 
+from petepy.geometries import Cuboid 
+from petepy.geometries import Cylinder
 
 # AUXILIARY FUNCTIONS TO CHOOSE INHERITANCE PATH
 
-def getbase_data(data=None):
+def getdata(data=None):
 
     if data is None:
         dbase = object
@@ -56,10 +56,10 @@ def getbase_data(data=None):
 
     return dbase
 
-def getbase_graph(graph=None,data=None):
+def getgraph(graph=None,data=None):
 
     if graph is None:
-        pbase = getbase_data(data)
+        pbase = getdata(data)
     elif graph =="time":
         pbase = TimeView(data)
     elif graph =="log":
@@ -78,17 +78,17 @@ def getbase_graph(graph=None,data=None):
 def getbase(geo=None,graph=None,data=None):
 
     if geo is None:
-        base = getbase_graph(graph,data)
+        base = getgraph(graph,data)
     elif geo=="line":
-        base = Line(getbase_graph(graph,data))
+        base = Line(data)
     elif geo=="rectangle":
-        base = Rectangle(getbase_graph(graph,data))
+        base = Rectangle(data)
     elif geo=="ellipse":
-        base = Ellipse(getbase_graph(graph,data))
+        base = Ellipse(data)
     elif geo=="cuboid":
-        base = Cuboid(getbase_graph(graph,data))
+        base = Cuboid(data)
     elif geo=="cylinder":
-        base = Cylinder(getbase_graph(graph,data))
+        base = Cylinder(data)
 
     return base
 
@@ -1014,41 +1014,50 @@ def Trajectory(geo=None,graph=None,data=None):
 
     class TrajectoryClass(base):
 
-        headersRaw = ["X","Y","Z","MD",]
+        def __init__(self,headers=["X","Y","Z","MD"],**kwargs):
 
-        headersOPT = ["WELL","X","Y","Z","MD",]
+            super().__init__(headers=headers,**kwargs)
 
-        def __init__(self):
-
-            pass
-
-        def get_wellnames(self):
-
-            pass
-
-        def track_call(self,wellname=None):
-
-            wellnumber = int(re.sub("[^0-9]","",wellname))
-
-            folder1 = "GD-{}".format(str(wellnumber).zfill(3))
-            folder2 = "6.GD-{} Deviation".format(str(wellnumber).zfill(3))
-
-            filename = "Qum_Adasi-{}.txt".format(wellnumber)
+        def set_wellnames(self,names,fstring=None,zfill=3):
             
-            filepath = os.path.join(self.dirtraj,folder1,folder2,filename)
+            fstring = "{}" if fstring is None else fstring
 
-            traj = frame(filepath=filepath,skiplines=1,comment="#")
+            getwname = lambda x: fstring.format(re.sub(r"[^\d]","",str(x)).zfill(zfill))
 
-            traj.texttocolumn(0,deliminator=None,maxsplit=None)
+            getwname = np.vectorize(getwname)
 
-            traj.get_columns(headers=headers_traj)
+            self.itemnames = getwname(names)
 
-            traj.astype(header=headers_traj[0],dtype=np.float64)
-            traj.astype(header=headers_traj[1],dtype=np.float64)
-            traj.astype(header=headers_traj[2],dtype=np.float64)
-            traj.astype(header=headers_traj[3],dtype=np.float64)
+        def set_distance(self,depth=None):
 
-        def track_get(self,wellname=None):
+            coords = np.zeros((len(self.files),3))
+
+            for index,data in enumerate(self.files):
+
+                if depth is None:
+                    depthIndex = 0
+
+                coords[index,:] = data[depthIndex,:3]
+
+            dx = coords[:,0]-coords[:,0].reshape((-1,1))
+            dy = coords[:,1]-coords[:,1].reshape((-1,1))
+            dz = coords[:,2]-coords[:,2].reshape((-1,1))
+
+            self.distance = np.sqrt(dx**2+dy**2+dz**2)
+
+        def get_kneighbors(self,k=1):
+
+            min_indices = np.zeros((self.distance.shape[0],k),dtype=int)
+
+            for index_self,row in enumerate(self.distance):
+
+                indices = np.argpartition(row,range(k+1))[:k+1]
+
+                min_indices[index_self,:] = np.delete(indices,indices==index_self)
+
+            return min_indices
+
+        def get_track(self,wellname=None):
 
             pass
 

@@ -3,7 +3,7 @@ import numpy as np
 if __name__ == "__main__":
     import setup
 
-from stream.graphics import View3D
+from petepy.graphics import View3D
 
 ## BASIC GEOMETRIES
 
@@ -11,9 +11,9 @@ def Line(data=None):
 
     class LineClass(View3D(data)):
 
-        def __init__(self):
+        def __init__(self,**kwargs):
 
-            pass
+            super().__init__(**kwargs)
 
         def set_tracks(self,tracks):
             
@@ -69,7 +69,9 @@ def Rectangle(data=None):
 
         # it is a 2D object in 3D space
 
-        def __init__(self,lengths=None,thickness=1):
+        def __init__(self,lengths=None,thickness=1,**kwargs):
+
+            super().__init__(**kwargs)
 
             if lengths is not None:
                 self.set_lengths(lengths)
@@ -213,7 +215,9 @@ def Ellipse(data=None):
 
         # lamda: node spacing, radius ratio
 
-        def __init__(self,radii=None,inner_radii=(0,0),thickness=1):
+        def __init__(self,radii=None,inner_radii=(0,0),thickness=1,**kwargs):
+
+            super().__init__(**kwargs)
 
             if radii is not None:
                 self.set_radii(radii)
@@ -342,7 +346,9 @@ def Cuboid(data=None):
         with three entries for sizes in x,y,z direction.
         """
 
-        def __init__(self,lengths):
+        def __init__(self,lengths,**kwargs):
+
+            super().__init__(**kwargs)
 
             self.lengths = lengths
 
@@ -453,7 +459,9 @@ def Cylinder(data=None):
         For cylindrical disk, dimensions is a tuple with two entries for sizes in r,z direction
         """
         
-        def __init__(self,lengths):
+        def __init__(self,lengths,**kwargs):
+
+            super().__init__(**kwargs)
 
             self.lengths = lengths
 
