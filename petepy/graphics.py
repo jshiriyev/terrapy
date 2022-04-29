@@ -1114,11 +1114,14 @@ def LogView(data=None):
         def get_xticks(self,xvals,indexI,indexJ,xunits_count_default=11):
 
             if self.plot[indexI]["xlims"][indexJ] is not None:
+
                 if self.plot[indexI]["ptype"][indexJ] is None:
                     xmin,xmax,xunits_size = self.plot[indexI]["xlims"][indexJ]
                 elif self.plot[indexI]["ptype"][indexJ]=="log":
                     xmin,xmax = self.plot[indexI]["xlims"][indexJ]
+
             else:
+
                 xvals_min = np.nanmin(xvals)
                 xvals_max = np.nanmax(xvals)
 
@@ -1141,17 +1144,24 @@ def LogView(data=None):
                     xunits_size = xunits_size_temp/10**(zeroCountAfterDot+1)
 
                 if self.plot[indexI]["ptype"][indexJ] is None:
+
                     xmin = (np.floor(xvals_min/xunits_size)-1).astype(float)*xunits_size
                     xmax = (np.ceil(xvals_max/xunits_size)+1).astype(float)*xunits_size
-                elif self.plot[indexI]["ptype"][indexJ]=="log":
-                    xmin,xmax = xvals_min,xvals_max
 
+                elif self.plot[indexI]["ptype"][indexJ]=="log":
+
+                    xmin = xvals_min if xvals_min>0 else 0.001
+                    xmax = xvals_max if xvals_max>0 else 0.1
                 
             if self.plot[indexI]["ptype"][indexJ] is None:
+
                 xticks = np.arange(xmin,xmax+xunits_size/2,xunits_size)
+
             elif self.plot[indexI]["ptype"][indexJ]=="log":
+
                 xmin_power = np.floor(np.log10(xmin))
                 xmax_power = np.ceil(np.log10(xmax))
+
                 xticks = 10**np.arange(xmin_power,xmax_power+1/2)
 
             return xticks
