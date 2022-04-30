@@ -18,23 +18,23 @@ from scipy.optimize import root_scalar
 if __name__ == "__main__":
     import setup
 
-from stream.items import Fluids
+from petepy.items import Fluids
 
-from stream.items import get_PorRock
-from stream.items import get_Wells
+from petepy.items import PorRock
+from petepy.items import Wells
 
 class steady():
 
     def __init__(self,flow_rate):
 
-        self.PorRock = get_PorRock("ellipse")()
+        self.PorRock = PorRock(geo="ellipse")(window=None)
         
         # There can be two slightly compressible fluids where the
         # second one is at irreducible saturation, not mobile
 
-        self.Fluids = Fluids(number=2)
+        self.Fluids = Fluids()(number=2)
 
-        self.Well = get_Wells(number=1)
+        self.Well = Wells()(number=1)
 
         self.Well.set_flowconds("rate",flow_rate,"mobfluid")
 
@@ -176,16 +176,21 @@ class pseudosteady():
 
     def __init__(self,flow_rate,shape="circle"):
 
-        self.PorRock = get_PorRock(shape)()
+        if shape=="square" or shape=="rectangle":
+            geo = "rectangle"
+        elif shape=="circle" or shape=="ellipse":
+            geo = "ellipse"
+
+        self.PorRock = PorRock(geo=geo)(window=None)
 
         self.set_shapefactor(shape)
         
         # There can be two slightly compressible fluids where the
         # second one is at irreducible saturation, not mobile
 
-        self.Fluids = Fluids(number=2)
+        self.Fluids = Fluids()(number=2)
 
-        self.Well = get_Wells(number=1)
+        self.Well = Wells()(number=1)
 
         self.Well.set_flowconds("rate",flow_rate,"mobfluid")
 

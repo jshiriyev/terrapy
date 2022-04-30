@@ -9,10 +9,10 @@ from scipy.sparse.linalg import spsolve as sps
 if __name__ == "__main__":
     import setup
 
-from stream.items import Fluids
+from petepy.items import Fluids
 
-from stream.items import get_PorRock
-from stream.items import get_Wells
+from petepy.items import PorRock
+from petepy.items import Wells
 
 from fluidflow.pormed.conrelation import relative_permeability
 
@@ -25,14 +25,14 @@ class singlephase():
     
     def __init__(self):
         
-        self.PorRock = get_PorRock("rectangle")()
+        self.PorRock = PorRock(geo="rectangle")(window=None)
 
         # There can be two slightly compressible fluids where the
         # second one is at irreducible saturation, not mobile
 
-        self.Fluids = Fluids(number=2)
+        self.Fluids = Fluids()(number=2)
 
-        self.Wells = get_Wells()
+        self.Wells = Wells()()
 
     def initialize(self,pressure0,Swirr=0,ctotal=None):
 
@@ -366,16 +366,16 @@ class IMPES():
     
     def __init__(self,res,fluids,wells,relperm):
 
-        self.PorRock = get_PorRock("rectangle")()
+        self.PorRock = PorRock("rectangle")()
 
         # There can be two slightly compressible fluids where the
         # second one is at irreducible saturation, not mobile
 
         self.Fluids = Fluids(number=2)
 
-        self.Wells = get_Wells()
+        self.Wells = Wells()
 
-        self.rp     = relperm
+        self.rp = relperm
 
     def set_transmissibility(self):
 

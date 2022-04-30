@@ -88,6 +88,7 @@ sps.Fluids.set_viscosity(muo)
 sps.initialize(pressure0=Pi,ctotal=ct)
 
 sps.set_times(pss.tmax/5000,pss.tmax)
+##sps.set_times(1e1,1e3)
 
 sps.set_transmissibility()
 sps.set_matrix()
@@ -117,7 +118,7 @@ ur.Quantity(Pwf,'Pa').ito('psi')
 
 plt.semilogx(trs.times[0,:],trs.pressure[0,:],label="Transient Solution")
 plt.semilogx(pss.times[0,:],pss.pressure[0,:],label="Pseudo-Steady-State Solution")
-plt.scatter(sps.times,Pwf)
+plt.scatter(sps.times,Pwf,c="red",s=1,label="Finite Difference Solution")
 
 plt.xlabel("Time [days]")
 plt.ylabel("Pressure [psi]")

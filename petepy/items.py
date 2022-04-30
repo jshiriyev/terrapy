@@ -603,10 +603,10 @@ def Wells(graph=None,data=None):
 
             self.wnamefstr = "Well-{}" if wnamefstr is None else wnamefstr
 
-            self.Trajectory = Trajectory()
-            self.Completion = Completion()
-            self.Logging    = Logging()
-            self.Production = Production()
+            self.Trajectory = Trajectory()()
+            self.Completion = Completion()()
+            self.Logging    = Logging()()
+            self.Production = Production()()
 
         def set_names(self,*args,wnamefstr=None,sortFlag=False):
 
@@ -1008,7 +1008,7 @@ def Wells(graph=None,data=None):
 
     return WellsClass
 
-def Trajectory(geo=None,graph=None,data=None):
+def Trajectory(geo=None,graph=None,data="frame"):
 
     base = getbase(geo,graph,data)
 
@@ -1018,7 +1018,7 @@ def Trajectory(geo=None,graph=None,data=None):
 
             super().__init__(headers=headers,**kwargs)
 
-        def set_wellnames(self,names,fstring=None,zfill=3):
+        def set_itemnames(self,namelist,fstring=None,zfill=3):
             
             fstring = "{}" if fstring is None else fstring
 
@@ -1026,7 +1026,7 @@ def Trajectory(geo=None,graph=None,data=None):
 
             getwname = np.vectorize(getwname)
 
-            self.itemnames = getwname(names)
+            self.itemnames = getwname(namelist)
 
         def set_distance(self,depth=None):
 
@@ -1056,6 +1056,10 @@ def Trajectory(geo=None,graph=None,data=None):
                 min_indices[index_self,:] = np.delete(indices,indices==index_self)
 
             return min_indices
+
+        def set_tracks(self,tracks):
+
+            self.tracks = np.array(tracks)
 
         def get_track(self,wellname=None):
 
