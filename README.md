@@ -1,6 +1,6 @@
-# PlutoPy
+# TerraPy
 
-PlutoPy contains a set of packages used in formation evaluation and modeling.
+TerraPy contains a set of packages used in formation evaluation and modeling.
 
 Flow \# Fluid FLow Modeling:
 
@@ -13,7 +13,10 @@ Flow \# Fluid FLow Modeling:
 
 GeoMech \# Geomechanical Modeling:
 
-- **Pore Pressure Estimation:**
+- **ppest:** Pore Pressure Estimation
+- **wstab:** Wellbore stability
+- **sandprod:** Sand Production
+- **hfprop:** Hydraulic Fracture Propagation
 
 ResLog \# Electomagnetic Modeling, Forward models for conductivity measurements with induction logging tools:
 
@@ -21,10 +24,9 @@ ResLog \# Electomagnetic Modeling, Forward models for conductivity measurements 
 - **SIE:** 2D plane simulation with surface integral equations
 - **VIE:** 3D layer simulation volume integral equations
 
-GeoStatistics \# analysis and science of spatiotemporal dataset
+GeoModel \# analysis and science of spatiotemporal dataset
 
 - **connectivity:** variogram
-- **spatial estimation models:** 3D-interpolation, kriging simple, kriging ordinary
-- **spatial prediction models:** gaussian simulation
+- **estimation:** spatial estimation and prediction models, 3D-interpolation, kriging simple, kriging ordinary, gaussian simulation
 
 Javid Shiriyev, Ph.D.
