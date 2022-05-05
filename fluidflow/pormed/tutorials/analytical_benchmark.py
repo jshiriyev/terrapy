@@ -73,7 +73,7 @@ sps = singlephase()
 
 sps.PorRock.set_area(A)
 sps.PorRock.set_thickness(h)
-sps.PorRock.set_grids((11,11))
+sps.PorRock.set_grids((31,31))
 sps.PorRock.set_porosity(p)
 sps.PorRock.set_permeability(k)
 
@@ -87,8 +87,8 @@ sps.Fluids.set_viscosity(muo)
 
 sps.initialize(pressure0=Pi,ctotal=ct)
 
-sps.set_times(pss.tmax/5000,pss.tmax)
-##sps.set_times(1e1,1e3)
+##sps.set_times(pss.tmax/5000,pss.tmax)
+sps.set_times(1e1,1e4)
 
 sps.set_transmissibility()
 sps.set_matrix()
